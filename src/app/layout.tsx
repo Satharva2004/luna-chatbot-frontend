@@ -39,7 +39,6 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="system"
           enableSystem
-          disableTransitionOnChange
         >
           <div className="relative min-h-full">
             <div className="fixed inset-0 -z-10">

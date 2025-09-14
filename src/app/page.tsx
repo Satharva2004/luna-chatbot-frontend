@@ -123,7 +123,7 @@ Here is a code example:\n\n\`\`\`ts\nexport function add(a: number, b: number) {
                   <div>GenAI-Powered</div>
                   <div className="flex items-center justify-center gap-1">
                     <span>Business Research Tool</span>
-                    <span className="inline-block w-1 h-8 bg-foreground color-orange animate-blink"></span>
+                    <span className="inline-block w-1 h-8 bg-orange-500 dark:bg-foreground animate-blink transition-colors duration-300"></span>
                   </div>
                 </div>
                 <PromptSuggestions
