@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 import { GradientBackdrop } from "@/components/ui/gradient-bg"
+import { MessageSquare } from "lucide-react"
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -22,9 +23,8 @@ export default function Home() {
 
   const suggestions = useMemo(
     () => [
-      "Explain React Server Components",
-      "Summarize this text and list the key points",
-      "Generate a TypeScript function with JSDoc",
+      "Analyze market trends for AI-powered business tools in 2024",
+      "Create a competitive analysis for top business intelligence platforms",
     ],
     []
   )
@@ -118,11 +118,14 @@ Here is a code example:\n\n\`\`\`ts\nexport function add(a: number, b: number) {
           <div className="w-full relative z-10 bg-background/50 backdrop-blur-sm rounded-lg p-6">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center space-y-8 py-12">
-                <div className="font-silkscreen text-2xl md:text-[2rem] font-semibold text-center">
+                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                  <MessageSquare className="w-8 h-8 text-primary" />
+                </div>
+                <div className="font-silkscreen text-xl md:text-[1.5rem] font-semibold text-center">
                   <div>GenAI-Powered</div>
                   <div className="flex items-center justify-center gap-1">
                     <span>Business Research Tool</span>
-                    <span className="inline-block w-1 h-8 bg-foreground animate-blink"></span>
+                    <span className="inline-block w-1 h-8 bg-foreground color-orange animate-blink"></span>
                   </div>
                 </div>
                 <PromptSuggestions

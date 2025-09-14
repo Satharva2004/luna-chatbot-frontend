@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { MessageSquare } from 'lucide-react';
 
 interface PromptSuggestionsProps {
   label: ReactNode;
@@ -12,18 +13,26 @@ export function PromptSuggestions({
   suggestions,
 }: PromptSuggestionsProps) {
   return (
-    <div className="space-y-6">
-      <h2 className="text-center text-2xl font-bold">{label}</h2>
-      <div className="flex gap-6 text-sm">
-        {suggestions.map((suggestion) => (
-          <button
-            key={suggestion}
-            onClick={() => append({ role: "user", content: suggestion })}
-            className="h-max flex-1 rounded-xl border bg-background p-4 hover:bg-muted"
-          >
-            <p>{suggestion}</p>
-          </button>
-        ))}
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="flex flex-col items-center justify-center space-y-4">
+
+        <h1 className="text-md text-center text-muted-foreground">How can I help you today?</h1>
+        <p className="text-muted-foreground text-center mb-8">
+          Try asking me anything or pick a suggestion below
+        </p>
+        
+        <div className="w-full space-y-4">
+          {suggestions.map((suggestion) => (
+            <button
+              key={suggestion}
+              onClick={() => append({ role: "user", content: suggestion })}
+              className="w-full text-left p-4 rounded-lg border hover:bg-muted/50 transition-colors duration-200 flex items-start gap-3 group"
+            >
+              <MessageSquare className="w-5 h-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm">{suggestion}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
