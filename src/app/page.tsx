@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useCallback, useMemo, useState } from "react"
-import Head from 'next/head'
 
 import { Button } from "@/components/ui/button"
-import { ChatForm, ChatMessages } from "@/components/ui/chat"
+import { ChatForm } from "@/components/ui/chat"
 import { type Message } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
 import { MessageInput } from "@/components/ui/message-input"
@@ -13,7 +12,6 @@ import { PromptSuggestions } from "@/components/ui/prompt-suggestions"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
-import { GradientBackdrop } from "@/components/ui/gradient-bg"
 import { MessageSquare } from "lucide-react"
 
 export default function Home() {
@@ -89,7 +87,7 @@ Here is a code example:\n\n\`\`\`ts\nexport function add(a: number, b: number) {
     console.log("Rated", messageId, rating)
   }
 
-  const transcribeAudio = async (blob: Blob) => {
+  const transcribeAudio = async (_blob: Blob) => {
     await new Promise((r) => setTimeout(r, 600))
     return "This is a mock transcription from audio."
   }

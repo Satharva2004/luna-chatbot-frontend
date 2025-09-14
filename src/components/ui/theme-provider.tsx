@@ -5,7 +5,7 @@ import { type ReactNode } from "react"
 
 type ThemeProviderProps = {
   children: ReactNode
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { Suspense } from "react"
-import Markdown from "react-markdown"
+import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
@@ -14,7 +14,7 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS}>
+      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS as unknown as Components}>
         {children}
       </Markdown>
     </div>
@@ -77,18 +77,11 @@ function CodeBlock({
   ...restProps
 }: CodeBlockProps) {
   const code = childrenTakeAllStringContents(children)
-  const [copied, setCopied] = React.useState(false)
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   return (
     <div className="relative group">
       <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-        <CopyButton value={code} onCopy={handleCopy} />
+        <CopyButton content={code} />
       </div>
       <Suspense fallback={<pre {...restProps} className={cn(className, 'p-4 rounded-md bg-muted')}>
         <code>{code}</code>
@@ -105,10 +98,15 @@ function CodeBlock({
   )
 }
 
-function childrenTakeAllStringContents(element: any): string {
+function childrenTakeAllStringContents(element: unknown): string {
   if (typeof element === 'string') return element
   if (Array.isArray(element)) return element.map(childrenTakeAllStringContents).join('')
-  if (element?.props?.children) return childrenTakeAllStringContents(element.props.children)
+  if (typeof element === 'object' && element !== null) {
+    const maybe = element as { props?: { children?: unknown } }
+    if (maybe.props && 'children' in maybe.props && maybe.props.children !== undefined) {
+      return childrenTakeAllStringContents(maybe.props.children)
+    }
+  }
   return ''
 }
 
@@ -120,7 +118,7 @@ const COMPONENTS = {
   a: withClass("a", "text-primary underline underline-offset-4 hover:text-primary/80"),
   blockquote: withClass("blockquote", "border-l-4 border-muted-foreground/20 pl-4 text-muted-foreground"),
   
-  code({ children, className, node, ...rest }: any) {
+  code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
     const match = /language-(\w+)/.exec(className || '')
     const language = match ? match[1] : ''
     
@@ -139,7 +137,7 @@ const COMPONENTS = {
     )
   },
   
-  pre({ children }: any) {
+  pre({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   },
   
@@ -159,9 +157,12 @@ const COMPONENTS = {
   img: withClass("img", "rounded-md border border-border"),
 }
 
-function withClass(Tag: keyof JSX.IntrinsicElements, classes: string) {
-  return function Component({ className, ...props }: any) {
-    return <Tag className={cn(classes, className)} {...props} />
+function withClass<TagName extends keyof HTMLElementTagNameMap>(
+  Tag: TagName,
+  classes: string
+) {
+  return function Component({ className, ...props }: { className?: string } & React.HTMLAttributes<HTMLElement>) {
+    return React.createElement(Tag, { className: cn(classes, className), ...props })
   }
 }
 

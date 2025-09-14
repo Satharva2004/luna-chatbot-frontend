@@ -16,7 +16,7 @@ export function useAudioRecording({
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
-  const activeRecordingRef = useRef<any>(null)
+  const activeRecordingRef = useRef<Promise<Blob> | null>(null)
 
   useEffect(() => {
     const checkSpeechSupport = async () => {
@@ -37,7 +37,7 @@ export function useAudioRecording({
       recordAudio.stop()
       // Wait for the recording promise to resolve with the final blob
       const recording = await activeRecordingRef.current
-      if (transcribeAudio) {
+      if (transcribeAudio && recording) {
         const text = await transcribeAudio(recording)
         onTranscriptionComplete?.(text)
       }
