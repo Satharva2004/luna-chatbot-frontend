@@ -21,8 +21,9 @@ export default function Home() {
 
   const suggestions = useMemo(
     () => [
-      "Analyze market trends for AI-powered business tools in 2024",
-      "Create a competitive analysis for top business intelligence platforms",
+      "Tell me about India's recent cricket matches",
+      "Who scored the most runs in the last India vs Pakistan match?",
+      "Give me details about the recent women's cricket match between India and Australia"
     ],
     []
   )
@@ -36,19 +37,41 @@ export default function Home() {
   }
 
   const simulateAssistant = async (userContent: string) => {
-    await new Promise((r) => setTimeout(r, 800))
+    try {
+      const response = await fetch('/api/proxy/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: userContent
+        }),
+      });
 
-    const assistantMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content:
-        `You said: "${userContent}"
+      if (!response.ok) {
+        throw new Error('Failed to fetch match data');
+      }
 
-Here is a code example:\n\n\`\`\`ts\nexport function add(a: number, b: number) { return a + b }\n\`\`\`\n\nAnd a list:\n- Item A\n- Item B`,
-      createdAt: new Date(),
+      const data = await response.json();
+      
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: data.content || "I couldn't fetch the match details. Please try again later.",
+        createdAt: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error fetching match data:', error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Sorry, I encountered an error while fetching the match details. Please try again.",
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     }
-
-    setMessages((prev) => [...prev, assistantMessage])
   }
 
   const handleSubmit = (
@@ -99,7 +122,7 @@ Here is a code example:\n\n\`\`\`ts\nexport function add(a: number, b: number) {
       </div>
       
       {/* Chat header */}
-      <div className="p-4 border-b">
+      <div className="shrink-0 p-4 border-b">
         <div className="max-w-4xl mx-auto w-full">
           <div className="flex items-center gap-2">
             <Button onClick={() => setMessages([])} variant="outline">
@@ -111,74 +134,78 @@ Here is a code example:\n\n\`\`\`ts\nexport function add(a: number, b: number) {
       </div>
       
       {/* Scrollable chat area */}
-      <div className="flex-1 overflow-y-auto relative">
-        <div className={`relative max-w-4xl mx-auto w-full p-4 min-h-full ${messages.length === 0 ? 'flex items-center justify-center' : ''}`}>
-          <div className="w-full relative z-10 bg-background/50 backdrop-blur-sm rounded-lg p-6">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center space-y-8 py-12">
-                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                  <MessageSquare className="w-8 h-8 text-primary" />
-                </div>
-                <div className="font-silkscreen text-xl md:text-[1.5rem] font-semibold text-center">
-                  <div>GenAI-Powered</div>
-                  <div className="flex items-center justify-center gap-1">
-                    <span>Business Research Tool</span>
-                    <span className="inline-block w-1 h-8 bg-orange-500 dark:bg-foreground animate-blink transition-colors duration-300"></span>
+      <div className="relative flex-1 min-h-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto">
+          <div className={`min-h-full flex ${messages.length === 0 ? 'items-center justify-center' : ''} px-4 py-6`}>
+            <div className="w-full max-w-4xl mx-auto">
+              <div className="bg-background/50 backdrop-blur-sm rounded-lg p-6">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center space-y-8 py-12">
+                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                      <MessageSquare className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="font-silkscreen text-xl md:text-[1.5rem] font-semibold text-center">
+                      <div>Cricket Match Updates</div>
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Powered by GenAI</span>
+                        <span className="inline-block w-1 h-8 bg-orange-500 dark:bg-foreground animate-blink transition-colors duration-300"></span>
+                      </div>
+                    </div>
+                    <PromptSuggestions
+                      label=""
+                      append={append}
+                      suggestions={suggestions}
+                    />
                   </div>
-                </div>
-                <PromptSuggestions
-                  label=""
-                  append={append}
-                  suggestions={suggestions}
-                />
-              </div>
-            ) : (
-              <div className="w-full">
-                <MessageList
-                  messages={messages}
-                  isTyping={isGenerating}
-                  messageOptions={(message) => ({
-                    actions: onRateResponse ? (
-                      <>
-                        <div className="border-r pr-1">
+                ) : (
+                  <div className="w-full">
+                    <MessageList
+                      messages={messages}
+                      isTyping={isGenerating}
+                      messageOptions={(message) => ({
+                        actions: onRateResponse ? (
+                          <>
+                            <div className="border-r pr-1">
+                              <CopyButton
+                                content={message.content}
+                                copyMessage="Copied response to clipboard!"
+                              />
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => onRateResponse(message.id, "thumbs-up")}
+                            >
+                              <ThumbsUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => onRateResponse(message.id, "thumbs-down")}
+                            >
+                              <ThumbsDown className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
                           <CopyButton
                             content={message.content}
                             copyMessage="Copied response to clipboard!"
                           />
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => onRateResponse(message.id, "thumbs-up")}
-                        >
-                          <ThumbsUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => onRateResponse(message.id, "thumbs-down")}
-                        >
-                          <ThumbsDown className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <CopyButton
-                        content={message.content}
-                        copyMessage="Copied response to clipboard!"
-                      />
-                    ),
-                  })}
-                />
+                        ),
+                      })}
+                    />
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
       
       {/* Fixed input area */}
-      <div className="border-t p-4 bg-background/80 backdrop-blur-sm sticky bottom-0">
+      <div className="shrink-0 border-t p-4 bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto w-full">
           <ChatForm
             isPending={isGenerating}

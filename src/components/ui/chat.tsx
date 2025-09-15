@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactElement,
+  useEffect,
 } from "react"
 import { ArrowDown, ThumbsDown, ThumbsUp } from "lucide-react"
 
@@ -248,29 +249,40 @@ export function ChatMessages({
     handleTouchStart,
   } = useAutoScroll([messages])
 
+  const scrollToBottomRef = useRef<HTMLDivElement>(null)
+
+  const handleScrollToBottom = useCallback(() => {
+    if (scrollToBottomRef.current) {
+      scrollToBottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [])
+
   return (
     <div
-      className="grid grid-cols-1 overflow-y-auto pb-4"
       ref={containerRef}
       onScroll={handleScroll}
       onTouchStart={handleTouchStart}
+      className="flex-1 overflow-y-auto min-h-0"
+      style={{
+        contain: 'content',
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch',
+      }}
     >
-      <div className="max-w-full [grid-column:1/1] [grid-row:1/1]">
+      <div className="min-h-full flex flex-col">
         {children}
+        <div ref={scrollToBottomRef} />
       </div>
-
       {!shouldAutoScroll && (
-        <div className="pointer-events-none flex flex-1 items-end justify-end [grid-column:1/1] [grid-row:1/1]">
-          <div className="sticky bottom-0 left-0 flex w-full justify-end">
-            <Button
-              onClick={scrollToBottom}
-              className="pointer-events-auto h-8 w-8 rounded-full ease-in-out animate-in fade-in-0 slide-in-from-bottom-1"
-              size="icon"
-              variant="ghost"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="sticky bottom-4 left-0 right-0 flex justify-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full w-8 h-8 p-0 bg-background/80 backdrop-blur-sm border"
+            onClick={handleScrollToBottom}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>
@@ -280,15 +292,21 @@ export function ChatMessages({
 export const ChatContainer = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn("grid max-h-full w-full grid-rows-[1fr_auto]", className)}
-      {...props}
-    />
-  )
-})
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "relative flex h-full w-full flex-col overflow-hidden",
+      className
+    )}
+    style={{
+      display: 'grid',
+      gridTemplateRows: '1fr auto',
+      minHeight: 0
+    }}
+    {...props}
+  />
+))
 ChatContainer.displayName = "ChatContainer"
 
 interface ChatFormProps {
