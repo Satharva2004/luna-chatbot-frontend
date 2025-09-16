@@ -15,12 +15,12 @@ import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%]",
+  "group/message relative break-words rounded-lg p-3 text-sm",
   {
     variants: {
       isUser: {
-        true: "bg-primary text-primary-foreground",
-        false: "bg-muted text-foreground",
+        true: "bg-primary text-primary-foreground max-w-[85%] sm:max-w-[70%]",
+        false: "bg-muted text-foreground max-w-[90%] sm:max-w-[80%]",
       },
       animation: {
         none: "",
@@ -193,7 +193,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   // Render message with files if present
   const renderMessageContent = (content: string) => (
-    <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
+    <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
       {files ? (
         <div className="mb-1 flex flex-wrap gap-2">
           {files.map((file, index) => (
@@ -202,8 +202,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         </div>
       ) : null}
 
-      <div className={cn(chatBubbleVariants({ isUser, animation }), "w-full")}>
-        <MarkdownRenderer>{content}</MarkdownRenderer>
+      <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+        <div className="overflow-hidden">
+          <MarkdownRenderer>{content}</MarkdownRenderer>
+        </div>
         {sources && sources.length > 0 && (
           <div className="mt-4 pt-3 border-t border-muted-foreground/20">
             <div className="flex items-center gap-2 mb-2">
@@ -301,13 +303,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         return (
           <div
             className={cn(
-              "flex flex-col",
+              "flex flex-col w-full",
               isUser ? "items-end" : "items-start"
             )}
             key={`text-${index}`}
           >
             <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-              <MarkdownRenderer>{part.text}</MarkdownRenderer>
+              <div className="overflow-hidden">
+                <MarkdownRenderer>{part.text}</MarkdownRenderer>
+              </div>
               {actions ? (
                 <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
                   {actions}
@@ -353,9 +357,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   
   // Fallback for any other case
   return (
-    <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
+    <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
       <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-        <MarkdownRenderer>{content}</MarkdownRenderer>
+        <div className="overflow-hidden">
+          <MarkdownRenderer>{content}</MarkdownRenderer>
+        </div>
         {actions && (
           <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
             {actions}
@@ -388,7 +394,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="mb-2 flex flex-col items-start sm:max-w-[70%]">
+    <div className="mb-2 flex flex-col items-start max-w-[90%] sm:max-w-[80%]">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
@@ -414,7 +420,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
             className="border-t"
           >
             <div className="p-2">
-              <div className="whitespace-pre-wrap text-xs">
+              <div className="whitespace-pre-wrap text-xs overflow-hidden">
                 {part.reasoning}
               </div>
             </div>
@@ -431,7 +437,7 @@ function ToolCall({
   if (!toolInvocations?.length) return null
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex flex-col items-start gap-2 max-w-[90%] sm:max-w-[80%]">
       {toolInvocations.map((invocation, index) => {
         const isCancelled =
           invocation.state === "result" &&
@@ -481,7 +487,7 @@ function ToolCall({
             return (
               <div
                 key={index}
-                className="flex flex-col gap-1.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
+                className="flex flex-col gap-1.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm w-full"
               >
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Code2 className="h-4 w-4" />
@@ -494,7 +500,7 @@ function ToolCall({
                     </span>
                   </span>
                 </div>
-                <pre className="overflow-x-auto whitespace-pre-wrap text-foreground">
+                <pre className="overflow-x-auto whitespace-pre-wrap text-foreground text-xs break-words">
                   {JSON.stringify(invocation.result, null, 2)}
                 </pre>
               </div>

@@ -14,7 +14,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 import { MessageSquare } from "lucide-react"
 
-export default function Home() {
+export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -56,7 +56,7 @@ export default function Home() {
           statusText: response.statusText,
           error: errorText
         });
-        throw new Error(`Failed to fetch match data: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
       }
 
       const responseData = await response.json();
@@ -69,7 +69,7 @@ export default function Home() {
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: responseData.content || "I couldn't fetch the match details. Please try again later.",
+        content: responseData.content || "I couldn't fetch the details. Please try again later.",
         createdAt: responseData.timestamp ? new Date(responseData.timestamp) : new Date(),
         sources: Array.isArray(responseData.sources) ? responseData.sources : [],
       };
@@ -83,11 +83,11 @@ export default function Home() {
       console.log('Assistant Message:', assistantMessage);
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error fetching match data:', error);
+      console.error('Error fetching data:', error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: "Sorry, I encountered an error while fetching the match details. Please try again.",
+        content: "Sorry, I encountered an error while processing your request. Please try again.",
         createdAt: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -164,11 +164,11 @@ export default function Home() {
                     <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
                       <MessageSquare className="w-8 h-8 text-primary" />
                     </div>
-                    <div className="font-silkscreen text-xl md:text-[1.5rem] font-semibold text-center">
+                    <div className="font-mono text-xl md:text-[1.5rem] font-semibold text-center">
                       <div>Business Research Tool</div>
                       <div className="flex items-center justify-center gap-1">
                         <span>Powered by GenAI</span>
-                        <span className="inline-block w-1 h-8 bg-orange-500 dark:bg-foreground animate-blink transition-colors duration-300"></span>
+                        <span className="inline-block w-1 h-8 bg-orange-500 dark:bg-foreground animate-pulse transition-colors duration-300"></span>
                       </div>
                     </div>
                     <PromptSuggestions
