@@ -21,9 +21,9 @@ export default function Home() {
 
   const suggestions = useMemo(
     () => [
-      "Tell me about India's recent cricket matches",
-      "Who scored the most runs in the last India vs Pakistan match?",
-      "Give me details about the recent women's cricket match between India and Australia"
+      "What are the common challenges in scaling a startup? Provide case studies.",
+      "List key performance indicators (KPIs) for tracking sales growth",
+      "Research the top trends and tools in e-commerce for 2025."
     ],
     []
   )
@@ -165,7 +165,7 @@ export default function Home() {
                       <MessageSquare className="w-8 h-8 text-primary" />
                     </div>
                     <div className="font-silkscreen text-xl md:text-[1.5rem] font-semibold text-center">
-                      <div>Cricket Match Updates</div>
+                      <div>Business Research Tool</div>
                       <div className="flex items-center justify-center gap-1">
                         <span>Powered by GenAI</span>
                         <span className="inline-block w-1 h-8 bg-orange-500 dark:bg-foreground animate-blink transition-colors duration-300"></span>
