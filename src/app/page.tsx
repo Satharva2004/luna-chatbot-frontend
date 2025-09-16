@@ -38,6 +38,7 @@ export default function Home() {
 
   const simulateAssistant = async (userContent: string) => {
     try {
+      console.log('Sending request to API with prompt:', userContent);
       const response = await fetch('/api/proxy/generate', {
         method: 'POST',
         headers: {
@@ -49,18 +50,37 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch match data');
+        const errorText = await response.text();
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Failed to fetch match data: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+      console.log('API Response:', {
+        content: responseData.content ? `${responseData.content.substring(0, 100)}...` : 'No content',
+        sources: responseData.sources ? `Array(${responseData.sources.length})` : 'No sources',
+        timestamp: responseData.timestamp || 'No timestamp'
+      });
       
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.content || "I couldn't fetch the match details. Please try again later.",
-        createdAt: new Date(),
+        content: responseData.content || "I couldn't fetch the match details. Please try again later.",
+        createdAt: responseData.timestamp ? new Date(responseData.timestamp) : new Date(),
+        sources: Array.isArray(responseData.sources) ? responseData.sources : [],
       };
+      
+      console.log('Created assistant message:', {
+        content: assistantMessage.content ? `${assistantMessage.content.substring(0, 100)}...` : 'No content',
+        sources: assistantMessage.sources ? `Array(${assistantMessage.sources.length})` : 'No sources',
+        timestamp: assistantMessage.createdAt
+      });
 
+      console.log('Assistant Message:', assistantMessage);
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error fetching match data:', error);
