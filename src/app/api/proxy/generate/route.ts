@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     console.log('Generate Request:', JSON.stringify(body, null, 2));
-    
+    //trial commit
     const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {

@@ -176,11 +176,13 @@ export default function ChatPage() {
     return "This is a mock transcription from audio."
   }
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
       <header className="shrink-0 border-b border-gray-100 dark:border-gray-800/50 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center">
           <div className="w-full flex items-center justify-between">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-3 h-full">
@@ -188,15 +190,46 @@ export default function ChatPage() {
                 <Search className="w-4 h-4 text-white dark:text-black" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="font-medium text-gray-900 dark:text-white text-base leading-tight">
+                <h1 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
                   Eduvance Business Research
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Powered by AI</p>
               </div>
             </div>
 
-            {/* Right Section - Theme Toggle, New Chat, and Logout */}
-            <div className="flex items-center gap-2">
+            {/* Mobile menu button */}
+            <div className="md:hidden ">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none"
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  {isMobileMenuOpen ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12 "
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  )}
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-2">
               <Button
                 onClick={() => setMessages([])}
                 variant="ghost"
@@ -219,6 +252,35 @@ export default function ChatPage() {
             </div>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800/50">
+            <div className="px-4 py-2 space-y-1">
+              <button
+                onClick={() => {
+                  setMessages([]);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              >
+                <span>New chat</span>
+              </button>
+              <button
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              >
+                <span>Logout</span>
+              </button>
+              <div className="px-3 py-2">
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       
