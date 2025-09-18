@@ -6,24 +6,6 @@ interface GroundingChunk {
   };
 }
 
-interface Candidate {
-  candidates?: Array<{
-    content: {
-      parts: Array<{
-        text: string;
-      }>;
-    };
-    groundingMetadata?: {
-      groundingChunks?: GroundingChunk[];
-    };
-  }>;
-}
-
-interface ResponseData {
-  content: string;
-  sources: string[];
-}
-
 const GEMINI_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/gemini/generate`;
 
 export async function POST(request: Request) {
@@ -52,25 +34,40 @@ export async function POST(request: Request) {
       );
     }
 
-    let responseData = await response.json();
+    const responseData = await response.json();
+    let result: { content: string; sources: string[] } = { content: '', sources: [] };
     
     // Handle both direct response and array response from Gemini
     if (Array.isArray(responseData) && responseData.length > 0) {
       // If it's an array, take the first candidate's content
-      const candidate = responseData[0];
+      const candidate = responseData[0] as {
+        candidates?: Array<{
+          content: { parts: Array<{ text: string }> };
+          groundingMetadata?: { groundingChunks?: GroundingChunk[] };
+        }>;
+      };
+      
       if (candidate.candidates?.[0]?.content?.parts?.[0]?.text) {
-        responseData = {
+        result = {
           content: candidate.candidates[0].content.parts[0].text,
           sources: candidate.candidates[0]?.groundingMetadata?.groundingChunks
-            ?.map((c: GroundingChunk) => c.web?.uri)
-            .filter((uri: string | undefined): uri is string => Boolean(uri)) || []
+            ?.map((c) => c.web?.uri)
+            .filter((uri): uri is string => Boolean(uri)) || []
         };
       }
+    } else if (typeof responseData === 'object' && responseData !== null) {
+      // Handle direct response
+      result = {
+        content: (responseData as any).content || '',
+        sources: Array.isArray((responseData as any).sources) 
+          ? (responseData as any).sources 
+          : []
+      };
     }
     
     console.log('Gemini Response:', JSON.stringify({
-      content: responseData.content ? `${responseData.content.substring(0, 100)}...` : 'No content',
-      sources: responseData.sources || []
+      content: result.content ? `${result.content.substring(0, 100)}...` : 'No content',
+      sources: result.sources || []
     }, null, 2));
     
     return NextResponse.json({
