@@ -1,5 +1,29 @@
 import { NextResponse } from 'next/server';
 
+interface GroundingChunk {
+  web?: {
+    uri: string;
+  };
+}
+
+interface Candidate {
+  candidates?: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
+    };
+    groundingMetadata?: {
+      groundingChunks?: GroundingChunk[];
+    };
+  }>;
+}
+
+interface ResponseData {
+  content: string;
+  sources: string[];
+}
+
 const GEMINI_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/gemini/generate`;
 
 export async function POST(request: Request) {
@@ -38,8 +62,8 @@ export async function POST(request: Request) {
         responseData = {
           content: candidate.candidates[0].content.parts[0].text,
           sources: candidate.candidates[0]?.groundingMetadata?.groundingChunks
-            ?.map((c: any) => c.web?.uri)
-            .filter(Boolean) || []
+            ?.map((c: GroundingChunk) => c.web?.uri)
+            .filter((uri: string | undefined): uri is string => Boolean(uri)) || []
         };
       }
     }
