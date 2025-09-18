@@ -3,14 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  async rewrites() {
-    return [
-      {
-        source: '/api/proxy/:path*',
-        destination: 'https://assignment-backend-one-khaki.vercel.app/api/gemini/:path*',
-      },
-    ]
-  },
+  // Using direct API calls in route handlers instead of rewrites
+  // to have better control over request/response handling
 };
 
 export default nextConfig;

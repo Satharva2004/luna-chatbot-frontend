@@ -4,6 +4,7 @@ import { Silkscreen } from 'next/font/google';
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { GradientBackdrop } from "@/components/ui/gradient-bg";
+import { AuthProvider } from "@/contexts/auth-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,7 +45,9 @@ export default function RootLayout({
             {/* <div className="fixed inset-0 -z-10">
               <GradientBackdrop />
             </div> */}
-            {children}
+            <AuthProvider>
+              {children}
+            </AuthProvider>
           </div>
         </ThemeProvider>
       </body>

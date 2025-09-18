@@ -1,7 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,61 +14,47 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
 
-// Dummy user credentials
-const DUMMY_USERS = [
-  { email: "student@example.com", password: "student123", role: "student" },
-  { email: "teacher@example.com", password: "teacher123", role: "teacher" },
-  { email: "admin@example.com", password: "admin123", role: "admin" },
-]
+// Demo credentials
+const DEMO_CREDENTIALS = {
+        //nun
+} as const
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!email || !password) {
+      toast.error("Please enter both email and password")
+      return
+    }
+    
     setIsLoading(true)
 
     try {
-      const response = await fetch('https://assignment-backend-one-khaki.vercel.app/api/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token)
-        toast.success('Login successful!')
-        router.push('/')
-      } else {
-        throw new Error(data.message || 'Login failed')
+      const { success, error } = await login(email, password)
+      
+      if (!success) {
+        toast.error(error || 'Login failed')
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'An error occurred')
+      console.error("Login error:", error)
+      toast.error("An error occurred during login")
     } finally {
       setIsLoading(false)
     }
   }
 
   // Pre-fill form with demo credentials for testing
-  const useDemoCredentials = (demoRole: 'student' | 'teacher' | 'admin') => {
-    const demoUser = DUMMY_USERS.find(user => user.role === demoRole)
-    if (demoUser) {
-      setEmail(demoUser.email)
-      setPassword(demoUser.password)
-    }
-  }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -101,12 +87,6 @@ export function LoginForm({
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <button
-                    type="button"
-                    onClick={() => useDemoCredentials('student')}
-                    className="ml-auto text-xs text-muted-foreground hover:underline"
-                  >
-                  </button>
                 </div>
                 <Input 
                   id="password" 
@@ -120,6 +100,10 @@ export function LoginForm({
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
+                
+                
+
+
                 <div className="text-center text-sm text-muted-foreground">
                   Don't have an account?{' '}
                   <a 

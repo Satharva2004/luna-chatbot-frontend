@@ -17,9 +17,6 @@ export function PromptSuggestions({
       <div className="flex flex-col items-center justify-center space-y-4">
 
         <h1 className="text-md text-center text-muted-foreground">How can I help you today?</h1>
-        <p className="text-muted-foreground text-center mb-8">
-          Try asking me anything or pick a suggestion below
-        </p>
         
         <div className="w-full space-y-4">
           {suggestions.map((suggestion) => (
