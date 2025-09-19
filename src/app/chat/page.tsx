@@ -11,7 +11,7 @@ import { MessageList } from "@/components/ui/message-list"
 import { PromptSuggestions } from "@/components/ui/prompt-suggestions"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
-import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut, Moon, Sun } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 
@@ -28,7 +28,7 @@ export default function ChatPage() {
     ],
     []
   )
-
+    
   const append = useCallback((message: { role: "user"; content: string }) => {
     setInput(message.content)
   }, [])
@@ -181,7 +181,7 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <header className="shrink-0 border-b border-gray-100 dark:border-gray-800/50 bg-background/80 backdrop-blur-xl">
+      <header className="fixed top-0 left-0 right-0 z-10 border-b border-gray-100 dark:border-gray-800/50 bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center">
           <div className="w-full flex items-center justify-between">
             {/* Left Section - Logo */}
@@ -255,28 +255,35 @@ export default function ChatPage() {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800/50">
-            <div className="px-4 py-2 space-y-1">
-              <button
-                onClick={() => {
-                  setMessages([]);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
-              >
-                <span>New chat</span>
-              </button>
-              <button
-                onClick={() => {
-                  logout();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
-              >
-                <span>Logout</span>
-              </button>
-              <div className="px-3 py-2">
-                <ThemeToggle />
+          <div className="fixed inset-0 z-0 bg-black/20 dark:bg-black/50 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
+            <div className="absolute right-4 top-20 z-20 w-56 origin-top-right rounded-lg bg-white p-2 shadow-lg  backdrop-blur-lg dark:bg-gray-800 dark:ring-gray-700" onClick={e => e.stopPropagation()}>
+              <div className="space-y-1">
+                <button
+                  onClick={() => {
+                    setMessages([]);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex w-full items-center rounded-md px-3 py-2.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 bg=== dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  <span>New chat</span>
+                </button>
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex w-full items-center rounded-md px-3 py-2.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </button>
+                <div className="border-t border-gray-200 px-1 py-1.5 dark:border-gray-700">
+                  <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm text-gray-800 dark:text-gray-200">
+                    <span>Appearance</span>
+                    <ThemeToggle />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -284,10 +291,10 @@ export default function ChatPage() {
       </header>
 
       
-      {/* Main Content */}
-      <div className="relative flex-1 min-h-0 overflow-hidden">
-        <div className={`absolute inset-0 ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-          <div className={`min-h-full flex ${messages.length === 0 ? 'items-center justify-center' : ''} px-6 py-8`}>
+      {/* Main Content - Add padding to account for fixed header and footer */}
+      <div className="flex-1 overflow-hidden pt-16 pb-24 md:pb-28">
+        <div className={`h-full ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+          <div className={`min-h-full flex ${messages.length === 0 ? 'items-center justify-center' : ''} px-4 sm:px-6 py-4`}>
             <div className="w-full max-w-4xl mx-auto">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center space-y-12 py-16">
@@ -371,9 +378,9 @@ export default function ChatPage() {
         </div>
       </div>
       
-      {/* Input Area */}
-      <div className="shrink-0 border-t border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-[#080809]/90 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-6 py-3">
+      {/* Input Area - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-[#080809]/90 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
           <ChatForm
             isPending={isGenerating}
             handleSubmit={handleSubmit}
