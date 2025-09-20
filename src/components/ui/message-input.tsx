@@ -14,7 +14,8 @@ import { FilePreview } from "@/components/ui/file-preview"
 import { InterruptPrompt } from "@/components/ui/interrupt-prompt"
 
 interface MessageInputBaseProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'ref'> {
+  inputRef?: React.Ref<HTMLTextAreaElement>
   value: string
   submitOnEnter?: boolean
   stop?: () => void
@@ -159,12 +160,15 @@ export function MessageInput({
     onKeyDownProp?.(event)
   }
 
-  const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+  const internalTextAreaRef = useRef<HTMLTextAreaElement>(null)
+  const textAreaRef = props.inputRef || internalTextAreaRef
   const [textAreaHeight, setTextAreaHeight] = useState<number>(0)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (textAreaRef.current) {
-      setTextAreaHeight(textAreaRef.current.offsetHeight)
+    const element = internalTextAreaRef.current
+    if (element) {
+      setTextAreaHeight(element.offsetHeight)
     }
   }, [props.value])
 
@@ -172,7 +176,7 @@ export function MessageInput({
     props.allowAttachments && props.files && props.files.length > 0
 
   useAutosizeTextArea({
-    ref: textAreaRef,
+    ref: internalTextAreaRef,
     maxHeight: 240,
     borderWidth: 1,
     dependencies: [props.value, showFileList],
@@ -180,7 +184,8 @@ export function MessageInput({
 
   return (
     <div
-      className="relative flex w-full"
+      ref={containerRef}
+      className={cn("relative w-full", className)}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}

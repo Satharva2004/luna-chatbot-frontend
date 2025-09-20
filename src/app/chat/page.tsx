@@ -1,7 +1,6 @@
 "use client"
 
-import React, { useCallback, useMemo, useState } from "react"
-
+import React, { useCallback, useMemo, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
 import { type Message } from "@/components/ui/chat-message"
@@ -13,6 +12,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
 import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut, Moon, Sun } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
+import { general_chatbot_questions, fuzzySearch } from "@/services/suggestions/fuzzy"
 
 
 export default function ChatPage() {
@@ -21,20 +22,27 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  const suggestions = useMemo(
-    () => [
-     
-    ],
-    []
-  )
-    
+  const filteredSuggestions = useMemo(() => {
+    if (!input || input.trim().length < 2) return []
+    return fuzzySearch(input).slice(0, 5) // Show top 5 matching suggestions
+  }, [input])
+
   const append = useCallback((message: { role: "user"; content: string }) => {
     setInput(message.content)
   }, [])
 
   const handleInputChange: React.ChangeEventHandler<HTMLTextAreaElement> = (e) => {
     setInput(e.target.value)
+    setShowSuggestions(e.target.value.length > 0)
+  }
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setInput(suggestion)
+    setShowSuggestions(false)
+    inputRef.current?.focus()
   }
 
   const createNewConversation = async (title: string) => {
@@ -317,7 +325,7 @@ export default function ChatPage() {
                   </div>
                   
                   {/* Suggestions - Centered */}
-                  <div className="w-full max-w-2xl">
+                  {/* <div className="w-full max-w-2xl">
                     <div className="space-y-3">
                       <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                         Try asking about these topics
@@ -325,10 +333,10 @@ export default function ChatPage() {
                       <PromptSuggestions
                         label=""
                         append={append}
-                        suggestions={suggestions}
+                        suggestions={filteredSuggestions}
                       />
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 <div className="bg-background/50 backdrop-blur-sm rounded-lg p-6">
@@ -380,24 +388,41 @@ export default function ChatPage() {
       
       {/* Input Area - Fixed at bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-[#080809]/90 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3">
-          <ChatForm
-            isPending={isGenerating}
-            handleSubmit={handleSubmit}
-          >
-            {() => (
-              <MessageInput
-                value={input}
-                onChange={handleInputChange}
-                stop={stop}
-                isGenerating={isGenerating}
-                transcribeAudio={transcribeAudio}
-              />
-            )}
-          </ChatForm>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 relative">
+          <div className="relative">
+            <ChatForm
+              isPending={isGenerating}
+              handleSubmit={handleSubmit}
+            >
+              {() => (
+                <div className="relative">
+                  {showSuggestions && filteredSuggestions.length > 0 && (
+                    <SuggestionDropdown
+                      suggestions={filteredSuggestions}
+                      onSelect={handleSuggestionSelect}
+                      inputValue={input}
+                      className="w-full"
+                    />
+                  )}
+                  <MessageInput
+                    value={input}
+                    onChange={handleInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setShowSuggestions(false)
+                      }
+                    }}
+                    stop={stop}
+                    isGenerating={isGenerating}
+                    transcribeAudio={transcribeAudio}
+                    inputRef={inputRef}
+                  />
+                </div>
+              )}
+            </ChatForm>
+          </div>
         </div>
       </div>
-      
       <Toaster position="top-center" richColors />
     </div>
   )
