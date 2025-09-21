@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { useToast } from "@/lib/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 
 // Demo credentials
@@ -31,24 +31,43 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  const { toast } = useToast()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
-      toast.error("Please enter both email and password")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter both email and password",
+      })
       return
     }
     
     setIsLoading(true)
-
+    
     try {
       const { success, error } = await login(email, password)
       
-      if (!success) {
-        toast.error(error || 'Login failed')
+      if (success) {
+        toast({
+          title: "Login successful!"
+        })
+        // The auth context will handle the redirect
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error || 'Login failed',
+        })
       }
     } catch (error) {
       console.error("Login error:", error)
-      toast.error("An error occurred during login")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred during login",
+      })
     } finally {
       setIsLoading(false)
     }

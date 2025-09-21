@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { useToast } from "@/lib/hooks/use-toast"
 
 export function SignupForm({
   className,
@@ -26,12 +26,51 @@ export function SignupForm({
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  const { toast } = useToast()
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Input validation
+    if (!username.trim()) {
+      toast({
+        title: "Error",
+        description: "Username is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!email.trim() || !validateEmail(email)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match")
-      return
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
     }
 
     setIsLoading(true)
@@ -43,24 +82,64 @@ export function SignupForm({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username,
-          email,
+          username: username.trim(),
+          email: email.trim().toLowerCase(),
           password
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
-      if (response.ok) {
-        toast.success('Account created successfully! Please log in.')
-        router.push('/login')
-      } else {
-        throw new Error(data.message || 'Registration failed')
+      if (!response.ok) {
+        throw new Error(
+          data.message || 
+          data.error || 
+          (response.status === 400 ? 'Invalid request data' : 'Registration failed')
+        );
       }
+
+      // Clear form on success
+      setUsername('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+
+      toast({
+        title: "Success!",
+        description: "Account created successfully. Redirecting to login...",
+        variant: "default",
+      });
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'An error occurred')
+      console.error('Registration error:', error);
+      
+      let errorMessage = 'An error occurred during registration';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Handle common error cases
+        if (errorMessage.includes('already exists')) {
+          if (errorMessage.toLowerCase().includes('email')) {
+            errorMessage = 'This email is already registered';
+          } else if (errorMessage.toLowerCase().includes('username')) {
+            errorMessage = 'This username is already taken';
+          }
+        }
+      }
+
+      toast({
+        title: "Registration Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

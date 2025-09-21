@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { GradientBackdrop } from "@/components/ui/gradient-bg";
 import { AuthProvider } from "@/contexts/auth-context";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} antialiased h-full`}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} antialiased h-full`}
+        suppressHydrationWarning
+      >
         {/* <GridPattern />  */}
         <ThemeProvider
           attribute="class"
@@ -47,6 +51,7 @@ export default function RootLayout({
             </div> */}
             <AuthProvider>
               {children}
+              <Toaster />
             </AuthProvider>
           </div>
         </ThemeProvider>

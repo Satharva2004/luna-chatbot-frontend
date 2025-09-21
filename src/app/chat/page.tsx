@@ -315,7 +315,7 @@ export default function ChatPage() {
                     </div>
                     
                     <div className="space-y-3">
-                      <h2 className="text-4xl text-gray-900 dark:text-white font-['Playfair'] font-weight:1.5">
+                      <h2 className="text-3xl text-gray-900 dark:text-white font-['Playfair'] font-weight:1.5">
                         How can I help you today?
                       </h2>
                       <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToast } from "@/lib/hooks/use-toast";
 
 type User = {
   email: string;
@@ -23,6 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const { toast } = useToast();
+
   const login = useCallback(async (email: string, password: string) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -34,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'include', // Include cookies for cross-origin requests
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
@@ -46,13 +49,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/chat');
         return { success: true };
       } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: data.message || 'Invalid email or password',
+        });
         return { success: false, error: data.message || 'Login failed' };
       }
     } catch (error) {
       console.error('Login error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred during login. Please try again.",
+      });
       return { success: false, error: 'An error occurred during login' };
     }
-  }, [router]);
+  }, [router, toast]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('user');
