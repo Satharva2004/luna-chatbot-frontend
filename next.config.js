@@ -22,27 +22,19 @@ const nextConfig = {
       },
     ];
   },
-  // Disable the static optimization warning
-  outputFileTracingRoot: path.join(__dirname, '../../'),
-  async headers() {
-    return [
-      {
-        // matching all API routes
-        source: "/api/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
-        ]
-      }
-    ]
-  },
   // Enable React Strict Mode
   reactStrictMode: true,
   // Configure images if needed
   images: {
     domains: ['*'],
+  },
+  // Output directory for the build
+  distDir: '.next',
+  // Enable static HTML export
+  output: 'standalone',
+  // Enable server components
+  experimental: {
+    appDir: true,
   },
 };
 
