@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   eslint: {
     // Warning: This allows production builds to successfully complete even if
@@ -16,10 +18,12 @@ const nextConfig = {
     return [
       {
         source: '/api/speech/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/speech/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/speech/:path*`,
       },
     ];
   },
+  // Disable the static optimization warning
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   async headers() {
     return [
       {

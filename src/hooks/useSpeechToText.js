@@ -69,9 +69,8 @@ const useSpeechToText = (onTranscription) => {
     formData.append('audio', audioBlob, 'recording.wav');
     
     try {
-      // Use the environment variable if available, otherwise use relative URL
-      const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL 
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/speech/transcribe`
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/api/speech/transcribe`
         : '/api/speech/transcribe';
         
       const response = await fetch(apiUrl, {
