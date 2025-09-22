@@ -179,9 +179,31 @@ export default function ChatPage() {
     console.log("Rated", messageId, rating)
   }
 
-  const transcribeAudio = async (_blob: Blob) => {
-    await new Promise((r) => setTimeout(r, 600))
-    return "This is a mock transcription from audio."
+  const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.wav');
+      
+      const response = await fetch('/api/speech/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to transcribe audio');
+      }
+
+      const data = await response.json();
+      if (data.success && data.text) {
+        return data.text;
+      } else {
+        throw new Error('No transcription returned');
+      }
+    } catch (error) {
+      console.error('Error in speech-to-text:', error);
+      throw error; // Re-throw to be handled by the component
+    }
   }
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

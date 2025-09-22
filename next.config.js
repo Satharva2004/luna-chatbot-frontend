@@ -12,6 +12,14 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/speech/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/speech/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
