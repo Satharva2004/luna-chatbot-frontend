@@ -14,7 +14,13 @@ import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut, Moon, Sun } 
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
 import { general_chatbot_questions, fuzzySearch } from "@/services/suggestions/fuzzy"
+import { Playfair_Display } from 'next/font/google'
 
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+})
 
 export default function ChatPage() {
   const { logout } = useAuth()
@@ -354,7 +360,7 @@ export default function ChatPage() {
                     </div>
                     
                     <div className="space-y-3">
-                      <h2 className="text-3xl text-gray-900 dark:text-white font-['Playfair'] font-weight:1.5">
+                      <h2 className={`${playfair.className} text-3xl text-gray-900 dark:text-white font-semibold`}>
                         How can I help you today?
                       </h2>
                       <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
