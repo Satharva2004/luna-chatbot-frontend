@@ -95,13 +95,13 @@ export default function ChatPage() {
           formData.append('files', file, file.name);
         });
 
-        response = await fetch('http://localhost:5000/api/gemini/generate', {
+        response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/gemini/generate`, {
           method: 'POST',
           body: formData,
         });
       } else {
         // JSON request directly to backend
-        response = await fetch('http://localhost:5000/api/gemini/generate', {
+        response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/gemini/generate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

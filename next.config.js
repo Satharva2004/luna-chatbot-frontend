@@ -18,7 +18,7 @@ const nextConfig = {
     return [
       {
         source: '/api/speech/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/speech/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/speech/:path*`,
       },
     ];
   },
