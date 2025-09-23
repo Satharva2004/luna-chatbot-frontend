@@ -69,7 +69,7 @@ export default function ChatPage() {
     }
   };
 
-  const simulateAssistant = async (userContent: string) => {
+  const simulateAssistant = async (userContent: string, attachments?: FileList) => {
     try {
       console.log('Sending request to API with prompt:', userContent);
       
@@ -84,17 +84,34 @@ export default function ChatPage() {
         }
       }
       
-      const response = await fetch('/api/proxy/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: userContent,
-          conversationId: conversationId,
-          userId: 'user-1' // In a real app, get this from auth context
-        }),
-      });
+      // Build request: if attachments present, use multipart/form-data directly to backend
+      let response: Response;
+      if (attachments && attachments.length > 0) {
+        const formData = new FormData();
+        formData.append('prompt', userContent);
+        // Optional options payload (you can add expert/systemPrompt here if needed)
+        formData.append('options', JSON.stringify({ includeSearch: true }));
+        Array.from(attachments).forEach((file) => {
+          formData.append('files', file, file.name);
+        });
+
+        response = await fetch('http://localhost:5000/api/gemini/generate', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // JSON request directly to backend
+        response = await fetch('http://localhost:5000/api/gemini/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: userContent,
+            options: { includeSearch: true },
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -168,7 +185,7 @@ export default function ChatPage() {
     setInput("")
     setIsGenerating(true)
 
-    simulateAssistant(newMessage.content).finally(() => setIsGenerating(false))
+    simulateAssistant(newMessage.content, options?.experimental_attachments).finally(() => setIsGenerating(false))
   }
 
   const stop = () => {
@@ -416,7 +433,7 @@ export default function ChatPage() {
               isPending={isGenerating}
               handleSubmit={handleSubmit}
             >
-              {() => (
+              {({ files, setFiles }) => (
                 <div className="relative">
                   {showSuggestions && filteredSuggestions.length > 0 && (
                     <SuggestionDropdown
@@ -438,6 +455,9 @@ export default function ChatPage() {
                     isGenerating={isGenerating}
                     transcribeAudio={transcribeAudio}
                     inputRef={inputRef}
+                    allowAttachments
+                    files={files}
+                    setFiles={setFiles}
                   />
                 </div>
               )}

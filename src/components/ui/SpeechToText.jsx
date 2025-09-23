@@ -3,7 +3,7 @@ import { Button, Box, Typography, CircularProgress, Paper } from '@mui/material'
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import UploadIcon from '@mui/icons-material/Upload';
-import useSpeechToText from '../../hooks/useSpeechToText';
+import useSpeechToText from '../../services/suggestions/speech_to_text/useSpeechToText';
 
 const SpeechToText = ({ onTranscription, disabled = false }) => {
   const fileInputRef = useRef(null);

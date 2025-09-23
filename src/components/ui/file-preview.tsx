@@ -38,6 +38,7 @@ const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
         initial={{ opacity: 0, y: "100%" }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: "100%" }}
+        transition={{ duration: 0.12, ease: "easeOut" }}
       >
         <div className="flex w-full items-center space-x-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -88,6 +89,7 @@ const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
         initial={{ opacity: 0, y: "100%" }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: "100%" }}
+        transition={{ duration: 0.12, ease: "easeOut" }}
       >
         <div className="flex w-full items-center space-x-2">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted p-0.5">
@@ -126,6 +128,7 @@ const GenericFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
         initial={{ opacity: 0, y: "100%" }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: "100%" }}
+        transition={{ duration: 0.12, ease: "easeOut" }}
       >
         <div className="flex w-full items-center space-x-2">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted">
