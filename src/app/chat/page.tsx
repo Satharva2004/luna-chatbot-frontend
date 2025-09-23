@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useMemo, useState, useRef } from "react"
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
 import { type Message } from "@/components/ui/chat-message"
@@ -30,6 +30,46 @@ export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  // Track header/footer sizes so we can center content in the remaining viewport on mobile
+  const headerRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
+  const [layoutHeights, setLayoutHeights] = useState<{ header: number; footer: number }>({ header: 64, footer: 96 })
+
+  useEffect(() => {
+    const measure = () => {
+      const h = headerRef.current?.getBoundingClientRect().height ?? 64
+      const f = footerRef.current?.getBoundingClientRect().height ?? 96
+      setLayoutHeights({ header: Math.round(h), footer: Math.round(f) })
+    }
+    measure()
+    // Re-measure on resize and when virtual keyboard / URL bar changes viewport
+    window.addEventListener('resize', measure)
+    window.addEventListener('orientationchange', measure)
+    window.addEventListener('load', measure)
+    document.addEventListener('visibilitychange', measure)
+    // If fonts cause layout shift, re-measure after they load
+    // @ts-ignore - fonts may be undefined in some environments
+    if (document.fonts?.ready) {
+      // @ts-ignore
+      document.fonts.ready.then(() => measure()).catch(() => {})
+    }
+    // Run a micro and macro task re-measure to catch late layout shifts
+    requestAnimationFrame(() => measure())
+    const t = setTimeout(measure, 300)
+    const roHeader = headerRef.current ? new ResizeObserver(measure) : null
+    const roFooter = footerRef.current ? new ResizeObserver(measure) : null
+    if (headerRef.current && roHeader) roHeader.observe(headerRef.current)
+    if (footerRef.current && roFooter) roFooter.observe(footerRef.current)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('orientationchange', measure)
+      window.removeEventListener('load', measure)
+      document.removeEventListener('visibilitychange', measure)
+      roHeader?.disconnect()
+      roFooter?.disconnect()
+      clearTimeout(t)
+    }
+  }, [])
 
   const filteredSuggestions = useMemo(() => {
     if (!input || input.trim().length < 2) return []
@@ -232,9 +272,9 @@ export default function ChatPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-10 border-b border-gray-100 dark:border-gray-800/50 bg-background/80 backdrop-blur-xl">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 z-10 border-b border-gray-100 dark:border-gray-800/50 bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center">
           <div className="w-full flex items-center justify-between">
             {/* Left Section - Logo */}
@@ -344,21 +384,40 @@ export default function ChatPage() {
       </header>
 
       
-      {/* Main Content - Add padding to account for fixed header and footer */}
-      <div className="flex-1 overflow-hidden pt-16 pb-24 md:pb-28">
+      {/* Main Content - Use dynamic safe padding and 100svh to keep hero centered */}
+      <div
+        className="flex-1 overflow-hidden"
+        style={{
+          // Use dynamic viewport height for better centering in Chrome/Safari
+          minHeight: '100dvh',
+          // Only add padding when we have scrollable messages; for empty state we compute exact height instead
+          paddingTop: messages.length > 0 ? `${layoutHeights.header}px` : 0,
+          paddingBottom: messages.length > 0
+            ? `calc(${layoutHeights.footer}px + env(safe-area-inset-bottom, 0px))`
+            : 0,
+        }}
+      >
         <div className={`h-full ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-          <div className={`min-h-full flex ${messages.length === 0 ? 'items-center justify-center' : ''} px-4 sm:px-6 py-4`}>
+          <div className={`min-h-full px-4 sm:px-6 ${messages.length === 0 ? '' : 'py-4'}`}>
             <div className="w-full max-w-4xl mx-auto">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center space-y-12 py-16">
+                <div
+                  className="fixed inset-x-0 grid place-items-center px-4 sm:px-6"
+                  style={{
+                    // Occupy exactly the area between the fixed header and footer
+                    top: layoutHeights.header,
+                    bottom: layoutHeights.footer,
+                  }}
+                >
                   {/* Hero Section - Centered */}
-                  <div className="text-center space-y-6 max-w-lg">
-                    <div className="relative">
-                      <div className="w-12 h-12 mx-auto rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 flex items-center justify-center mb-6">
+                  <div className="relative text-center space-y-3 max-w-lg mx-auto pt-16">
+                    {/* Icon positioned above without affecting layout */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2">
+                      <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
                         <Sparkles className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <h2 className={`${playfair.className} text-3xl text-gray-900 dark:text-white font-semibold`}>
                         How can I help you today?
@@ -432,7 +491,7 @@ export default function ChatPage() {
       </div>
       
       {/* Input Area - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-[#080809]/90 backdrop-blur-xl">
+      <div ref={footerRef} className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-[#080809]/90 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 relative">
           <div className="relative">
             <ChatForm
