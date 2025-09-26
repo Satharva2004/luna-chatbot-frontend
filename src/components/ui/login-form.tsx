@@ -77,12 +77,12 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="flex justify-center h-10">
+      {/* <div className="flex justify-center h-10">
         <div className="flex items-center w-40">
           <img src="original_v2-Photoroom.png" className="w-50" alt="nc" />
         </div>
-      </div>
-      <Card>
+      </div> */}
+      <Card className="backdrop-blur-lg bg-opacity-80 dark:bg-opacity-80 bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/10 shadow-xl">
         <CardHeader>
           <CardTitle>Welcome to Eduvance</CardTitle>
           <CardDescription>
@@ -110,19 +110,14 @@ export function LoginForm({
                 <Input 
                   id="password" 
                   type="password" 
-                  value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
                 />
               </div>
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button disabled={isLoading} type="submit" className="w-full hover:shadow-lg transition-shadow">
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
-                
-                
-
-
                 <div className="text-center text-sm text-muted-foreground">
                   Don&apos;t have an account?{' '}
                   <a 
