@@ -12,6 +12,7 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
+  token: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -44,15 +46,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
+        const loggedInUser = data?.data?.user || data?.user;
+        const jwt = data?.token || null;
+        if (loggedInUser) {
+          localStorage.setItem('user', JSON.stringify(loggedInUser));
+          setUser(loggedInUser);
+        }
+        if (jwt) {
+          localStorage.setItem('token', jwt);
+          setToken(jwt);
+        }
         router.push('/chat');
         return { success: true };
       } else {
         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: data.message || 'Invalid email or password',
+          description: data.message || data.error || 'Invalid email or password',
         });
         return { success: false, error: data.message || 'Login failed' };
       }
@@ -69,7 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
+    setToken(null);
     router.push('/login');
   }, [router]);
 
@@ -78,8 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = () => {
       try {
         const userData = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
         if (userData) {
           setUser(JSON.parse(userData));
+        }
+        if (storedToken) {
+          setToken(storedToken);
         }
       } catch (error) {
         console.error('Failed to parse user data from localStorage', error);
@@ -93,10 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user,
+    token,
     login,
     logout,
     isLoading
-  }), [user, isLoading, login, logout]);
+  }), [user, token, isLoading, login, logout]);
 
   return (
     <AuthContext.Provider value={value}>

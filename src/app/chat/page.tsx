@@ -2,6 +2,13 @@
 
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChatForm } from "@/components/ui/chat"
 import { type Message } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
@@ -10,7 +17,7 @@ import { MessageList } from "@/components/ui/message-list"
 import { PromptSuggestions } from "@/components/ui/prompt-suggestions"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
-import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut, Moon, Sun } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut, Moon, Sun, History, Plus, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
 import { general_chatbot_questions, fuzzySearch } from "@/services/suggestions/fuzzy"
@@ -23,17 +30,19 @@ const playfair = Playfair_Display({
 })
 
 export default function ChatPage() {
-  const { logout } = useAuth()
+  const { logout, token } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   // Track header/footer sizes so we can center content in the remaining viewport on mobile
   const headerRef = useRef<HTMLDivElement>(null)
   const footerRef = useRef<HTMLDivElement>(null)
   const [layoutHeights, setLayoutHeights] = useState<{ header: number; footer: number }>({ header: 64, footer: 96 })
+  const [conversations, setConversations] = useState<Array<{ id: string; title: string; updated_at?: string }>>([])
 
   useEffect(() => {
     const measure = () => {
@@ -71,6 +80,26 @@ export default function ChatPage() {
     }
   }, [])
 
+  // Load conversation list on mount
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        const resp = await fetch('/api/proxy/conversations', {
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setConversations(Array.isArray(data) ? data : []);
+        }
+      } catch (e) {
+        console.error('Failed to load conversations', e);
+      }
+    };
+    loadConversations();
+  }, [token])
+
   const filteredSuggestions = useMemo(() => {
     if (!input || input.trim().length < 2) return []
     return fuzzySearch(input).slice(0, 5) // Show top 5 matching suggestions
@@ -91,70 +120,42 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }
 
-  const createNewConversation = async (title: string) => {
-    try {
-      const response = await fetch('/api/proxy/conversation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: title || 'New Conversation'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create conversation');
-      }
-
-      const data = await response.json();
-      return data.id;
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      throw error;
-    }
-  };
+  // Backend will auto-create a conversation if no conversationId is provided
 
   const simulateAssistant = async (userContent: string, attachments?: FileList) => {
     try {
       console.log('Sending request to API with prompt:', userContent);
       
-      // Create a new conversation if we don't have one
-      let conversationId = currentConversationId;
-      if (!conversationId) {
-        try {
-          conversationId = await createNewConversation(userContent.substring(0, 30));
-          setCurrentConversationId(conversationId);
-        } catch (error) {
-          console.error('Error creating new conversation, continuing without conversation context:', error);
-        }
-      }
+      const conversationId = currentConversationId; // optional, backend will create if absent
       
       // Build request: if attachments present, use multipart/form-data directly to backend
       let response: Response;
       if (attachments && attachments.length > 0) {
         const formData = new FormData();
         formData.append('prompt', userContent);
-        // Optional options payload (you can add expert/systemPrompt here if needed)
-        formData.append('options', JSON.stringify({ includeSearch: true }));
+        if (conversationId) formData.append('conversationId', conversationId);
         Array.from(attachments).forEach((file) => {
           formData.append('files', file, file.name);
         });
 
-        response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/gemini/generate`, {
+        response = await fetch(`/api/proxy/chat`, {
           method: 'POST',
           body: formData,
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
         });
       } else {
-        // JSON request directly to backend
-        response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/gemini/generate`, {
+        // JSON request via proxy
+        response = await fetch(`/api/proxy/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
             prompt: userContent,
-            options: { includeSearch: true },
+            conversationId: conversationId || undefined,
           }),
         });
       }
@@ -167,7 +168,7 @@ export default function ChatPage() {
 
       const data = await response.json();
       
-      // Update conversation ID if this is a new conversation
+      // Update conversation ID if this is a new conversation created by backend
       if (data.conversationId && data.conversationId !== currentConversationId) {
         setCurrentConversationId(data.conversationId);
       }
@@ -271,6 +272,18 @@ export default function ChatPage() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Close history dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isHistoryOpen && !(event.target as Element).closest('.history-dropdown')) {
+        setIsHistoryOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isHistoryOpen]);
+
   return (
     <div className="flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Header */}
@@ -323,12 +336,230 @@ export default function ChatPage() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
+              {/* History Dropdown */}
+              <div className="relative history-dropdown">
+                <button
+                  className="h-10 gap-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md px-3 py-2 text-sm font-medium bg-background text-foreground flex items-center transition-colors"
+                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+
+                  
+                >
+                  <History className="h-4 w-4" />
+                  <span>History</span>
+                </button>
+
+                {/* Dropdown Content */}
+                {isHistoryOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-80 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                    {/* Header */}
+                    <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        Conversation History
+                      </h3>
+                    </div>
+
+                    {/* New Chat Button */}
+                    <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                      <button
+                        onClick={() => {
+                          setMessages([]);
+                          setCurrentConversationId(null);
+                          setIsHistoryOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                          <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <span>Start New Chat</span>
+                      </button>
+                    </div>
+
+                    {/* Conversations List */}
+                    <ScrollArea className="max-h-80">
+                      <div className="p-2">
+                        {conversations.length === 0 ? (
+                          <div className="px-3 py-8 text-center">
+                            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                              <History className="h-6 w-6 text-gray-400" />
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No conversations yet
+                            </p>
+                            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                              Start a new chat to see your history here
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {conversations.map((c) => (
+                              <div
+                                key={c.id}
+                                className={`group relative flex items-center gap-3 rounded-md px-3 py-2.5 cursor-pointer transition-colors ${
+                                  currentConversationId === c.id
+                                    ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                                onClick={async () => {
+                                  try {
+                                    const resp = await fetch(`/api/proxy/conversations/${c.id}`, {
+                                      headers: {
+                                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                                      },
+                                    });
+                                    if (!resp.ok) {
+                                      console.error('Failed to load conversation history');
+                                      return;
+                                    }
+                                    const data = await resp.json();
+                                    const msgs = (data?.messages || []).map((m: any) => ({
+                                      id: m.id,
+                                      role: m.role === 'user' ? 'user' : 'assistant',
+                                      content: m.content,
+                                      createdAt: new Date(m.created_at),
+                                      sources: Array.isArray(m.sources) ? m.sources : [],
+                                    })) as Message[];
+                                    setCurrentConversationId(c.id);
+                                    setMessages(msgs);
+                                    setIsHistoryOpen(false);
+                                  } catch (err) {
+                                    console.error('Error loading conversation:', err);
+                                  }
+                                }}
+                              >
+                                {/* Conversation Icon */}
+                                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                                  currentConversationId === c.id
+                                    ? 'bg-blue-100 dark:bg-blue-800'
+                                    : 'bg-gray-100 dark:bg-gray-600'
+                                }`}>
+                                  <History className={`h-4 w-4 ${
+                                    currentConversationId === c.id
+                                      ? 'text-blue-600 dark:text-blue-300'
+                                      : 'text-gray-500 dark:text-gray-300'
+                                  }`} />
+                                </div>
+
+                                {/* Conversation Details */}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className={`truncate text-sm font-medium ${
+                                    currentConversationId === c.id
+                                      ? 'text-blue-900 dark:text-blue-100'
+                                      : 'text-gray-900 dark:text-white'
+                                  }`}>
+                                    {c.title || 'Untitled Conversation'}
+                                  </h4>
+                                  <p className={`mt-0.5 text-xs ${
+                                    currentConversationId === c.id
+                                      ? 'text-blue-600 dark:text-blue-300'
+                                      : 'text-gray-500 dark:text-gray-400'
+                                  }`}>
+                                    {c.updated_at ? (() => {
+                                      try {
+                                        const date = new Date(c.updated_at)
+                                        const now = new Date()
+                                        const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60)
+
+                                        if (diffInHours < 24) {
+                                          return date.toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                          })
+                                        } else if (diffInHours < 24 * 7) {
+                                          return date.toLocaleDateString('en-US', {
+                                            weekday: 'short',
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                          })
+                                        } else {
+                                          return date.toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                          })
+                                        }
+                                      } catch {
+                                        return ''
+                                      }
+                                    })() : ''}
+                                  </p>
+                                </div>
+
+                                {/* Delete Button */}
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm('Are you sure you want to delete this conversation?')) return;
+                                    try {
+                                      const resp = await fetch(`/api/proxy/conversations/${c.id}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                                        },
+                                      });
+                                      if (!resp.ok) {
+                                        const txt = await resp.text();
+                                        console.error('Failed to delete conversation', txt);
+                                        return;
+                                      }
+                                      // Refresh conversations list
+                                      const listResp = await fetch('/api/proxy/conversations', {
+                                        headers: {
+                                          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                                        },
+                                      });
+                                      if (listResp.ok) {
+                                        const data = await listResp.json();
+                                        setConversations(Array.isArray(data) ? data : []);
+                                      }
+                                      if (currentConversationId === c.id) {
+                                        setCurrentConversationId(null);
+                                        setMessages([]);
+                                      }
+                                    } catch (e) {
+                                      console.error('Delete conversation error', e);
+                                    }
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-150"
+                                  title="Delete conversation"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+
+                                {/* Active Indicator */}
+                                {currentConversationId === c.id && (
+                                  <div className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-500"></div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Footer */}
+                    {conversations.length > 0 && (
+                      <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                          {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <Button
-                onClick={() => setMessages([])}
+                onClick={() => { setMessages([]); setCurrentConversationId(null); }}
                 variant="ghost"
                 size="sm"
                 className="h-10 border border-gray-100 dark:border-gray-800/50 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-sm"
               >
+                <Plus className="h-4 w-4" />
                 New chat
               </Button>
               <Button
@@ -354,6 +585,7 @@ export default function ChatPage() {
                 <button
                   onClick={() => {
                     setMessages([]);
+                    setCurrentConversationId(null);
                     setIsMobileMenuOpen(false);
                   }}
                   className="flex w-full items-center rounded-md px-3 py-2.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 bg=== dark:text-gray-200 dark:hover:bg-gray-700"
