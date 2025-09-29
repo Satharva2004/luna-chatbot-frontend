@@ -237,7 +237,7 @@ export default function ChatPage() {
               
               // Handle sources
               if (parsed.sources && Array.isArray(parsed.sources)) {
-                // Preserve raw objects for titled links and also maintain URL list for UI
+                // Preserve raw objects separately and maintain URL list for UI
                 streamedSourceObjs = parsed.sources;
                 const urls: string[] = parsed.sources
                   .map((s: any) => (typeof s === 'string' ? s : s?.url))
@@ -270,22 +270,8 @@ export default function ChatPage() {
         }
       }
 
-      // Final update with timestamp
-      // Build a markdown Sources section with titles if available
-      const sourcesMarkdown = streamedSourceObjs && streamedSourceObjs.length > 0
-        ? `\n\n---\n\n**Sources**\n\n` + streamedSourceObjs
-            .map((s: any, i: number) => {
-              const href = typeof s === 'string' ? s : s?.url;
-              const title = typeof s === 'string' ? undefined : s?.title;
-              if (!href) return '';
-              const safeTitle = (title && title.trim().length > 0) ? title.trim() : href;
-              return `- [${safeTitle}](${href})`;
-            })
-            .filter(Boolean)
-            .join('\n')
-        : '';
-
-      const finalContent = (streamedContent || "I couldn't fetch the details. Please try again later.") + sourcesMarkdown;
+      // Final update with timestamp - do not append separate markdown sources block
+      const finalContent = (streamedContent || "I couldn't fetch the details. Please try again later.");
 
       setMessages((prev) => 
         prev.map((msg) => 
