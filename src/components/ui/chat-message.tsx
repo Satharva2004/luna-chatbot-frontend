@@ -123,13 +123,13 @@ export type MessagePart =
 
 export interface Message {
   id: string
-  role: "user" | "assistant" | (string & {})
+  role: 'user' | 'assistant' | 'system'
   content: string
   createdAt?: Date
   experimental_attachments?: Attachment[]
   toolInvocations?: ToolInvocation[]
   parts?: MessagePart[]
-  sources?: string[]
+  sources?: Array<string | { url: string; title?: string }>
 }
 
 export interface ChatMessageProps extends Message {
@@ -162,27 +162,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const isUser = role === "user"
   
-  console.log('ChatMessage - Role:', role, 
-    'Sources:', sources ? `Array(${sources.length})` : 'none', 
-    'Content:', content ? `${content.substring(0, 50)}${content.length > 50 ? '...' : ''}` : 'empty'
-  )
-  if (sources && sources.length > 0) {
-    console.log('Sources details:', JSON.stringify(sources, null, 2));
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ChatMessage - Role:', role, 
+      'Sources:', sources ? `Array(${sources.length})` : 'none', 
+      'Content:', content ? `${content.substring(0, 50)}${content.length > 50 ? '...' : ''}` : 'empty'
+    )
     
-    try {
-      const firstSource = sources[0];
-      if (firstSource) {
-        const url = new URL(firstSource);
-        console.log('Parsed URL:', {
-          protocol: url.protocol,
-          hostname: url.hostname,
-          pathname: url.pathname,
-          search: url.search,
-          hash: url.hash
-        });
-      }
-    } catch (e) {
-      console.error('Error parsing first source URL:', e);
+    if (sources && sources.length > 0) {
+      console.log('Sources details:', JSON.stringify(sources, null, 2));
     }
   }
 
@@ -219,36 +207,48 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 if (!source) return null;
                 
                 try {
-                  let displayText = source;
-                  let url: URL;
+                  let href: string;
+                  let displayText: string;
                   
-                  try {
-                    url = new URL(source);
-                    displayText = url.hostname.replace('www.', '');
-                  } catch (e) {
-                    console.warn('Invalid URL in sources, showing as text:', source);
-                    return (
-                      <div key={index} className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
-                        Source: {source.substring(0, 100)}{source.length > 100 ? '...' : ''}
-                      </div>
-                    );
+                  if (typeof source === 'string') {
+                    // Handle string source (URL)
+                    href = source;
+                    try {
+                      const url = new URL(href);
+                      displayText = url.hostname.replace('www.', '');
+                    } catch (e) {
+                      console.warn('Invalid URL in sources, showing as text:', source);
+                      return (
+                        <div key={index} className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                          Source: {source.substring(0, 100)}{source.length > 100 ? '...' : ''}
+                        </div>
+                      );
+                    }
+                  } else {
+                    // Handle object source with url and optional title
+                    href = source.url;
+                    displayText = source.title || (() => {
+                      try {
+                        const url = new URL(href);
+                        return url.hostname.replace('www.', '');
+                      } catch {
+                        return href;
+                      }
+                    })();
                   }
                   
                   return (
                     <a
                       key={index}
-                      href={source}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group flex items-center gap-2 p-2 -mx-2 rounded-md text-xs hover:bg-muted-foreground/5 transition-colors border border-border/50"
-                      title={source}
+                      title={displayText}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-blue-600 dark:text-blue-400 truncate">
                           {displayText}
-                        </div>
-                        <div className="text-muted-foreground text-[11px] truncate">
-                          {url.pathname}
                         </div>
                       </div>
                       <svg

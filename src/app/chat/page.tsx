@@ -236,17 +236,14 @@ export default function ChatPage() {
               }
               
               // Handle sources
+              // Handle sources (pass through full objects to use titles in UI)
               if (parsed.sources && Array.isArray(parsed.sources)) {
-                // Preserve raw objects separately and maintain URL list for UI
                 streamedSourceObjs = parsed.sources;
-                const urls: string[] = parsed.sources
-                  .map((s: any) => (typeof s === 'string' ? s : s?.url))
-                  .filter((u: any): u is string => typeof u === 'string' && u.length > 0);
-                streamedSources = urls;
+                streamedSources = parsed.sources; // Pass objects through
                 setMessages((prev) => 
                   prev.map((msg) => 
                     msg.id === assistantMessageId 
-                      ? { ...msg, sources: streamedSources }
+                      ? { ...msg, sources: streamedSources as any }
                       : msg
                   )
                 );
