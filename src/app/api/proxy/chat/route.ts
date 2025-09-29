@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const CHAT_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/gemini/chat`;
+const CHAT_STREAM_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/gemini/chat/stream`;
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
-      backendResponse = await fetch(CHAT_API_URL, {
+      backendResponse = await fetch(CHAT_STREAM_API_URL, {
         method: 'POST',
         headers: {
           Authorization: auth,
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       });
     } else {
       const body = await request.json();
-      backendResponse = await fetch(CHAT_API_URL, {
+      backendResponse = await fetch(CHAT_STREAM_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,28 +38,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorText }, { status: backendResponse.status });
     }
 
-    const data = await backendResponse.json();
-
-    return NextResponse.json(
-      {
-        content: data.content || data.text || '',
-        sources: Array.isArray(data.sources) ? data.sources : [],
-        timestamp: data.timestamp || new Date().toISOString(),
-        processingTime: typeof data.processingTime === 'number' ? data.processingTime : undefined,
-        attempts: typeof data.attempts === 'number' ? data.attempts : undefined,
-        conversationId: data.conversationId,
+    // Stream the response directly to the client
+    return new NextResponse(backendResponse.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
-      {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      }
-    );
+    });
   } catch (error: unknown) {
-    console.error('Error in chat proxy:', error);
+    console.error('Error in chat stream proxy:', error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'An unknown error occurred',
