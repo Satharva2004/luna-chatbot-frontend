@@ -82,7 +82,7 @@ export function LoginForm({
           <img src="original_v2-Photoroom.png" className="w-50" alt="nc" />
         </div>
       </div> */}
-      <Card className="backdrop-blur-lg bg-opacity-80 dark:bg-opacity-80 bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/10 shadow-xl">
+      <Card className="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border border-white/10 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] rounded-4xl">
         <CardHeader>
           <CardTitle>Welcome to Eduvance</CardTitle>
           <CardDescription>
@@ -118,7 +118,7 @@ export function LoginForm({
                 <Button disabled={isLoading} type="submit" className="w-full hover:shadow-lg transition-shadow">
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-primary">
                   Don&apos;t have an account?{' '}
                   <a 
                     href="/signup" 

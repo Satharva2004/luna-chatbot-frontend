@@ -145,12 +145,12 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="flex justify-center h-10">
+      {/* <div className="flex justify-center h-10">
         <div className="flex items-center w-40">
           <img src="original_v2-Photoroom.png" className="w-50" alt="Eduvance" />
         </div>
-      </div>
-      <Card>
+      </div> */}
+      <Card className="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border border-white/10 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] rounded-4xl">
         <CardHeader>
           <CardTitle>Create an account</CardTitle>
           <CardDescription>
@@ -209,7 +209,7 @@ export function SignupForm({
                   {isLoading ? 'Creating account...' : 'Sign up'}
                 </Button>
               </div>
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-center text-sm text-primary">
                 Already have an account?{' '}
                 <a 
                   href="/login" 
