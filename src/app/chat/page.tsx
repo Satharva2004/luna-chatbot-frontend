@@ -2,32 +2,30 @@
 
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChatForm } from "@/components/ui/chat"
 import { type Message } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
 import { MessageInput } from "@/components/ui/message-input"
 import { MessageList } from "@/components/ui/message-list"
-import { PromptSuggestions } from "@/components/ui/prompt-suggestions"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
-import { ThumbsUp, ThumbsDown, Search, Sparkles, RotateCcw, LogOut, Moon, Sun, History, Plus, Trash2 } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Search, Sparkles, LogOut, History, Plus, Trash2, RotateCcw } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
-import { general_chatbot_questions, fuzzySearch } from "@/services/suggestions/fuzzy"
+import { fuzzySearch } from "@/services/suggestions/fuzzy"
 import { Playfair_Display } from 'next/font/google'
-
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
   weight: ['400', '700'],
 })
+
+type ConversationSummary = {
+  id: string
+  title: string
+  updated_at: string | null
+  created_at: string | null
+}
 
 export default function ChatPage() {
   const { logout, token } = useAuth()
@@ -44,7 +42,9 @@ export default function ChatPage() {
   const headerRef = useRef<HTMLDivElement>(null)
   const footerRef = useRef<HTMLDivElement>(null)
   const [layoutHeights, setLayoutHeights] = useState<{ header: number; footer: number }>({ header: 64, footer: 96 })
-  const [conversations, setConversations] = useState<Array<{ id: string; title: string; updated_at?: string }>>([])
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
+  const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null)
 
   useEffect(() => {
     const measure = () => {
@@ -82,25 +82,181 @@ export default function ChatPage() {
     }
   }, [])
 
-  // Load conversation list on mount
-  useEffect(() => {
-    const loadConversations = async () => {
-      try {
-        const resp = await fetch('/api/proxy/conversations', {
-          headers: {
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          }
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          setConversations(Array.isArray(data) ? data : []);
+  const formatConversationDate = useCallback((iso?: string | null) => {
+    if (!iso) return ""
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return ""
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    }).format(date)
+  }, [])
+
+  const normalizeConversationSummary = useCallback((conversation: any): ConversationSummary | null => {
+    if (!conversation || typeof conversation !== "object" || !conversation.id) return null
+
+    const id = String(conversation.id)
+    const rawTitle = conversation.title ?? conversation.name ?? ""
+    const title = String(rawTitle).trim() || `Chat ${id.slice(0, 6) || id}`
+    const updatedAt = conversation.updated_at ?? conversation.updatedAt ?? conversation.created_at ?? conversation.createdAt ?? null
+    const createdAt = conversation.created_at ?? conversation.createdAt ?? conversation.updated_at ?? conversation.updatedAt ?? null
+
+    return {
+      id,
+      title,
+      updated_at: updatedAt ?? null,
+      created_at: createdAt ?? null,
+    }
+  }, [])
+
+  const loadConversations = useCallback(async () => {
+    try {
+      setIsHistoryLoading(true)
+      const resp = await fetch('/api/proxy/conversations', {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         }
-      } catch (e) {
-        console.error('Failed to load conversations', e);
+      })
+
+      if (!resp.ok) {
+        const errorText = await resp.text()
+        throw new Error(errorText || 'Failed to fetch conversations')
       }
-    };
-    loadConversations();
-  }, [token])
+
+      const data = await resp.json()
+      if (Array.isArray(data)) {
+        const normalized = data
+          .map(normalizeConversationSummary)
+          .filter((conversation): conversation is ConversationSummary => conversation !== null)
+
+        const getTime = (conversation: ConversationSummary) => {
+          const timestamp = conversation.updated_at ?? conversation.created_at ?? ""
+          const time = new Date(timestamp).getTime()
+          return Number.isNaN(time) ? 0 : time
+        }
+
+        normalized.sort((a, b) => getTime(b) - getTime(a))
+        setConversations(normalized)
+      } else {
+        setConversations([])
+      }
+    } catch (error) {
+      console.error('Failed to load conversations', error)
+    } finally {
+      setIsHistoryLoading(false)
+    }
+  }, [normalizeConversationSummary, token])
+
+  useEffect(() => {
+    loadConversations()
+  }, [loadConversations])
+
+  useEffect(() => {
+    if (!currentConversationId) return
+    loadConversations()
+  }, [currentConversationId, loadConversations])
+
+  const stop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsGenerating(false)
+  }, [])
+
+  const startNewChat = useCallback(() => {
+    stop()
+    setMessages([])
+    setCurrentConversationId(null)
+    setInput("")
+    setShowSuggestions(false)
+    setIsHistoryOpen(false)
+    setLoadingConversationId(null)
+    setIsMobileMenuOpen(false)
+  }, [stop])
+
+  const normalizeMessageFromHistory = useCallback((message: any): Message => {
+    const role = message?.role === 'model' ? 'assistant' : message?.role ?? 'assistant'
+    const createdAtIso = message?.created_at ?? message?.createdAt
+    return {
+      id: message?.id ? String(message.id) : crypto.randomUUID(),
+      role: role === 'assistant' || role === 'user' || role === 'system' ? role : 'assistant',
+      content: message?.content ?? '',
+      createdAt: createdAtIso ? new Date(createdAtIso) : undefined,
+      sources: Array.isArray(message?.sources) ? message.sources : undefined,
+    }
+  }, [])
+
+  const handleConversationSelect = useCallback(async (conversationId: string) => {
+    stop()
+    setIsHistoryOpen(false)
+    setIsMobileMenuOpen(false)
+    setLoadingConversationId(conversationId)
+    try {
+      const resp = await fetch(`/api/proxy/conversations/${conversationId}`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
+
+      if (!resp.ok) {
+        const errorText = await resp.text()
+        throw new Error(errorText || 'Failed to load conversation')
+      }
+
+      const data = await resp.json()
+      const historyMessages = Array.isArray(data?.messages)
+        ? [...data.messages]
+            .sort((a, b) => {
+              const aTime = new Date(a?.created_at ?? a?.createdAt ?? 0).getTime()
+              const bTime = new Date(b?.created_at ?? b?.createdAt ?? 0).getTime()
+              if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0
+              if (Number.isNaN(aTime)) return -1
+              if (Number.isNaN(bTime)) return 1
+              return aTime - bTime
+            })
+            .map(normalizeMessageFromHistory)
+        : []
+
+      setMessages(historyMessages)
+      setCurrentConversationId(data?.id ? String(data.id) : conversationId)
+      setInput("")
+      setShowSuggestions(false)
+      setIsGenerating(false)
+    } catch (error) {
+      console.error('Failed to load conversation history', error)
+    } finally {
+      setLoadingConversationId(null)
+    }
+  }, [normalizeMessageFromHistory, stop, token])
+
+  const handleDeleteConversation = useCallback(async (conversationId: string, event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault()
+    event?.stopPropagation()
+    try {
+      const resp = await fetch(`/api/proxy/conversations/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
+
+      if (!resp.ok) {
+        const errorText = await resp.text()
+        throw new Error(errorText || 'Failed to delete conversation')
+      }
+
+      setConversations((prev) => prev.filter((conversation) => conversation.id !== conversationId))
+
+      if (currentConversationId === conversationId) {
+        startNewChat()
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation', error)
+    }
+  }, [currentConversationId, startNewChat, token])
 
   const filteredSuggestions = useMemo(() => {
     if (!input || input.trim().length < 2) return []
@@ -332,14 +488,6 @@ export default function ChatPage() {
       })
   }
 
-  const stop = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setIsGenerating(false)
-  }
-
   const onRateResponse = (messageId: string, rating: "thumbs-up" | "thumbs-down") => {
     console.log("Rated", messageId, rating)
   }
@@ -372,6 +520,11 @@ export default function ChatPage() {
   }
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    loadConversations()
+  }, [isMobileMenuOpen, loadConversations])
 
   // Close history dropdown when clicking outside
   useEffect(() => {
@@ -441,22 +594,95 @@ export default function ChatPage() {
               <div className="relative history-dropdown">
                 <button
                   className="h-10 gap-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md px-3 py-2 text-sm font-medium bg-background text-foreground flex items-center transition-colors"
-                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                  onClick={() => setIsHistoryOpen((value) => {
+                    const next = !value
+                    if (next && !isHistoryLoading && conversations.length === 0) {
+                      void loadConversations()
+                    }
+                    return next
+                  })}
+                  type="button"
                 >
                   <History className="h-4 w-4" />
                   <span>History</span>
                 </button>
 
-                {/* Dropdown Content - keeping existing dropdown code */}
                 {isHistoryOpen && (
                   <div className="absolute right-0 top-full z-50 mt-1 w-80 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                    {/* ... existing dropdown content ... */}
+                    <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Chat history</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Select a conversation to resume</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-blue-600 dark:text-blue-400"
+                        onClick={startNewChat}
+                        type="button"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        New
+                      </Button>
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto">
+                      {isHistoryLoading ? (
+                        <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">
+                          Loading conversations...
+                        </div>
+                      ) : conversations.length === 0 ? (
+                        <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">
+                          No conversations yet
+                        </div>
+                      ) : (
+                        <ul className="py-1">
+                          {conversations.map((conversation) => {
+                            const isActive = currentConversationId === conversation.id
+                            const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+
+                            return (
+                              <li key={conversation.id}>
+                                <div className={`flex items-center gap-1 px-2 py-1 ${isActive ? 'bg-gray-100 dark:bg-gray-700/60' : ''}`}>
+                                  <button
+                                    className="flex-1 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    onClick={() => handleConversationSelect(conversation.id)}
+                                    type="button"
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="truncate text-gray-900 dark:text-gray-100">
+                                        {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                                      </span>
+                                      {timestamp && (
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                          {timestamp}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {loadingConversationId === conversation.id && (
+                                      <span className="mt-1 block text-xs text-blue-600 dark:text-blue-400">Loading...</span>
+                                    )}
+                                  </button>
+                                  <button
+                                    className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                                    onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                                    title="Delete conversation"
+                                    type="button"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-
               <Button
-                onClick={() => { setMessages([]); setCurrentConversationId(null); }}
+                onClick={startNewChat}
                 variant="ghost"
                 size="sm"
                 className="h-10 border border-gray-100 dark:border-gray-800/50 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-sm"
@@ -479,11 +705,114 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Mobile menu - keeping existing mobile menu */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-0 bg-black/20 dark:bg-black/50 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-            {/* ... existing mobile menu content ... */}
-          </div>
+          <>
+            <div
+              className="fixed inset-0 z-30 bg-black/25 backdrop-blur-sm md:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="fixed inset-x-0 top-16 z-40 md:hidden">
+              <div className="mx-4 mb-4 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-[#0f0f12]">
+                <div className="p-4 space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={startNewChat}
+                      variant="secondary"
+                      className="justify-start gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Start new chat
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false)
+                        logout()
+                      }}
+                      variant="outline"
+                      className="justify-start gap-2"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <History className="h-4 w-4" />
+                      Recent conversations
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                      onClick={() => loadConversations()}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800">
+                    {isHistoryLoading ? (
+                      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        Loading conversations...
+                      </div>
+                    ) : conversations.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No conversations yet
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+                        {conversations.map((conversation) => {
+                          const isActive = currentConversationId === conversation.id
+                          const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+
+                          return (
+                            <li key={conversation.id}>
+                              <button
+                                className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                                  isActive
+                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                }`}
+                                onClick={() => handleConversationSelect(conversation.id)}
+                                type="button"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="truncate font-medium">
+                                    {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                                  </div>
+                                  {timestamp && (
+                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                      {timestamp}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  className="p-1.5 text-gray-400 transition-colors hover:text-red-500"
+                                  onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                                  title="Delete conversation"
+                                  type="button"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Theme
+                    </span>
+                    <ThemeToggle />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </header>
 
