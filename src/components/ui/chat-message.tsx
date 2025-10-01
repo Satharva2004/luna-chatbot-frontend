@@ -182,15 +182,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // Render message with files if present
   const renderMessageContent = (content: string) => (
     <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
-      {files ? (
-        <div className="mb-1 flex flex-wrap gap-2">
-          {files.map((file, index) => (
-            <FilePreview file={file} key={index} />
-          ))}
-        </div>
-      ) : null}
-
       <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+        {files && (
+          <div className="mb-1 flex flex-wrap gap-2">
+            {files.map((file, index) => (
+              <FilePreview file={file} key={index} />
+            ))}
+          </div>
+        )}
         <div className="overflow-hidden">
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
@@ -202,7 +201,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 {sources.length}
               </span>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-2">
               {sources.map((source, index) => {
                 if (!source) return null;
                 
