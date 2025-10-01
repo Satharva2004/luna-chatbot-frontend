@@ -181,8 +181,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   // Render message with files if present
   const renderMessageContent = (content: string) => (
-    <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
-      <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+    <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
+      <div className={cn(chatBubbleVariants({ isUser, animation }), "relative")}>
         {files && (
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => (
@@ -194,14 +194,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
         {sources && sources.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-muted-foreground/20">
+          <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-semibold text-muted-foreground">SOURCES</span>
               <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
                 {sources.length}
               </span>
             </div>
-            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-2">
+            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-2 -mr-2 pl-1">
               {sources.map((source, index) => {
                 if (!source) return null;
                 
@@ -242,8 +242,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-2 p-2 -mx-2 rounded-md text-xs hover:bg-muted-foreground/5 transition-colors border border-border/50"
+                      className="group flex items-center gap-2 p-2 mx-0 rounded-md text-xs hover:bg-muted-foreground/5 transition-colors border border-border/50"
                       title={displayText}
+                      style={{
+                        WebkitTapHighlightColor: 'transparent',
+                        WebkitTouchCallout: 'none',
+                        WebkitUserSelect: 'none',
+                        KhtmlUserSelect: 'none',
+                        MozUserSelect: 'none',
+                        msUserSelect: 'none',
+                        userSelect: 'none',
+                      }}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-blue-600 dark:text-blue-400 truncate">
@@ -274,6 +283,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 }
               })}
             </div>
+            <div className="absolute bottom-0 left-0 right-4 h-6 pointer-events-none" />
           </div>
         )}
       </div>
