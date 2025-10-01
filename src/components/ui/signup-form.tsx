@@ -145,11 +145,11 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      {/* <div className="flex justify-center h-10">
+      <div className="flex justify-center h-10">
         <div className="flex items-center w-40">
-          <img src="original_v2-Photoroom.png" className="w-50" alt="Eduvance" />
+          <img src="logo 4.png" className="w-50" alt="Eduvance" />
         </div>
-      </div> */}
+      </div>
       <Card className="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border border-white/10 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] rounded-4xl">
         <CardHeader>
           <CardTitle>Create an account</CardTitle>
