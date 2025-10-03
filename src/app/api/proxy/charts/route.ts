@@ -30,17 +30,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const text = await backendResponse.text();
-    const out = (() => { try { return JSON.parse(text); } catch { return { raw: text }; } })();
-
-    return NextResponse.json(out, { status: backendResponse.status });
-  } catch (error: unknown) {
+    const data = await backendResponse.json();
+    return NextResponse.json(data, { status: backendResponse.status });
+  } catch (error) {
     console.error('Error in charts proxy:', error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'An unknown error occurred',
-        ...(process.env.NODE_ENV === 'development' && error instanceof Error ? { stack: error.stack } : {}),
-      },
+      { error: 'Failed to process chart generation request' },
       { status: 500 }
     );
   }

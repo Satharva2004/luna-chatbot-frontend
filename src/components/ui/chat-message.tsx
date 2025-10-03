@@ -130,6 +130,7 @@ export interface Message {
   toolInvocations?: ToolInvocation[]
   parts?: MessagePart[]
   sources?: Array<string | { url: string; title?: string }>
+  chartUrl?: string | null
 }
 
 export interface ChatMessageProps extends Message {
@@ -142,6 +143,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   role,
   content,
   createdAt,
+  chartUrl,
   showTimeStamp = false,
   animation = "scale",
   actions,
@@ -193,6 +195,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         <div className="overflow-hidden">
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
+        {chartUrl && (
+          <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <img 
+              src={chartUrl} 
+              alt="Generated chart" 
+              className="w-full h-auto"
+              onError={(e) => {
+                // Handle image loading error
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+          </div>
+        )}
         {sources && sources.length > 0 && (
           <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10">
             <div className="flex items-center gap-2 mb-2">
@@ -286,6 +302,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="absolute bottom-0 left-0 right-4 h-6 pointer-events-none" />
           </div>
         )}
+        
       </div>
 
       {showTimeStamp && createdAt && (

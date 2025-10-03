@@ -296,7 +296,7 @@ export default function ChatPage() {
           formData.append('files', file, file.name);
         });
 
-        response = await fetch(`/api/proxy/chat`, {
+        response = await fetch(`/api/proxy/chat/stream`, {
           method: 'POST',
           body: formData,
           headers: {
@@ -305,7 +305,7 @@ export default function ChatPage() {
           signal: abortControllerRef.current.signal,
         });
       } else {
-        response = await fetch(`/api/proxy/chat`, {
+        response = await fetch(`/api/proxy/chat/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -318,6 +318,7 @@ export default function ChatPage() {
           signal: abortControllerRef.current.signal,
         });
       }
+      
 
       // Ensure request succeeded before reading stream
       if (!response.ok) {
@@ -334,9 +335,36 @@ export default function ChatPage() {
         content: "",
         createdAt: new Date(),
         sources: [],
+        chartUrl: null,
       };
       
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Start chart fetch in parallel and update message when available
+      (async () => {
+        try {
+          const chartsResponse = await fetch('/api/proxy/charts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              prompt: userContent,
+              options: { includeSearch: true }
+            }),
+            signal: abortControllerRef.current?.signal,
+          });
+          if (chartsResponse.ok) {
+            const chartData = await chartsResponse.json();
+            if (chartData?.chartUrl) {
+              setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, chartUrl: chartData.chartUrl } : m));
+            }
+          }
+        } catch (chartErr) {
+          console.error('Chart fetch failed (non-blocking):', chartErr);
+        }
+      })();
 
       // Process SSE stream
       const reader = response.body?.getReader();
@@ -345,6 +373,7 @@ export default function ChatPage() {
       let streamedContent = '';
       let streamedSources: string[] = [];
       let streamedSourceObjs: Array<{ url?: string; title?: string }> = [];
+      let currentEvent = '';
 
       if (!reader) {
         throw new Error('No response body reader available');
@@ -363,39 +392,52 @@ export default function ChatPage() {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
+          if (!line.trim()) {
+            // Empty line indicates end of event
+            currentEvent = '';
+            continue;
+          }
+          
           if (line.startsWith('event: ')) {
-            const event = line.slice(7).trim();
+            currentEvent = line.slice(7).trim();
             continue;
           }
           
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+            const data = line.slice(6).trim();
+            
+            if (!data) continue;
             
             try {
               const parsed = JSON.parse(data);
               
               // Handle conversationId event
               if (parsed.conversationId && parsed.conversationId !== currentConversationId) {
+                console.log('Setting conversation ID:', parsed.conversationId);
                 setCurrentConversationId(parsed.conversationId);
               }
               
               // Handle message text chunks
-              if (parsed.text) {
+              if (parsed.text && typeof parsed.text === 'string') {
                 streamedContent += parsed.text;
-                setMessages((prev) => 
-                  prev.map((msg) => 
+                console.log('📝 Streaming text chunk:', parsed.text.substring(0, 50), '... Total length:', streamedContent.length);
+                
+                // Force update with new content
+                setMessages((prev) => {
+                  const updated = prev.map((msg) => 
                     msg.id === assistantMessageId 
-                      ? { ...msg, content: streamedContent }
+                      ? { ...msg, content: streamedContent, createdAt: new Date() }
                       : msg
-                  )
-                );
+                  );
+                  return updated;
+                });
               }
               
               // Handle sources
-              // Handle sources (pass through full objects to use titles in UI)
               if (parsed.sources && Array.isArray(parsed.sources)) {
                 streamedSourceObjs = parsed.sources;
-                streamedSources = parsed.sources; // Pass objects through
+                streamedSources = parsed.sources;
+                console.log('📚 Received sources:', streamedSources.length);
                 setMessages((prev) => 
                   prev.map((msg) => 
                     msg.id === assistantMessageId 
@@ -407,17 +449,19 @@ export default function ChatPage() {
               
               // Handle finish
               if (parsed.finishReason) {
-                console.log('Stream finished with reason:', parsed.finishReason);
+                console.log('✅ Stream finished with reason:', parsed.finishReason);
               }
               
               // Handle errors
-              if (parsed.error || parsed.message) {
-                console.error('Stream error:', parsed);
-                throw new Error(parsed.error || parsed.message);
+              if (parsed.error) {
+                console.error('❌ Stream error:', parsed.error);
+                throw new Error(parsed.error);
               }
               
             } catch (parseError) {
-              console.warn('Failed to parse SSE data:', data);
+              if (data !== '[DONE]') {
+                console.warn('Failed to parse SSE data:', data, parseError);
+              }
             }
           }
         }
@@ -433,6 +477,7 @@ export default function ChatPage() {
                 ...msg, 
                 content: finalContent,
                 sources: streamedSources,
+                // keep any chartUrl that may have been set by the parallel fetch
                 createdAt: new Date()
               }
             : msg
