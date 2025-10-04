@@ -186,6 +186,7 @@ export default function ChatPage() {
       content: message?.content ?? '',
       createdAt: createdAtIso ? new Date(createdAtIso) : undefined,
       sources: Array.isArray(message?.sources) ? message.sources : undefined,
+      chartUrl: typeof message?.charts === 'string' ? message.charts : undefined,
     }
   }, [])
 
@@ -351,6 +352,7 @@ export default function ChatPage() {
             },
             body: JSON.stringify({
               prompt: userContent,
+              conversationId: conversationId || undefined,
               options: { includeSearch: true }
             }),
             signal: abortControllerRef.current?.signal,

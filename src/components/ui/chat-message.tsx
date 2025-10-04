@@ -163,6 +163,34 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }, [experimental_attachments])
 
   const isUser = role === "user"
+  const [isChartDownloading, setIsChartDownloading] = useState(false)
+
+  const handleDownloadChart = async () => {
+    if (!chartUrl) return
+
+    try {
+      setIsChartDownloading(true)
+      const response = await fetch(chartUrl)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chart: ${response.status}`)
+      }
+
+      const blob = await response.blob()
+      const objectUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = objectUrl
+      link.download = "chart.png"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(objectUrl)
+    } catch (error) {
+      console.error("Unable to download chart", error)
+    } finally {
+      setIsChartDownloading(false)
+    }
+  }
   
   // Debug logging
   if (process.env.NODE_ENV === 'development') {
@@ -197,6 +225,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         </div>
         {chartUrl && (
           <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between bg-muted/50 px-3 py-2">
+              <span className="text-sm font-medium text-muted-foreground">Generated chart</span>
+              <button
+                type="button"
+                onClick={handleDownloadChart}
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-60 disabled:pointer-events-none"
+                disabled={isChartDownloading}
+              >
+                {isChartDownloading ? "Preparing..." : "Download"}
+              </button>
+            </div>
             <img 
               src={chartUrl} 
               alt="Generated chart" 
