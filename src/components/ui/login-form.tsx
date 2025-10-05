@@ -170,7 +170,7 @@ export function LoginForm({
       </div>
       <Card className="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border border-white/10 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] rounded-4xl">
         <CardHeader>
-          <CardTitle>Welcome to Eduvance</CardTitle>
+          <CardTitle>Welcome to Luna</CardTitle>
           <CardDescription>
             Enter your credentials to access your account
           </CardDescription>

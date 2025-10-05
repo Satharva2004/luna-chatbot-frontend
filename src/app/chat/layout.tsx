@@ -6,8 +6,8 @@ import { Navbar } from '@/components/ui/navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Chat | Eduvance AI',
-  description: 'Chat with Eduvance AI',
+  title: 'Chat | Luna AI',
+  description: 'Chat with Luna AI',
 };
 
 export default function ChatLayout({

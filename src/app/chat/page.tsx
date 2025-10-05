@@ -627,7 +627,7 @@ export default function ChatPage() {
               </div>
               <div className="flex flex-col justify-center">
                 <h1 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
-                  Eduvance Business Research
+                  Luna Business Research
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Powered by AI</p>
               </div>
