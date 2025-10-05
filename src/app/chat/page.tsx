@@ -7,13 +7,17 @@ import { type Message } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
 import { MessageInput } from "@/components/ui/message-input"
 import { MessageList } from "@/components/ui/message-list"
+import {
+  createInitialAssistantStatuses,
+  type AssistantStatusMap,
+} from "@/components/ui/typing-indicator"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
 import { ThumbsUp, ThumbsDown, Search, Sparkles, LogOut, History, Plus, Trash2, RotateCcw } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
 import { fuzzySearch } from "@/services/suggestions/fuzzy"
-import { Playfair_Display } from 'next/font/google'
+import { Playfair_Display } from "next/font/google"
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -45,6 +49,9 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null)
+  const [assistantStatuses, setAssistantStatuses] = useState<AssistantStatusMap>(
+    createInitialAssistantStatuses()
+  )
 
   useEffect(() => {
     const measure = () => {
@@ -164,6 +171,7 @@ export default function ChatPage() {
       abortControllerRef.current = null
     }
     setIsGenerating(false)
+    setAssistantStatuses(createInitialAssistantStatuses())
   }, [])
 
   const startNewChat = useCallback(() => {
@@ -175,6 +183,7 @@ export default function ChatPage() {
     setIsHistoryOpen(false)
     setLoadingConversationId(null)
     setIsMobileMenuOpen(false)
+    setAssistantStatuses(createInitialAssistantStatuses())
   }, [stop])
 
   const normalizeMessageFromHistory = useCallback((message: any): Message => {
@@ -226,6 +235,7 @@ export default function ChatPage() {
       setInput("")
       setShowSuggestions(false)
       setIsGenerating(false)
+      setAssistantStatuses(createInitialAssistantStatuses())
     } catch (error) {
       console.error('Failed to load conversation history', error)
     } finally {
@@ -328,6 +338,12 @@ export default function ChatPage() {
         throw new Error(errorText || 'Failed to get response from the API');
       }
 
+      setAssistantStatuses((prev: AssistantStatusMap) => ({
+        ...prev,
+        searching: "complete",
+        responding: "active",
+      }))
+
       // Create assistant message placeholder
       const assistantMessageId = crypto.randomUUID();
       const assistantMessage: Message = {
@@ -343,6 +359,10 @@ export default function ChatPage() {
 
       // Start chart fetch in parallel and update message when available
       (async () => {
+        setAssistantStatuses((prev: AssistantStatusMap) => ({
+          ...prev,
+          charting: "active",
+        }))
         try {
           const chartsResponse = await fetch('/api/proxy/charts', {
             method: 'POST',
@@ -361,10 +381,18 @@ export default function ChatPage() {
             const chartData = await chartsResponse.json();
             if (chartData?.chartUrl) {
               setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, chartUrl: chartData.chartUrl } : m));
+              setAssistantStatuses((prev: AssistantStatusMap) => ({
+                ...prev,
+                charting: "complete",
+              }))
             }
           }
         } catch (chartErr) {
           console.error('Chart fetch failed (non-blocking):', chartErr);
+          setAssistantStatuses((prev: AssistantStatusMap) => ({
+            ...prev,
+            charting: "pending",
+          }))
         }
       })();
 
@@ -500,6 +528,7 @@ export default function ChatPage() {
         createdAt: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      setAssistantStatuses(createInitialAssistantStatuses())
     }
   }
 
@@ -909,6 +938,7 @@ export default function ChatPage() {
                     <MessageList
                       messages={messages}
                       isTyping={isGenerating}
+                      typingStatuses={assistantStatuses}
                       messageOptions={(message) => ({
                         actions: onRateResponse ? (
                           <>

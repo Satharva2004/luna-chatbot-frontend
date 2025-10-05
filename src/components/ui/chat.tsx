@@ -24,6 +24,7 @@ interface ChatPropsBase {
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList }
   ) => void
+
   messages: Array<Message>
   input: string
   className?: string
@@ -156,39 +157,48 @@ export function Chat({
   }, [stop, setMessages, messagesRef])
 
   const messageOptions = useCallback(
-    (message: Message) => ({
-      actions: onRateResponse ? (
-        <>
-          <div className="border-r pr-1">
-            <CopyButton
-              content={message.content}
-              copyMessage="Copied response to clipboard!"
-            />
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => onRateResponse(message.id, "thumbs-up")}
-          >
-            <ThumbsUp className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => onRateResponse(message.id, "thumbs-down")}
-          >
-            <ThumbsDown className="h-4 w-4" />
-          </Button>
-        </>
-      ) : (
+    (message: Message) => {
+      if (message.role !== "assistant") {
+        return {}
+      }
+
+      const copyControl = (
         <CopyButton
           content={message.content}
           copyMessage="Copied response to clipboard!"
         />
-      ),
-    }),
+      )
+
+      if (!onRateResponse) {
+        return { actions: copyControl }
+      }
+
+      return {
+        actions: (
+          <div className="flex items-center gap-1">
+            {copyControl}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={() => onRateResponse(message.id, "thumbs-up")}
+              aria-label="Rate response thumbs up"
+            >
+              <ThumbsUp className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={() => onRateResponse(message.id, "thumbs-down")}
+              aria-label="Rate response thumbs down"
+            >
+              <ThumbsDown className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      }
+    },
     [onRateResponse]
   )
 

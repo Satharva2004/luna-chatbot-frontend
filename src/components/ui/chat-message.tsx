@@ -8,6 +8,12 @@ import { Ban, ChevronRight, Code2, Download, Loader2, Terminal } from "lucide-re
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -165,6 +171,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const isUser = role === "user"
   const [isChartDownloading, setIsChartDownloading] = useState(false)
+  const [isChartExpanded, setIsChartExpanded] = useState(false)
 
   const handleDownloadChart = async () => {
     if (!chartUrl) return
@@ -225,50 +232,120 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
         {chartUrl && (
-          <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between bg-muted/50 px-3 py-2">
-              <span className="text-sm font-medium text-muted-foreground">Generated chart</span>
+          <>
+            <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between bg-muted/50 px-3 py-2">
+                <span className="text-sm font-medium text-muted-foreground">Generated chart</span>
+                <button
+                  type="button"
+                  onClick={handleDownloadChart}
+                  className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-60 disabled:pointer-events-none"
+                  disabled={isChartDownloading}
+                >
+                  {isChartDownloading ? "Preparing..." : "Download"}
+                </button>
+              </div>
+              <div className="px-3 pb-3 md:hidden">
+                <Button
+                  type="button"
+                  onClick={handleDownloadChart}
+                  variant="secondary"
+                  className="w-full justify-center gap-2"
+                  disabled={isChartDownloading}
+                >
+                  {isChartDownloading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Preparing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Download chart
+                    </>
+                  )}
+                </Button>
+              </div>
               <button
                 type="button"
-                onClick={handleDownloadChart}
-                className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-60 disabled:pointer-events-none"
-                disabled={isChartDownloading}
+                onClick={() => setIsChartExpanded(true)}
+                className="relative block w-full group focus:outline-none"
+                aria-label="Expand chart"
               >
-                {isChartDownloading ? "Preparing..." : "Download"}
+                <img
+                  src={chartUrl}
+                  alt="Generated chart"
+                  className="w-full h-auto transition-transform duration-200 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] cursor-zoom-in"
+                  onError={(e) => {
+                    // Handle image loading error
+                    const target = e.target as HTMLImageElement
+                    target.style.display = "none"
+                  }}
+                />
+                <span className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
+                  Click to expand
+                </span>
               </button>
             </div>
-            <div className="px-3 pb-3 md:hidden">
-              <Button
-                type="button"
-                onClick={handleDownloadChart}
-                variant="secondary"
-                className="w-full justify-center gap-2"
-                disabled={isChartDownloading}
-              >
-                {isChartDownloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Preparing...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    Download chart
-                  </>
-                )}
-              </Button>
-            </div>
-            <img 
-              src={chartUrl} 
-              alt="Generated chart" 
-              className="w-full h-auto"
-              onError={(e) => {
-                // Handle image loading error
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-          </div>
+            <Dialog open={isChartExpanded} onOpenChange={setIsChartExpanded}>
+              <DialogContent className="max-w-5xl w-[calc(100%-2rem)]">
+                <DialogHeader className="flex flex-row items-center justify-between gap-4">
+                  <DialogTitle className="text-base sm:text-lg">Generated chart</DialogTitle>
+                  <Button
+                    type="button"
+                    onClick={handleDownloadChart}
+                    variant="secondary"
+                    className="hidden sm:inline-flex items-center gap-2"
+                    disabled={isChartDownloading}
+                  >
+                    {isChartDownloading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Preparing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download
+                      </>
+                    )}
+                  </Button>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <div className="overflow-auto">
+                    <img
+                      src={chartUrl}
+                      alt="Generated chart"
+                      className="mx-auto h-auto max-h-[70vh] w-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = "none"
+                      }}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleDownloadChart}
+                    variant="secondary"
+                    className="sm:hidden w-full justify-center gap-2"
+                    disabled={isChartDownloading}
+                  >
+                    {isChartDownloading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Preparing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download chart
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
         {sources && sources.length > 0 && (
           <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10">
