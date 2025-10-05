@@ -3,9 +3,10 @@
 import React, { useMemo, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { Ban, ChevronRight, Code2, Loader2, Terminal } from "lucide-react"
+import { Ban, ChevronRight, Code2, Download, Loader2, Terminal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   Collapsible,
   CollapsibleContent,
@@ -230,11 +231,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               <button
                 type="button"
                 onClick={handleDownloadChart}
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-60 disabled:pointer-events-none"
+                className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-60 disabled:pointer-events-none"
                 disabled={isChartDownloading}
               >
                 {isChartDownloading ? "Preparing..." : "Download"}
               </button>
+            </div>
+            <div className="px-3 pb-3 md:hidden">
+              <Button
+                type="button"
+                onClick={handleDownloadChart}
+                variant="secondary"
+                className="w-full justify-center gap-2"
+                disabled={isChartDownloading}
+              >
+                {isChartDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Preparing...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download chart
+                  </>
+                )}
+              </Button>
             </div>
             <img 
               src={chartUrl} 

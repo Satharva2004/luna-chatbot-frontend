@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ui/theme-provider";
 import { GradientBackdrop } from "@/components/ui/gradient-bg";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/toaster";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
             <AuthProvider>
               {children}
               <Toaster />
+              <Analytics />
             </AuthProvider>
           </div>
         </ThemeProvider>
