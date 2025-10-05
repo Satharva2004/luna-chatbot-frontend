@@ -14,6 +14,7 @@ type AuthContextType = {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
 };
@@ -27,6 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const { toast } = useToast();
+
+  const handleAuthSuccess = useCallback((loggedInUser: User | null | undefined, jwt: string | null | undefined) => {
+    if (loggedInUser) {
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+    }
+    if (jwt) {
+      localStorage.setItem('token', jwt);
+      setToken(jwt);
+    }
+    router.push('/chat');
+  }, [router]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -48,15 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const loggedInUser = data?.data?.user || data?.user;
         const jwt = data?.token || null;
-        if (loggedInUser) {
-          localStorage.setItem('user', JSON.stringify(loggedInUser));
-          setUser(loggedInUser);
-        }
-        if (jwt) {
-          localStorage.setItem('token', jwt);
-          setToken(jwt);
-        }
-        router.push('/chat');
+        handleAuthSuccess(loggedInUser, jwt);
         return { success: true };
       } else {
         toast({
@@ -75,7 +80,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { success: false, error: 'An error occurred during login' };
     }
-  }, [router, toast]);
+  }, [handleAuthSuccess, toast]);
+
+  const loginWithGoogle = useCallback(async (code: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/users/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ code }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const loggedInUser = data?.data?.user || data?.user;
+        const jwt = data?.token || null;
+        handleAuthSuccess(loggedInUser, jwt);
+        return { success: true };
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Google Login Failed",
+        description: data.message || data.error || 'Unable to sign in with Google',
+      });
+      return { success: false, error: data.message || 'Google login failed' };
+    } catch (error) {
+      console.error('Google login error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred during Google login. Please try again.",
+      });
+      return { success: false, error: 'An error occurred during Google login' };
+    }
+  }, [handleAuthSuccess, toast]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('user');
@@ -111,9 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     token,
     login,
+    loginWithGoogle,
     logout,
     isLoading
-  }), [user, token, isLoading, login, logout]);
+  }), [user, token, isLoading, login, loginWithGoogle, logout]);
 
   return (
     <AuthContext.Provider value={value}>
