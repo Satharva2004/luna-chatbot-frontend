@@ -195,7 +195,12 @@ export default function ChatPage() {
       content: message?.content ?? '',
       createdAt: createdAtIso ? new Date(createdAtIso) : undefined,
       sources: Array.isArray(message?.sources) ? message.sources : undefined,
-      chartUrl: typeof message?.charts === 'string' ? message.charts : undefined,
+      chartUrl: typeof message?.charts === 'string' ? message.charts : Array.isArray(message?.charts) ? message.charts[0] : undefined,
+      chartUrls: Array.isArray(message?.charts)
+        ? message.charts.filter((url: unknown): url is string => typeof url === 'string' && url.trim().length > 0)
+        : (typeof message?.charts === 'string' && message.charts.trim().length > 0)
+          ? [message.charts]
+          : undefined,
     }
   }, [])
 
@@ -353,48 +358,12 @@ export default function ChatPage() {
         createdAt: new Date(),
         sources: [],
         chartUrl: null,
+        chartUrls: [],
       };
-      
+
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Start chart fetch in parallel and update message when available
-      (async () => {
-        setAssistantStatuses((prev: AssistantStatusMap) => ({
-          ...prev,
-          charting: "active",
-        }))
-        try {
-          const chartsResponse = await fetch('/api/proxy/charts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              prompt: userContent,
-              conversationId: conversationId || undefined,
-              options: { includeSearch: true }
-            }),
-            signal: abortControllerRef.current?.signal,
-          });
-          if (chartsResponse.ok) {
-            const chartData = await chartsResponse.json();
-            if (chartData?.chartUrl) {
-              setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, chartUrl: chartData.chartUrl } : m));
-              setAssistantStatuses((prev: AssistantStatusMap) => ({
-                ...prev,
-                charting: "complete",
-              }))
-            }
-          }
-        } catch (chartErr) {
-          console.error('Chart fetch failed (non-blocking):', chartErr);
-          setAssistantStatuses((prev: AssistantStatusMap) => ({
-            ...prev,
-            charting: "pending",
-          }))
-        }
-      })();
+      let resolvedConversationId: string | null = conversationId || null;
 
       // Process SSE stream
       const reader = response.body?.getReader();
@@ -442,9 +411,12 @@ export default function ChatPage() {
               const parsed = JSON.parse(data);
               
               // Handle conversationId event
-              if (parsed.conversationId && parsed.conversationId !== currentConversationId) {
+              if (parsed.conversationId) {
                 console.log('Setting conversation ID:', parsed.conversationId);
-                setCurrentConversationId(parsed.conversationId);
+                resolvedConversationId = parsed.conversationId;
+                if (parsed.conversationId !== currentConversationId) {
+                  setCurrentConversationId(parsed.conversationId);
+                }
               }
               
               // Handle message text chunks
@@ -476,7 +448,7 @@ export default function ChatPage() {
                   )
                 );
               }
-              
+
               // Handle finish
               if (parsed.finishReason) {
                 console.log('✅ Stream finished with reason:', parsed.finishReason);
@@ -507,12 +479,74 @@ export default function ChatPage() {
                 ...msg, 
                 content: finalContent,
                 sources: streamedSources,
-                // keep any chartUrl that may have been set by the parallel fetch
+                chartUrl: msg.chartUrl,
+                chartUrls: msg.chartUrls ?? [],
                 createdAt: new Date()
               }
             : msg
         )
       );
+
+      setAssistantStatuses((prev: AssistantStatusMap) => ({
+        ...prev,
+        responding: "complete",
+      }));
+
+      const chartsConversationId = resolvedConversationId ?? currentConversationId;
+
+      if (!abortControllerRef.current?.signal.aborted && chartsConversationId) {
+        setAssistantStatuses((prev: AssistantStatusMap) => ({
+          ...prev,
+          charting: "active",
+        }));
+
+        try {
+          const chartsResponse = await fetch('/api/proxy/charts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              prompt: userContent,
+              conversationId: chartsConversationId,
+              options: { includeSearch: true },
+            }),
+          });
+
+          if (chartsResponse.ok) {
+            const chartData = await chartsResponse.json();
+            const chartUrlFromResponse = chartData?.chartUrl || chartData?.charts?.chartUrl;
+
+            if (typeof chartUrlFromResponse === 'string' && chartUrlFromResponse.trim().length > 0) {
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        chartUrl: chartUrlFromResponse,
+                        chartUrls: Array.from(new Set([...(msg.chartUrls ?? []), chartUrlFromResponse])),
+                      }
+                    : msg
+                )
+              );
+            }
+
+            setAssistantStatuses((prev: AssistantStatusMap) => ({
+              ...prev,
+              charting: "complete",
+            }));
+          } else {
+            throw new Error(await chartsResponse.text());
+          }
+        } catch (chartErr) {
+          console.error('Chart fetch after chat failed:', chartErr);
+          setAssistantStatuses((prev: AssistantStatusMap) => ({
+            ...prev,
+            charting: "pending",
+          }));
+        }
+      }
       
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -627,7 +661,7 @@ export default function ChatPage() {
               </div>
               <div className="flex flex-col justify-center">
                 <h1 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
-                  Luna Business Research
+                  Luna Research
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Powered by AI</p>
               </div>
