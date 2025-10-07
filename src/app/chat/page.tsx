@@ -32,7 +32,7 @@ type ConversationSummary = {
 }
 
 export default function ChatPage() {
-  const { logout, token } = useAuth()
+  const { logout, token, user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -845,7 +845,21 @@ export default function ChatPage() {
             />
             <div className="fixed inset-x-0 top-16 z-40 md:hidden">
               <div className="mx-4 mb-4 rounded-3xl border border-white/70 bg-white/80 shadow-[0_18px_50px_rgba(15,17,26,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
-                <div className="space-y-4 p-5">
+                <div className="space-y-5 p-5">
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
+                      {(user?.email || user?.role)?.slice(0, 1)?.toUpperCase() ?? 'U'}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user?.role ?? 'Member'}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-300">
+                        {user?.email ?? 'user@example.com'}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="flex flex-col gap-2">
                     <Button
                       onClick={startNewChat}
@@ -883,7 +897,7 @@ export default function ChatPage() {
                     </Button>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/5">
+                  <div className="max-h-60 overflow-y-auto rounded-2xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                     {isHistoryLoading ? (
                       <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                         Loading conversations...
