@@ -7,6 +7,8 @@ import { useToast } from "@/lib/hooks/use-toast";
 type User = {
   email: string;
   role: string;
+  name?: string;
+  username?: string;
   // Add other user properties as needed
 };
 

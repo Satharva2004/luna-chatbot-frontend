@@ -848,14 +848,14 @@ export default function ChatPage() {
                 <div className="space-y-5 p-5">
                   <div className="flex items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
-                      {(user?.email || user?.role)?.slice(0, 1)?.toUpperCase() ?? 'U'}
+                      {(user?.email || user?.name)?.slice(0, 1)?.toUpperCase() ?? 'U'}
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {user?.role ?? 'Member'}
+                        {`${user?.username}`}
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-300">
-                        {user?.email ?? 'user@example.com'}
+                        {user?.email}
                       </span>
                     </div>
                   </div>
