@@ -22,12 +22,12 @@ import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm",
+  "group/message relative break-words rounded-3xl px-4 py-3 text-sm border border-white/60 backdrop-blur-xl shadow-[0_20px_60px_rgba(15,17,26,0.08)] transition-all duration-300 dark:border-white/10",
   {
     variants: {
       isUser: {
-        true: "bg-primary text-primary-foreground max-w-[85%] sm:max-w-[70%]",
-        false: "bg-muted text-foreground max-w-[90%] sm:max-w-[80%]",
+        true: "max-w-[85%] sm:max-w-[70%] bg-white/80 text-slate-900 ring-1 ring-white/70 hover:translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,17,26,0.12)] dark:bg-white/10 dark:text-slate-100 dark:ring-white/15",
+        false: "max-w-[90%] sm:max-w-[80%] bg-white/45 text-slate-900 ring-1 ring-white/60 hover:translate-y-0.5 hover:shadow-[0_30px_70px_rgba(15,17,26,0.15)] dark:bg-white/8 dark:text-slate-100 dark:ring-white/10",
       },
       animation: {
         none: "",
@@ -256,9 +256,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   return (
                     <div
                       key={`${url}-${index}`}
-                      className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
+                      className="overflow-hidden rounded-2xl border border-white/50 bg-white/30 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
                     >
-                      <div className="flex items-center justify-between bg-muted/50 px-3 py-2">
+                      <div className="flex items-center justify-between bg-white/40 px-3 py-2 text-muted-foreground dark:bg-white/10">
                         <span className="text-sm font-medium text-muted-foreground">{chartLabel}</span>
                         <button
                           type="button"
@@ -274,7 +274,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           type="button"
                           onClick={() => handleDownloadChart(url)}
                           variant="secondary"
-                          className="w-full justify-center gap-2"
+                          className="w-full justify-center gap-2 rounded-xl border border-white/40 bg-white/50 text-muted-foreground shadow-sm backdrop-blur-xl hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
                           disabled={isDownloading}
                         >
                           {isDownloading ? (

@@ -649,29 +649,51 @@ export default function ChatPage() {
   }, [isHistoryOpen]);
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100dvh' }}>
+    <div
+      className="relative flex flex-col min-h-[100dvh] overflow-hidden bg-gradient-to-br from-[#f5f5f7] via-[#f0f0f5] to-[#e5e5ed] text-slate-900 dark:bg-gradient-to-br dark:from-[#020203] dark:via-[#050509] dark:to-[#0b0b13] dark:text-slate-100"
+      style={{ minHeight: '100dvh' }}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-90"
+        style={{
+          background:
+            'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), transparent 55%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.65), transparent 50%), radial-gradient(circle at 50% 110%, rgba(0,102,204,0.08), transparent 70%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 hidden dark:block opacity-80"
+        style={{
+          background:
+            'radial-gradient(circle at 20% 20%, rgba(79,82,128,0.5), transparent 60%), radial-gradient(circle at 80% 0%, rgba(36,40,78,0.45), transparent 55%), radial-gradient(circle at 50% 120%, rgba(16,98,255,0.22), transparent 70%)',
+        }}
+      />
       {/* Header */}
-      <header ref={headerRef} className="fixed top-0 left-0 right-0 z-10 border-b border-gray-100 dark:border-gray-800/50 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center">
+      <header
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-20 border-b border-transparent bg-white/75 shadow-[0_12px_40px_rgba(15,17,26,0.08)] backdrop-blur-2xl transition-colors duration-300 supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/75 dark:shadow-[0_18px_60px_rgba(0,0,0,0.65)]"
+      >
+        <div className="max-w-6xl mx-auto flex h-16 items-center px-4 sm:px-6">
           <div className="w-full flex items-center justify-between">
             {/* Left Section - Logo */}
-            <div className="flex items-center gap-3 h-full">
-              <div className="w-7 h-7 rounded-lg bg-black dark:bg-white flex items-center justify-center">
-                <Search className="w-4 h-4 text-white dark:text-black" />
+            <div className="flex h-full items-center gap-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0f0f13] to-[#1d1f24] shadow-[0_6px_18px_rgba(15,17,26,0.35)] dark:from-white/90 dark:to-white/65 dark:shadow-[0_10px_28px_rgba(0,0,0,0.55)]">
+                <Search className="h-4 w-4 text-white dark:text-[#0c0c12]" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
+                <h1 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base dark:text-white">
                   Luna Research
                 </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Powered by AI</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Powered by AI</p>
               </div>
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden ">
+            <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none"
+                className="rounded-full p-2 text-slate-600 transition-colors hover:text-slate-900 focus:outline-none dark:text-slate-400 dark:hover:text-white"
               >
                 <svg
                   className="h-6 w-6"
@@ -699,11 +721,11 @@ export default function ChatPage() {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden items-center gap-3 md:flex">
               {/* History Dropdown */}
               <div className="relative history-dropdown">
                 <button
-                  className="h-10 gap-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md px-3 py-2 text-sm font-medium bg-background text-foreground flex items-center transition-colors"
+                  className="flex h-10 items-center gap-2 rounded-full border border-black/5 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-white/90 hover:shadow-[0_8px_20px_rgba(15,17,26,0.08)] dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
                   onClick={() => setIsHistoryOpen((value) => {
                     const next = !value
                     if (next && !isHistoryLoading && conversations.length === 0) {
@@ -718,16 +740,16 @@ export default function ChatPage() {
                 </button>
 
                 {isHistoryOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-80 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                    <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right rounded-3xl border border-white/70 bg-white/80 p-1 shadow-[0_18px_40px_rgba(15,17,26,0.12)] backdrop-blur-xl transition-all dark:border-white/10 dark:bg-[#111119]/80 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
+                    <div className="flex items-center justify-between rounded-2xl border border-white/60 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">Chat history</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Select a conversation to resume</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Chat history</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Select a conversation to resume</p>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 px-2 text-xs text-blue-600 dark:text-blue-400"
+                        className="h-8 px-2 text-xs text-[#0071e3] hover:text-[#0081ff] dark:text-[#4aa8ff]"
                         onClick={startNewChat}
                         type="button"
                       >
@@ -736,13 +758,13 @@ export default function ChatPage() {
                       </Button>
                     </div>
 
-                    <div className="max-h-80 overflow-y-auto">
+                    <div className="max-h-80 overflow-y-auto rounded-2xl border border-white/60 bg-white/60 p-2 dark:border-white/10 dark:bg-white/5">
                       {isHistoryLoading ? (
-                        <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">
+                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
                           Loading conversations...
                         </div>
                       ) : conversations.length === 0 ? (
-                        <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">
+                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
                           No conversations yet
                         </div>
                       ) : (
@@ -753,28 +775,28 @@ export default function ChatPage() {
 
                             return (
                               <li key={conversation.id}>
-                                <div className={`flex items-center gap-1 px-2 py-1 ${isActive ? 'bg-gray-100 dark:bg-gray-700/60' : ''}`}>
+                                <div className={`flex items-center gap-1 rounded-xl px-2 py-1 ${isActive ? 'bg-[#f0f2f8] dark:bg-white/10' : ''}`}>
                                   <button
-                                    className="flex-1 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    className="flex-1 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-white/80 dark:text-slate-200 dark:hover:bg-white/10"
                                     onClick={() => handleConversationSelect(conversation.id)}
                                     type="button"
                                   >
                                     <div className="flex items-center justify-between gap-3">
-                                      <span className="truncate text-gray-900 dark:text-gray-100">
+                                      <span className="truncate font-medium text-slate-800 dark:text-slate-100">
                                         {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
                                       </span>
                                       {timestamp && (
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                        <span className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
                                           {timestamp}
                                         </span>
                                       )}
                                     </div>
                                     {loadingConversationId === conversation.id && (
-                                      <span className="mt-1 block text-xs text-blue-600 dark:text-blue-400">Loading...</span>
+                                      <span className="mt-1 block text-xs text-[#0071e3] dark:text-[#4aa8ff]">Loading...</span>
                                     )}
                                   </button>
                                   <button
-                                    className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                                    className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-red-300"
                                     onClick={(event) => handleDeleteConversation(conversation.id, event)}
                                     title="Delete conversation"
                                     type="button"
@@ -818,12 +840,12 @@ export default function ChatPage() {
         {isMobileMenuOpen && (
           <>
             <div
-              className="fixed inset-0 z-30 bg-black/25 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
             />
             <div className="fixed inset-x-0 top-16 z-40 md:hidden">
-              <div className="mx-4 mb-4 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-[#0f0f12]">
-                <div className="p-4 space-y-4">
+              <div className="mx-4 mb-4 rounded-3xl border border-white/70 bg-white/80 shadow-[0_18px_50px_rgba(15,17,26,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
+                <div className="space-y-4 p-5">
                   <div className="flex flex-col gap-2">
                     <Button
                       onClick={startNewChat}
@@ -847,27 +869,27 @@ export default function ChatPage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
                       <History className="h-4 w-4" />
                       Recent conversations
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
                       onClick={() => loadConversations()}
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800">
+                  <div className="max-h-60 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/5">
                     {isHistoryLoading ? (
-                      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                         Loading conversations...
                       </div>
                     ) : conversations.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                         No conversations yet
                       </div>
                     ) : (
@@ -877,28 +899,28 @@ export default function ChatPage() {
                           const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
 
                           return (
-                            <li key={conversation.id}>
+                            <li key={conversation.id} className="transition-transform duration-200 ease-out hover:translate-x-1">
                               <button
                                 className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${
                                   isActive
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
-                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                    ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
+                                    : 'hover:bg-white/80 dark:hover:bg-white/10'
                                 }`}
                                 onClick={() => handleConversationSelect(conversation.id)}
                                 type="button"
                               >
                                 <div className="flex-1 min-w-0">
-                                  <div className="truncate font-medium">
+                                  <div className="truncate font-semibold">
                                     {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
                                   </div>
                                   {timestamp && (
-                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                       {timestamp}
                                     </div>
                                   )}
                                 </div>
                                 <button
-                                  className="p-1.5 text-gray-400 transition-colors hover:text-red-500"
+                                  className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-white/10 dark:hover:text-red-300"
                                   onClick={(event) => handleDeleteConversation(conversation.id, event)}
                                   title="Delete conversation"
                                   type="button"
@@ -913,8 +935,8 @@ export default function ChatPage() {
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center pt-1">
-                    <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       Theme
                     </span>
                     <ThemeToggle />
@@ -939,8 +961,8 @@ export default function ChatPage() {
         }}
       >
         <div className={`h-full ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-          <div className={`min-h-full px-4 sm:px-6 ${messages.length === 0 ? '' : 'py-4'}`}>
-            <div className="w-full max-w-4xl mx-auto">
+          <div className={`min-h-full px-4 sm:px-6 ${messages.length === 0 ? '' : 'py-6 sm:py-8'}`}>
+            <div className="mx-auto w-full max-w-4xl">
               {messages.length === 0 ? (
                 <div
                   className="fixed inset-x-0 grid place-items-center px-4 sm:px-6"
@@ -949,65 +971,71 @@ export default function ChatPage() {
                     bottom: layoutHeights.footer,
                   }}
                 >
-                  <div className="relative text-center space-y-3 max-w-lg mx-auto pt-16">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2">
-                      <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
-                        <Sparkles className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                  <div className="relative mx-auto max-w-lg space-y-6 px-6 pb-10 pt-16 text-center text-slate-800 dark:text-slate-200">
+                    <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-white/70 bg-gradient-to-br from-white to-[#eef1ff] shadow-[0_18px_55px_rgba(15,17,26,0.18)] dark:border-white/10 dark:bg-gradient-to-br dark:from-[#1c1f2e] dark:to-[#090b12] dark:shadow-[0_28px_80px_rgba(0,0,0,0.6)]">
+                        <Sparkles className="h-8 w-8 text-[#0f62fe] dark:text-[#82aaff]" />
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <h2 className={`${playfair.className} text-3xl text-gray-900 dark:text-white font-semibold`}>
+                    <div className="space-y-4">
+                      <h2 className={`${playfair.className} text-3xl font-semibold tracking-tight text-slate-900 sm:text-[2.1rem] dark:text-white`}>
                         How can I help you today?
                       </h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                      <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
                         Get instant insights, market research, and business analysis
                       </p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+                      <div className="rounded-full border border-white/80 bg-white/70 px-4 py-1 text-xs font-medium text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+                        Elegant by design
+                      </div>
+                      <div className="rounded-full border border-white/80 bg-white/70 px-4 py-1 text-xs font-medium text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+                        Powered by intelligence
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="bg-background/50 backdrop-blur-sm rounded-lg p-6">
-                  <div className="w-full">
-                    <MessageList
-                      messages={messages}
-                      isTyping={isGenerating}
-                      typingStatuses={assistantStatuses}
-                      messageOptions={(message) => ({
-                        actions: onRateResponse ? (
-                          <>
-                            <div className="border-r pr-1">
-                              <CopyButton
-                                content={message.content}
-                                copyMessage="Copied response to clipboard!"
-                              />
-                            </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => onRateResponse(message.id, "thumbs-up")}
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => onRateResponse(message.id, "thumbs-down")}
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <CopyButton
-                            content={message.content}
-                            copyMessage="Copied response to clipboard!"
-                          />
-                        ),
-                      })}
-                    />
-                  </div>
+                <div className="relative w-full space-y-6">
+                  <MessageList
+                    messages={messages}
+                    isTyping={isGenerating}
+                    typingStatuses={assistantStatuses}
+                    messageOptions={(message) => ({
+                      actions: onRateResponse ? (
+                        <>
+                          <div className="border-r pr-1">
+                            <CopyButton
+                              content={message.content}
+                              copyMessage="Copied response to clipboard!"
+                            />
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => onRateResponse(message.id, "thumbs-up")}
+                          >
+                            <ThumbsUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => onRateResponse(message.id, "thumbs-down")}
+                          >
+                            <ThumbsDown className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <CopyButton
+                          content={message.content}
+                          copyMessage="Copied response to clipboard!"
+                        />
+                      ),
+                    })}
+                  />
                 </div>
               )}
             </div>
@@ -1016,43 +1044,44 @@ export default function ChatPage() {
       </div>
       
       {/* Input Area */}
-      <div ref={footerRef} className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-100 dark:border-gray-800/50 bg-white/80 dark:bg-[#080809]/90 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 relative">
-          <div className="relative">
-            <ChatForm
-              isPending={isGenerating}
-              handleSubmit={handleSubmit}
-            >
-              {({ files, setFiles }) => (
-                <div className="relative">
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <SuggestionDropdown
-                      suggestions={filteredSuggestions}
-                      onSelect={handleSuggestionSelect}
-                      inputValue={input}
-                      className="w-full"
-                    />
-                  )}
-                  <MessageInput
-                    value={input}
-                    onChange={handleInputChange}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setShowSuggestions(false)
-                      }
-                    }}
-                    stop={stop}
-                    isGenerating={isGenerating}
-                    transcribeAudio={transcribeAudio}
-                    inputRef={inputRef}
-                    allowAttachments
-                    files={files}
-                    setFiles={setFiles}
+      <div
+        ref={footerRef}
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-transparent bg-white/75 shadow-[0_-18px_45px_rgba(15,17,26,0.1)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/85 dark:shadow-[0_-18px_60px_rgba(0,0,0,0.65)]"
+      >
+        <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6">
+          <ChatForm
+            isPending={isGenerating}
+            handleSubmit={handleSubmit}
+          >
+            {({ files, setFiles }) => (
+              <div className="relative">
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <SuggestionDropdown
+                    suggestions={filteredSuggestions}
+                    onSelect={handleSuggestionSelect}
+                    inputValue={input}
+                    className="w-full"
                   />
-                </div>
-              )}
-            </ChatForm>
-          </div>
+                )}
+                <MessageInput
+                  value={input}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setShowSuggestions(false)
+                    }
+                  }}
+                  stop={stop}
+                  isGenerating={isGenerating}
+                  transcribeAudio={transcribeAudio}
+                  inputRef={inputRef}
+                  allowAttachments
+                  files={files}
+                  setFiles={setFiles}
+                />
+              </div>
+            )}
+          </ChatForm>
         </div>
       </div>
       <Toaster position="top-center" richColors />
