@@ -135,10 +135,19 @@ export interface Message {
   createdAt?: Date
   experimental_attachments?: Attachment[]
   toolInvocations?: ToolInvocation[]
+  images?: ImageResult[] | null
   parts?: MessagePart[]
   sources?: Array<string | { url: string; title?: string }>
   chartUrl?: string | null
   chartUrls?: string[] | null
+
+}
+
+export interface ImageResult {
+  title: string | null
+  imageUrl: string | null
+  pageUrl: string | null
+  thumbnailUrl?: string | null
 }
 
 export interface ChatMessageProps extends Message {
@@ -153,6 +162,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   createdAt,
   chartUrl,
   chartUrls,
+  images,
   showTimeStamp = false,
   animation = "scale",
   actions,
@@ -237,9 +247,92 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             ))}
           </div>
         )}
+        
+      
         <div className="overflow-hidden">
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
+        
+        {Array.isArray(images) && images.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-muted-foreground/20">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-muted-foreground">IMAGE RESULTS</span>
+              <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
+                {images.length}
+              </span>
+            </div>
+            <div className="-mx-3 overflow-x-auto pb-3">
+              <div className="flex gap-3 px-3 min-w-[280px]">
+                {images
+                  .filter((img) => typeof img?.imageUrl === 'string' && img.imageUrl)
+                  .map((img, index) => {
+                    const targetHref = typeof img?.pageUrl === 'string' && img.pageUrl?.trim().length > 0
+                      ? img.pageUrl
+                      : img.imageUrl;
+                    const caption = (typeof img?.title === 'string' && img.title?.trim().length > 0)
+                      ? img.title
+                      : 'View image';
+
+                    return (
+                      <a
+                        key={`${img.imageUrl}-${index}`}
+                        href={targetHref ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative flex w-[220px] flex-shrink-0 flex-col rounded-2xl border border-white/50 bg-white/60 p-3 shadow-[0_16px_40px_rgba(15,17,26,0.12)] backdrop-blur-xl transition-transform hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,17,26,0.18)] dark:border-white/10 dark:bg-white/10 dark:shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+                      >
+                        <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
+                          <img
+                            src={img.imageUrl || ''}
+                            alt={caption}
+                            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
+                            loading="lazy"
+                            onError={(event) => {
+                              const el = event.target as HTMLImageElement;
+                              el.src = img.thumbnailUrl || '';
+                            }}
+                          />
+                        </div>
+                        <div className="mt-2 flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-muted-foreground line-clamp-2">
+                              {caption}
+                            </div>
+                            {targetHref && (
+                              <div className="mt-1 text-[11px] text-muted-foreground/80 truncate">
+                                {(() => {
+                                  try {
+                                    const url = new URL(targetHref);
+                                    return url.hostname.replace(/^www\./, '');
+                                  } catch {
+                                    return targetHref;
+                                  }
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mt-0.5 text-muted-foreground/60"
+                          >
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                          </svg>
+                        </div>
+                      </a>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        )}
         {resolvedChartUrls.length > 0 && (
           <>
             <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10 space-y-3">
@@ -474,6 +567,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="absolute bottom-0 left-0 right-4 h-6 pointer-events-none" />
           </div>
         )}
+
         
       </div>
 

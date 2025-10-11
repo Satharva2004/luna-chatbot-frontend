@@ -3,7 +3,7 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
-import { type Message } from "@/components/ui/chat-message"
+import { type ImageResult, type Message } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
 import { MessageInput } from "@/components/ui/message-input"
 import { MessageList } from "@/components/ui/message-list"
@@ -18,6 +18,28 @@ import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
 import { fuzzySearch } from "@/services/suggestions/fuzzy"
 import { Playfair_Display } from "next/font/google"
+
+function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+
+  const normalized = raw
+    .map((item): ImageResult | null => {
+      if (!item || typeof item !== 'object') return null
+
+      const data = item as Record<string, unknown>
+      const imageUrl = typeof data.imageUrl === 'string' ? data.imageUrl : null
+      const pageUrl = typeof data.pageUrl === 'string' ? data.pageUrl : null
+      const title = typeof data.title === 'string' ? data.title : null
+      const thumbnailUrl = typeof data.thumbnailUrl === 'string' ? data.thumbnailUrl : null
+
+      if (!imageUrl) return null
+
+      return { title, imageUrl, pageUrl, thumbnailUrl }
+    })
+    .filter((entry): entry is ImageResult => entry !== null)
+
+  return normalized.length > 0 ? normalized : undefined
+}
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -201,6 +223,7 @@ export default function ChatPage() {
         : (typeof message?.charts === 'string' && message.charts.trim().length > 0)
           ? [message.charts]
           : undefined,
+      images: normalizeImageResults(message?.images),
     }
   }, [])
 
@@ -347,7 +370,7 @@ export default function ChatPage() {
         ...prev,
         searching: "complete",
         responding: "active",
-      }))
+      }));
 
       // Create assistant message placeholder
       const assistantMessageId = crypto.randomUUID();
@@ -359,6 +382,7 @@ export default function ChatPage() {
         sources: [],
         chartUrl: null,
         chartUrls: [],
+        images: [],
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -372,6 +396,7 @@ export default function ChatPage() {
       let streamedContent = '';
       let streamedSources: string[] = [];
       let streamedSourceObjs: Array<{ url?: string; title?: string }> = [];
+      let streamedImages: ImageResult[] = [];
       let currentEvent = '';
 
       if (!reader) {
@@ -435,8 +460,22 @@ export default function ChatPage() {
                 });
               }
               
+              // Handle images (Perplexity-style panel)
+              if (parsed.images && Array.isArray(parsed.images)) {
+                const normalized = normalizeImageResults(parsed.images);
+                if (normalized) {
+                  streamedImages = normalized;
+                  setMessages(prev =>
+                    prev.map(msg =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, images: normalized }
+                        : msg
+                    )
+                  );
+                }
+              }
               // Handle sources
-              if (parsed.sources && Array.isArray(parsed.sources)) {
+              else if (parsed.sources && Array.isArray(parsed.sources)) {
                 streamedSourceObjs = parsed.sources;
                 streamedSources = parsed.sources;
                 console.log('📚 Received sources:', streamedSources.length);
@@ -481,6 +520,7 @@ export default function ChatPage() {
                 sources: streamedSources,
                 chartUrl: msg.chartUrl,
                 chartUrls: msg.chartUrls ?? [],
+                images: streamedImages.length > 0 ? streamedImages : msg.images,
                 createdAt: new Date()
               }
             : msg

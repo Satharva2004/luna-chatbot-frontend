@@ -29,14 +29,23 @@ export function MessageList({
   messageOptions,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const previousMessageCountRef = useRef<number>(messages.length)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+    messagesEndRef.current?.scrollIntoView({ behavior })
   }
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, isTyping])
+    const prevCount = previousMessageCountRef.current
+    const nextCount = messages.length
+
+    if (nextCount > prevCount) {
+      // Smoothly scroll when a single new message arrives, otherwise jump
+      scrollToBottom(nextCount - prevCount === 1 ? "smooth" : "auto")
+    }
+
+    previousMessageCountRef.current = nextCount
+  }, [messages.length])
 
   return (
     <div className="space-y-4 overflow-visible">
