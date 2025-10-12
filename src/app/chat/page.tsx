@@ -22,7 +22,8 @@ import {
   Trash2, 
   LogOut, 
   RotateCcw,
-  ChevronDown 
+  ChevronDown,
+  X,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
@@ -978,18 +979,28 @@ export default function ChatPage() {
             >
               <div className="mx-auto mb-4 max-w-6xl rounded-3xl border border-white/70 bg-white/80 shadow-[0_18px_50px_rgba(15,17,26,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
                 <div className="space-y-5 p-5">
-                  <div className="flex items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
-                      {userInitial}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-1 items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
+                        {userInitial}
+                      </div>
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                          {displayName}
+                        </span>
+                        {displayEmail ? (
+                          <span className="truncate text-xs text-slate-500 dark:text-slate-300">{displayEmail}</span>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {displayName}
-                      </span>
-                      {displayEmail ? (
-                        <span className="text-xs text-slate-500 dark:text-slate-300">{displayEmail}</span>
-                      ) : null}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/60 bg-white/80 text-slate-500 shadow-[0_10px_26px_rgba(15,17,26,0.18)] transition-colors hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/40 dark:border-white/15 dark:bg-white/10 dark:text-slate-300 dark:hover:text-white dark:focus-visible:ring-[#82aaff]/40"
+                      aria-label="Close menu"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
 
                   <div className="flex flex-col gap-2">
