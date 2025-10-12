@@ -32,7 +32,7 @@ const STAGE_CONFIG: Array<{
   {
     key: "responding",
     title: "Generating insights",
-    description: "Crafting a detailed answer",
+    description: "",
     icon: Sparkles,
   },
   {
@@ -88,7 +88,7 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                transition={{ duration: 0.9, ease: "easeOut" }}
                 className="space-y-1"
               >
                 <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-foreground">
@@ -105,7 +105,7 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
                     initial={{ opacity: 0, y: 2 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -2 }}
-                    transition={{ duration: 0.1, ease: "easeOut" }}
+                    transition={{ duration: 0.9, ease: "easeOut" }}
                     className="text-[10px] sm:text-[11px] text-muted-foreground"
                   >
                     {detailText}
@@ -118,7 +118,7 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
                       initial={{ opacity: 0, y: 2 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -2 }}
-                      transition={{ duration: 0.1, ease: "easeOut" }}
+                      transition={{ duration: 0.9, ease: "easeOut" }}
                       className="rounded-full   px-1.5 sm:px-2 py-0.5 text-[8.5px] sm:text-[9.5px] text-muted-foreground"
                     >
                       {hint}
@@ -132,7 +132,7 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
                 className="absolute inset-y-0 left-0 rounded-full bg-primary/70"
                 initial={false}
                 animate={{ width: `${Math.min(progress, 1) * 100}%` }}
-                transition={{ duration: 0.1, ease: [0.3, 0.8, 0.4, 1] }}
+                transition={{ duration: 0.9, ease: [0.3, 0.8, 0.4, 1] }}
               />
             </div>
           </div>
