@@ -84,6 +84,7 @@ export default function ChatPage() {
   const [assistantStatuses, setAssistantStatuses] = useState<AssistantStatusMap>(
     createInitialAssistantStatuses()
   )
+  const [viewportHeight, setViewportHeight] = useState('100dvh')
 
   const displayName = user?.username || user?.name || 'User'
   const displayEmail = user?.email ?? ''
@@ -125,6 +126,31 @@ export default function ChatPage() {
     updateHeights()
     window.addEventListener('resize', updateHeights)
     return () => window.removeEventListener('resize', updateHeights)
+  }, [])
+
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === 'undefined') return
+
+      const viewport = window.visualViewport
+      const height = viewport?.height ?? window.innerHeight
+      setViewportHeight(`${height}px`)
+    }
+
+    updateViewport()
+
+    const viewport = typeof window !== 'undefined' ? window.visualViewport : null
+    viewport?.addEventListener('resize', updateViewport)
+    viewport?.addEventListener('scroll', updateViewport)
+    window.addEventListener('orientationchange', updateViewport)
+    window.addEventListener('resize', updateViewport)
+
+    return () => {
+      viewport?.removeEventListener('resize', updateViewport)
+      viewport?.removeEventListener('scroll', updateViewport)
+      window.removeEventListener('orientationchange', updateViewport)
+      window.removeEventListener('resize', updateViewport)
+    }
   }, [])
 
   const formatConversationDate = useCallback((iso?: string | null) => {
@@ -685,8 +711,8 @@ export default function ChatPage() {
 
   return (
     <div
-      className="relative flex flex-col min-h-[100dvh] overflow-hidden bg-gradient-to-br from-[#f5f5f7] via-[#f0f0f5] to-[#e5e5ed] text-slate-900 dark:bg-gradient-to-br dark:from-[#020203] dark:via-[#050509] dark:to-[#0b0b13] dark:text-slate-100"
-      style={{ minHeight: '100dvh' }}
+      className="relative flex flex-col overflow-hidden bg-gradient-to-br from-[#f5f5f7] via-[#f0f0f5] to-[#e5e5ed] text-slate-900 dark:bg-gradient-to-br dark:from-[#020203] dark:via-[#050509] dark:to-[#0b0b13] dark:text-slate-100"
+      style={{ minHeight: viewportHeight }}
     >
       <div
         aria-hidden="true"
@@ -708,7 +734,7 @@ export default function ChatPage() {
       {/* Header */}
       <header
         ref={headerRef}
-        className="fixed inset-x-0 top-0 z-20 flex justify-center px-3 sm:px-6 pt-5 pb-3"
+        className="fixed inset-x-0 top-0 z-20 flex justify-center px-3 sm:px-6 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-3"
       >
         <div className="flex w-full max-w-7xl items-center justify-between rounded-[35px] border border-white/40 bg-white/70 px-4 shadow-[0_20px_45px_rgba(15,17,26,0.16)] backdrop-blur-3xl transition-all duration-300 supports-[backdrop-filter]:bg-white/55 dark:border-white/10 dark:bg-[#0d0d12]/70 dark:shadow-[0_24px_70px_rgba(0,0,0,0.7)] sm:px-8">
           <div className="flex h-[65px] w-full items-center justify-between gap-4">
@@ -1072,7 +1098,7 @@ export default function ChatPage() {
       <div
         className="flex-1 overflow-hidden"
         style={{
-          minHeight: '100dvh',
+          minHeight: viewportHeight,
           paddingTop: messages.length > 0 ? `${layoutHeights.header}px` : 0,
           paddingBottom: messages.length > 0
             ? `calc(${layoutHeights.footer}px + env(safe-area-inset-bottom, 0px))`
@@ -1194,7 +1220,7 @@ export default function ChatPage() {
       {/* Input Area */}
       <div
         ref={footerRef}
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-transparent bg-white/75 shadow-[0_-18px_45px_rgba(15,17,26,0.1)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/85 dark:shadow-[0_-18px_60px_rgba(0,0,0,0.65)]"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-transparent bg-white/75 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-18px_45px_rgba(15,17,26,0.1)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/85 dark:shadow-[0_-18px_60px_rgba(0,0,0,0.65)]"
       >
         <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6">
           <ChatForm
