@@ -1128,7 +1128,6 @@ export default function ChatPage() {
                   }}
                 >
                   <div className="relative mx-auto max-w-2xl space-y-10 px-6 pb-16 pt-20 text-center text-slate-800 dark:text-slate-200">
-
                     <div className="flex flex-col items-center gap-5">
                       <span className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.4em] text-slate-500 backdrop-blur-sm transition-colors dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
                         Welcome back
@@ -1145,7 +1144,6 @@ export default function ChatPage() {
                           <span className="bg-gradient-to-r from-[#101320] via-[#0f62fe] to-[#101320] bg-clip-text text-4xl font-semibold italic text-transparent sm:text-[2.8rem] dark:from-white/60 dark:via-[#82aaff] dark:to-white/60 whitespace-nowrap">
                             {firstName}
                           </span>
-                          <span className="text-slate-900 dark:text-white">.</span>
                         </h2>
                       </div>
                       <p className="max-w-xl text-base leading-relaxed text-slate-500 dark:text-slate-400">

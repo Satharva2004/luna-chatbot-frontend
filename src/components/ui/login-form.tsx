@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/lib/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -36,8 +36,9 @@ const DEMO_CREDENTIALS = {
 
 export function LoginForm({
   className,
+  onSubmit,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"form">) {
   const router = useRouter()
   const { login, loginWithGoogle } = useAuth()
   const [email, setEmail] = useState("")
@@ -61,7 +62,7 @@ export function LoginForm({
     }
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!email || !password) {
       toast({
@@ -71,12 +72,12 @@ export function LoginForm({
       })
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
       const { success, error } = await login(email, password)
-      
+
       if (success) {
         toast({
           title: "Login successful!"
@@ -99,6 +100,8 @@ export function LoginForm({
     } finally {
       setIsLoading(false)
     }
+
+    onSubmit?.(e)
   }
 
   const handleGoogleSignIn = async () => {
@@ -162,76 +165,87 @@ export function LoginForm({
   // Pre-fill form with demo credentials for testing
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="flex justify-center h-10">
+    <form
+      onSubmit={handleSubmit}
+      className={cn("flex flex-col gap-6", className)}
+      {...props}
+    >
+      <FieldGroup>
+        {/* <div className="flex justify-center h-10">
         <div className="flex items-center w-40">
           <img src="logo 4.png" className="w-50" alt="nc" />
         </div>
-      </div>
-      <Card className="backdrop-blur-3xl bg-white/30 dark:bg-black/30 border border-white/10 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] rounded-4xl">
-        <CardHeader>
-          <CardTitle>Welcome to Luna</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="luna@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid gap-3">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Button disabled={isLoading} type="submit" className="w-full hover:shadow-lg transition-shadow">
-                  {isLoading ? 'Signing in...' : 'Sign in'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGoogleSignIn}
-                  disabled={isGoogleLoading}
-                  className="w-full hover:shadow-lg transition-shadow gap-2"
-                >
-                  <GoogleLogo />
-                  <span>{isGoogleLoading ? 'Connecting...' : 'Sign in with Google'}</span>
-                </Button>
-                <div className="text-center text-sm text-primary">
-                  Don&apos;t have an account?{' '}
-                  <a 
-                    href="/signup" 
-                    className="text-primary hover:underline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.push('/signup');
-                    }}
-                  >
-                    Sign up
-                  </a>
-                </div>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      </div> */}
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <p className="text-muted-foreground text-sm text-balance">
+            Enter your email below to login to your account
+          </p>
+        </div>
+        <Field>
+          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <Input
+            id="email"
+            type="email"
+            placeholder="m@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+        <Field>
+          <div className="flex items-center">
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <a
+              href="#"
+              className="ml-auto text-sm underline-offset-4 hover:underline"
+            >
+              Forgot your password?
+            </a>
+          </div>
+          <Input
+            id="password"
+            type="password"
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Field>
+        <Field>
+          <Button
+            disabled={isLoading}
+            type="submit"
+            className="w-full"
+          >
+            {isLoading ? "Signing in..." : "Login"}
+          </Button>
+        </Field>
+        <FieldSeparator>Or continue with</FieldSeparator>
+        <Field>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+            className="w-full gap-2"
+          >
+            <GoogleLogo />
+            <span>{isGoogleLoading ? "Connecting..." : "Sign in with Google"}</span>
+          </Button>
+          <FieldDescription className="text-center">
+            Don&apos;t have an account?{" "}
+            <a
+              href="/signup"
+              className="underline underline-offset-4"
+              onClick={(e) => {
+                e.preventDefault()
+                router.push("/signup")
+              }}
+            >
+              Sign up
+            </a>
+          </FieldDescription>
+        </Field>
+      </FieldGroup>
+    </form>
   )
 }

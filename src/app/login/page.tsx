@@ -1,12 +1,32 @@
-import { LoginForm } from "@/components/ui/login-form"
+import { GalleryVerticalEnd } from "lucide-react"
 
-export default function Page() {
+import { LoginForm } from "@/components/ui/login-form"
+import { RotatingBackground } from "@/components/ui/rotating-background"
+
+export default function LoginPage() {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-[#f0e8ff] via-[#e0c8ff] via-[#d0a8ff] via-[#b880ff] via-[#a048ff] via-[#9020ff] via-[#8000ff] via-[#7000e0] to-white dark:from-gray-950 dark:via-[#0f051f] dark:via-[#1a0a2e] dark:via-[#2a0a4e] dark:via-[#3a0a6e] dark:via-[#4a0a8e] dark:via-[#5a0aae] dark:via-[#6a0ace] dark:via-[#7a0aee] dark:to-white transition-all duration-1000">
-          <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <LoginForm />
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <a href="#" className="flex items-center gap-2 font-medium">
+            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
+              <GalleryVerticalEnd className="size-4" />
+            </div>
+            Luna AI.
+          </a>
         </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <LoginForm />
+          </div>
+        </div>
+      </div>
+      <div className="bg-muted relative hidden lg:block">
+        <RotatingBackground
+          images={["/bg1.png", "/bg2.jpg", "/bg3.jpg", "/bg4.jpg", "/bg5.jpg", "/bg6.jpg"]}
+          alt="Luna background"
+          className="dark:brightness-[0.6]"
+        />
       </div>
     </div>
   )
