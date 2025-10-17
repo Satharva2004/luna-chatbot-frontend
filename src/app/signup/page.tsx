@@ -25,8 +25,8 @@ export default function SignupPage() {
       <div className="bg-muted relative hidden lg:block">
         <RotatingBackground
           images={["/bg1.png", "/bg2.jpg", "/bg3.jpg", "/bg4.jpg", "/bg5.jpg", "/bg6.jpg"]}
-          alt="Luna background"
-          className="dark:brightness-[0.2] dark:grayscale"
+          alt="Luna backgroundd"
+          className="dark:brightness-[0.8] dark:grayscale"
         />
       </div>
     </div>
