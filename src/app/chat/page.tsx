@@ -271,6 +271,9 @@ export default function ChatPage() {
   const normalizeMessageFromHistory = useCallback((message: any): Message => {
     const role = message?.role === 'model' ? 'assistant' : message?.role ?? 'assistant'
     const createdAtIso = message?.created_at ?? message?.createdAt
+    const normalizedVideos = Array.isArray(message?.videos)
+      ? message.videos
+      : undefined
     return {
       id: message?.id ? String(message.id) : crypto.randomUUID(),
       role: role === 'assistant' || role === 'user' || role === 'system' ? role : 'assistant',
@@ -284,6 +287,7 @@ export default function ChatPage() {
           ? [message.charts]
           : undefined,
       images: normalizeImageResults(message?.images),
+      videos: normalizedVideos,
     }
   }, [])
 
