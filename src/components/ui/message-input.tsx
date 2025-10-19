@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUp, Info, Loader2, Mic, Paperclip, Square } from "lucide-react"
+import { ArrowUp, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
 import { omit } from "remeda"
 
 import { cn } from "@/lib/utils"
@@ -22,6 +22,8 @@ interface MessageInputBaseProps
   isGenerating: boolean
   enableInterrupt?: boolean
   transcribeAudio?: (blob: Blob) => Promise<string>
+  includeYouTube?: boolean
+  onToggleYouTube?: (next: boolean) => void
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -32,6 +34,8 @@ interface MessageInputWithAttachmentsProps extends MessageInputBaseProps {
   allowAttachments: true
   files: File[] | null
   setFiles: React.Dispatch<React.SetStateAction<File[] | null>>
+  includeYouTube?: boolean
+  onToggleYouTube?: (next: boolean) => void
 }
 
 type MessageInputProps =
@@ -47,6 +51,8 @@ export function MessageInput({
   isGenerating,
   enableInterrupt = true,
   transcribeAudio,
+  includeYouTube = true,
+  onToggleYouTube,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -251,6 +257,19 @@ export function MessageInput({
       </div>
 
       <div className="absolute right-3 top-3 z-20 flex gap-2">
+        {onToggleYouTube && (
+          <Button
+            type="button"
+            size="icon"
+            variant={includeYouTube ? "default" : "outline"}
+            className={cn("h-8 w-8", includeYouTube ? "" : "opacity-70")}
+            aria-label={includeYouTube ? "Disable YouTube results" : "Enable YouTube results"}
+            aria-pressed={includeYouTube}
+            onClick={() => onToggleYouTube(!includeYouTube)}
+          >
+            <Youtube className="h-4 w-4" />
+          </Button>
+        )}
         {props.allowAttachments && (
           <Button
             type="button"

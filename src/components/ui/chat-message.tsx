@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState } from "react"
+import React, { useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
 import { Ban, ChevronRight, Code2, Download, Loader2, Terminal } from "lucide-react"
@@ -22,12 +22,12 @@ import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-3xl px-4 py-3 text-sm border border-white/60 backdrop-blur-xl shadow-[0_20px_60px_rgba(15,17,26,0.08)] transition-all duration-300 dark:border-white/10",
+  "group/message relative break-words text-sm transition-all duration-300",
   {
     variants: {
       isUser: {
-        true: "max-w-[85%] sm:max-w-[70%] bg-white/80 text-slate-900 ring-1 ring-white/70 hover:translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,17,26,0.12)] dark:bg-white/10 dark:text-slate-100 dark:ring-white/15",
-        false: "max-w-[90%] sm:max-w-[80%] bg-white/45 text-slate-900 ring-1 ring-white/60 hover:translate-y-0.5 hover:shadow-[0_30px_70px_rgba(15,17,26,0.15)] dark:bg-white/8 dark:text-slate-100 dark:ring-white/10",
+        true: "max-w-[85%] sm:max-w-[70%] rounded-3xl px-4 py-3 text-slate-900 ring-1 ring-white/70 bg-white/80 shadow-[0_20px_60px_rgba(15,17,26,0.08)] hover:translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,17,26,0.12)] dark:bg-white/10 dark:text-slate-100 dark:ring-white/15",
+        false: "w-full max-w-[95%] sm:max-w-[88%] px-1 py-1 text-slate-900 dark:text-slate-100",
       },
       animation: {
         none: "",
@@ -140,6 +140,18 @@ export interface Message {
   sources?: Array<string | { url: string; title?: string }>
   chartUrl?: string | null
   chartUrls?: string[] | null
+  videos?: Array<{
+    videoId?: string
+    title?: string
+    description?: string
+    channelTitle?: string
+    url?: string
+    thumbnails?: {
+      default?: { url?: string }
+      medium?: { url?: string }
+      high?: { url?: string }
+    }
+  }> | null
 
 }
 
@@ -163,6 +175,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   chartUrl,
   chartUrls,
   images,
+  videos,
   showTimeStamp = false,
   animation = "scale",
   actions,
@@ -184,6 +197,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const isUser = role === "user"
   const [downloadingChartUrl, setDownloadingChartUrl] = useState<string | null>(null)
   const [expandedChartUrl, setExpandedChartUrl] = useState<string | null>(null)
+  const videoScrollRef = useRef<HTMLDivElement | null>(null)
 
   const resolvedChartUrls = useMemo(() => {
     const urls = [chartUrl, ...(Array.isArray(chartUrls) ? chartUrls : [])]
@@ -325,6 +339,203 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           >
                             <polyline points="9 18 15 12 9 6"></polyline>
                           </svg>
+                        </div>
+                      </a>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        )}
+        {Array.isArray(videos) && videos.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-muted-foreground/20">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">YOUTUBE RECOMMENDATIONS</span>
+                <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
+                  {videos.length}
+                </span>
+              </div>
+              <div className="hidden items-center gap-2 text-[11px] text-muted-foreground/70 md:flex">
+                <button
+                  type="button"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => {
+                    if (videoScrollRef.current) {
+                      videoScrollRef.current.scrollBy({ left: -280, behavior: 'smooth' })
+                    }
+                  }}
+                  aria-label="Scroll left"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M15 6l-6 6 6 6" />
+                  </svg>
+                </button>
+                <span>Powered by YouTube search</span>
+                <button
+                  type="button"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => {
+                    if (videoScrollRef.current) {
+                      videoScrollRef.current.scrollBy({ left: 280, behavior: 'smooth' })
+                    }
+                  }}
+                  aria-label="Scroll right"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="relative -mx-3 pb-3 md:mx-0">
+              <div
+                ref={videoScrollRef}
+                className="flex gap-3 px-3 overflow-x-auto pt-2 pb-1 md:px-0 md:pt-2 md:pb-0"
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'rgba(255,255,255,0.25) transparent',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                {videos
+                  .filter((video) => typeof (video?.url || video?.videoId) === 'string')
+                  .map((video, index) => {
+                    const extractVideoId = (url?: string) => {
+                      if (!url) return undefined;
+                      try {
+                        const parsed = new URL(url);
+                        if (parsed.hostname.includes('youtu.be')) {
+                          return parsed.pathname.replace('/', '').trim();
+                        }
+                        if (parsed.searchParams.has('v')) {
+                          return parsed.searchParams.get('v')?.trim() || undefined;
+                        }
+                        const match = parsed.pathname.split('/').filter(Boolean);
+                        if (match[0] === 'embed' && match[1]) {
+                          return match[1];
+                        }
+                      } catch (error) {
+                        const regex = /(?:v=|\/)([0-9A-Za-z_-]{11})(?:[?&]|$)/;
+                        const result = regex.exec(url);
+                        if (result && result[1]) {
+                          return result[1];
+                        }
+                      }
+                      return undefined;
+                    };
+
+                    const derivedVideoId = (typeof video?.videoId === 'string' && video.videoId.trim().length > 0)
+                      ? video.videoId.trim()
+                      : extractVideoId(video?.url);
+
+                    const targetHref = (() => {
+                      if (typeof video?.url === 'string' && video.url.trim().length > 0) {
+                        return video.url;
+                      }
+                      if (derivedVideoId) {
+                        return `https://www.youtube.com/watch?v=${derivedVideoId}`;
+                      }
+                      return undefined;
+                    })();
+
+                    const thumbnailUrl = video?.thumbnails?.medium?.url
+                      || video?.thumbnails?.high?.url
+                      || video?.thumbnails?.default?.url
+                      || (derivedVideoId ? `https://img.youtube.com/vi/${derivedVideoId}/hqdefault.jpg` : undefined);
+
+                    const title = (typeof video?.title === 'string' && video.title.trim().length > 0)
+                      ? video.title
+                      : 'Watch on YouTube';
+
+                    const channel = (typeof video?.channelTitle === 'string' && video.channelTitle.trim().length > 0)
+                      ? video.channelTitle
+                      : undefined;
+
+                    return (
+                      <a
+                        key={`${video?.videoId || video?.url || index}`}
+                        href={targetHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group/video relative flex w-[260px] flex-shrink-0 flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#161616] transition-transform hover:-translate-y-0.5 hover:border-white/20"
+                      >
+                        <div className="relative aspect-video w-full bg-black">
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={title}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                              onError={(event) => {
+                                const el = event.target as HTMLImageElement;
+                                el.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
+                              Video unavailable
+                            </div>
+                          )}
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/70 via-black/25 to-transparent opacity-0 transition-opacity duration-200 group-hover/video:opacity-60" />
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur group-hover/video:bg-white/25">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                className="h-6 w-6 text-white"
+                                fill="currentColor"
+                              >
+                                <path d="M10 15.5v-7l6 3.5-6 3.5Z" />
+                              </svg>
+                            </span>
+                          </div>
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-3 pt-6 opacity-0 transition-opacity duration-200 group-hover/video:opacity-100">
+                            <p className="text-sm font-medium leading-tight text-white line-clamp-2">
+                              {title}
+                            </p>
+                            {channel && (
+                              <span className="mt-1 text-xs text-white/70">
+                                {channel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between px-3 py-2 text-[11px] text-white/70">
+                          <span className="line-clamp-1">youtube.com</span>
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors group-hover/video:bg-white/20 group-hover/video:text-white">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.5"
+                            >
+                              <path d="M7 17L17 7" />
+                              <path d="M7 7h10v10" />
+                            </svg>
+                          </span>
                         </div>
                       </a>
                     );

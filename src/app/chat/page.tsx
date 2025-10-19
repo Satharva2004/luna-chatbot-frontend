@@ -85,6 +85,7 @@ export default function ChatPage() {
   const [assistantStatuses, setAssistantStatuses] = useState<AssistantStatusMap>(
     createInitialAssistantStatuses()
   )
+  const [includeYouTube, setIncludeYouTube] = useState(true)
   const [viewportHeight, setViewportHeight] = useState('100dvh')
 
   const displayName = user?.username || user?.name || 'User'
@@ -385,6 +386,7 @@ export default function ChatPage() {
         const formData = new FormData()
         formData.append('prompt', userContent)
         if (conversationId) formData.append('conversationId', conversationId)
+        formData.append('options', JSON.stringify({ includeYouTube }))
         Array.from(attachments).forEach((file) => {
           formData.append('files', file, file.name)
         })
@@ -407,6 +409,9 @@ export default function ChatPage() {
           body: JSON.stringify({
             prompt: userContent,
             conversationId: conversationId || undefined,
+            options: {
+              includeYouTube,
+            },
           }),
           signal: abortControllerRef.current.signal,
         })
@@ -447,6 +452,7 @@ export default function ChatPage() {
       let streamedSources: string[] = []
       let streamedSourceObjs: Array<{ url?: string; title?: string }> = []
       let streamedImages: ImageResult[] = []
+      let streamedVideos: any[] = []
       let currentEvent = ''
 
       if (!reader) {
@@ -531,6 +537,16 @@ export default function ChatPage() {
                   )
                 )
               }
+              else if (parsed.videos && Array.isArray(parsed.videos)) {
+                streamedVideos = parsed.videos
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, videos: parsed.videos as any }
+                      : msg
+                  )
+                )
+              }
 
               if (parsed.finishReason) {
                 console.log('✅ Stream finished with reason:', parsed.finishReason)
@@ -562,6 +578,7 @@ export default function ChatPage() {
                 chartUrl: msg.chartUrl,
                 chartUrls: msg.chartUrls ?? [],
                 images: streamedImages.length > 0 ? streamedImages : msg.images,
+                videos: streamedVideos.length > 0 ? streamedVideos : (msg as any).videos,
                 createdAt: new Date()
               }
             : msg
@@ -591,7 +608,7 @@ export default function ChatPage() {
             body: JSON.stringify({
               prompt: userContent,
               conversationId: chartsConversationId,
-              options: { includeSearch: true },
+              options: { includeSearch: true, includeYouTube },
             }),
           })
 
@@ -1261,6 +1278,8 @@ export default function ChatPage() {
                   allowAttachments
                   files={files}
                   setFiles={setFiles}
+                  includeYouTube={includeYouTube}
+                  onToggleYouTube={(next: boolean) => setIncludeYouTube(next)}
                 />
               </div>
             )}

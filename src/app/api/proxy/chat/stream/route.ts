@@ -29,6 +29,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           prompt: body.prompt,
           conversationId: body.conversationId || undefined,
+          ...(body.options ? { options: body.options } : {}),
         }),
       });
     }
