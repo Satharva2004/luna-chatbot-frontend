@@ -263,8 +263,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         )}
         
       
-        <div className="overflow-hidden">
-          <MarkdownRenderer>{content}</MarkdownRenderer>
+        <div
+          className="overflow-hidden"
+          style={{
+            fontFamily: '"Inter", "Nunito", "Helvetica Neue", Arial, sans-serif',
+            fontWeight: 400,
+            lineHeight: 2,
+            fontSize: '0.9rem',
+          }}
+        >
+          <MarkdownRenderer>
+            {content}
+          </MarkdownRenderer>
         </div>
         
         {Array.isArray(images) && images.length > 0 && (

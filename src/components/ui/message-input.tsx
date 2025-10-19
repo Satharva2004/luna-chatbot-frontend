@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUp, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
+import { ArrowUp, ChevronDown, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
 import { omit } from "remeda"
 
 import { cn } from "@/lib/utils"
@@ -12,6 +12,7 @@ import { AudioVisualizer } from "@/components/ui/audio-visualizer"
 import { Button } from "@/components/ui/button"
 import { FilePreview } from "@/components/ui/file-preview"
 import { InterruptPrompt } from "@/components/ui/interrupt-prompt"
+import { Switch } from "@/components/ui/switch"
 
 interface MessageInputBaseProps
   extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'ref'> {
@@ -57,6 +58,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [showInterruptPrompt, setShowInterruptPrompt] = useState(false)
+  const [showYouTubeMenu, setShowYouTubeMenu] = useState(false)
 
   const {
     isListening,
@@ -170,6 +172,7 @@ export function MessageInput({
   const textAreaRef = props.inputRef || internalTextAreaRef
   const [textAreaHeight, setTextAreaHeight] = useState<number>(0)
   const containerRef = useRef<HTMLDivElement>(null)
+  const youTubeMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const element = internalTextAreaRef.current
@@ -177,6 +180,31 @@ export function MessageInput({
       setTextAreaHeight(element.offsetHeight)
     }
   }, [props.value])
+
+  useEffect(() => {
+    if (!showYouTubeMenu) return
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (youTubeMenuRef.current && !youTubeMenuRef.current.contains(target)) {
+        setShowYouTubeMenu(false)
+      }
+    }
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowYouTubeMenu(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClick)
+    document.addEventListener("keydown", handleKey)
+
+    return () => {
+      document.removeEventListener("mousedown", handleClick)
+      document.removeEventListener("keydown", handleKey)
+    }
+  }, [showYouTubeMenu])
 
   const showFileList =
     props.allowAttachments && props.files && props.files.length > 0
@@ -258,19 +286,68 @@ export function MessageInput({
 
       <div className="absolute right-3 top-3 z-20 flex gap-2">
         {onToggleYouTube && (
-          <Button
-            type="button"
-            size="icon"
-            variant={includeYouTube ? "default" : "outline"}
-            className={cn("h-8 w-8", includeYouTube ? "" : "opacity-70")}
-            aria-label={includeYouTube ? "Disable YouTube results" : "Enable YouTube results"}
-            aria-pressed={includeYouTube}
-            onClick={() => onToggleYouTube(!includeYouTube)}
-          >
-            <Youtube className="h-4 w-4" />
-          </Button>
+          <div ref={youTubeMenuRef} className="relative">
+            <Button
+              type="button"
+              size="sm"
+              variant={includeYouTube ? "default" : "outline"}
+              className={cn("h-8 gap-1 px-2.5", includeYouTube ? "" : "opacity-70")}
+              aria-label="Toggle tools menu"
+              aria-haspopup="menu"
+              aria-expanded={showYouTubeMenu}
+              aria-pressed={includeYouTube}
+              onClick={() => setShowYouTubeMenu((value) => !value)}
+            >
+              <span className="text-sm font-medium">Tools</span>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+            {showYouTubeMenu && (
+              <div
+                role="menu"
+                aria-label="Tools"
+                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-md border bg-popover p-2 text-popover-foreground shadow-md"
+              >
+                <div
+                  role="menuitem"
+                  className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm"
+                >
+                  <label
+                    htmlFor="message-input-youtube-switch"
+                    className="flex items-center gap-2 font-medium"
+                  >
+                    <Youtube className="h-4 w-4 text-red-500" />
+                    <span>YouTube Search</span>
+                  </label>
+                  <Switch
+                    id="message-input-youtube-switch"
+                    checked={includeYouTube}
+                    onCheckedChange={(checked) => {
+                      onToggleYouTube(checked)
+                    }}
+                    aria-label="Toggle YouTube tool"
+                  />
+                </div>
+                {props.allowAttachments && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                    onClick={async () => {
+                      const files = await showFileUploadDialog()
+                      if (files) {
+                        addFiles(files)
+                      }
+                    }}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    <span>Upload files</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
-        {props.allowAttachments && (
+        {/* {props.allowAttachments && (
           <Button
             type="button"
             size="icon"
@@ -284,7 +361,7 @@ export function MessageInput({
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-        )}
+        )} */}
         {isSpeechSupported && (
           <Button
             type="button"
