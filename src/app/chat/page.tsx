@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
 import { type ImageResult, type Message } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
+import { Input } from "@/components/ui/input"
 import { MessageInput } from "@/components/ui/message-input"
 import { MessageList } from "@/components/ui/message-list"
 import {
@@ -25,6 +26,7 @@ import {
   ChevronDown,
   X,
   MessageCircle,
+  BookOpen,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
@@ -90,6 +92,7 @@ export default function ChatPage() {
   )
   const [includeYouTube, setIncludeYouTube] = useState(true)
   const [viewportHeight, setViewportHeight] = useState('100dvh')
+  const [historyQuery, setHistoryQuery] = useState("")
 
   const displayName = user?.username || user?.name || 'User'
   const displayEmail = user?.email ?? ''
@@ -111,7 +114,7 @@ export default function ChatPage() {
   const desktopActionClasses =
     "group/nav relative inline-flex h-10 items-center overflow-hidden rounded-full border border-white/70 bg-white/80 px-5 text-sm font-medium text-slate-700 shadow-[0_12px_30px_rgba(15,17,26,0.14)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_16px_38px_rgba(15,17,26,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_22px_60px_rgba(0,0,0,0.6)] dark:focus-visible:ring-[#82aaff]/30"
   const desktopProfileButtonClasses =
-    "group/profile relative flex min-h-[2.6rem] min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-4 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
+    "group/profile relative flex min-h-[2.6rem] min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-2 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
 
   // Layout heights state
   const [layoutHeights, setLayoutHeights] = useState({
@@ -369,6 +372,22 @@ export default function ChatPage() {
     if (!input || input.trim().length < 2) return []
     return fuzzySearch(input).slice(0, 5)
   }, [input])
+
+  const filteredHistory = useMemo(() => {
+    if (!historyQuery.trim()) {
+      return conversations
+    }
+
+    const query = historyQuery.toLowerCase()
+
+    return conversations.filter((conversation) => {
+      const title = conversation.title || `Chat ${conversation.id.slice(0, 6)}`
+      return (
+        title.toLowerCase().includes(query) ||
+        conversation.id.toLowerCase().includes(query)
+      )
+    })
+  }, [historyQuery, conversations])
 
   const handleInputChange: React.ChangeEventHandler<HTMLTextAreaElement> = (e) => {
     setInput(e.target.value)
@@ -769,9 +788,9 @@ export default function ChatPage() {
         className="fixed inset-x-0 top-0 z-20 flex justify-center px-3 sm:px-6 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-3"
       >
         <div className="flex w-full max-w-7xl items-center justify-between rounded-[35px] border border-white/40 bg-white/70 px-4 shadow-[0_20px_45px_rgba(15,17,26,0.16)] backdrop-blur-3xl transition-all duration-300 supports-[backdrop-filter]:bg-white/55 dark:border-white/10 dark:bg-[#0d0d12]/70 dark:shadow-[0_24px_70px_rgba(0,0,0,0.7)] sm:px-8">
-          <div className="flex h-[65px] w-full items-center justify-between gap-4">
+          <div className="flex h-[65px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Left Section - Logo */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0f0f13] to-[#1d1f24] shadow-[0_6px_18px_rgba(15,17,26,0.35)] dark:from-white/90 dark:to-white/65 dark:shadow-[0_10px_28px_rgba(0,0,0,0.55)]">
                 <Search className="h-4 w-4 text-white dark:text-[#0c0c12]" />
               </div>
@@ -779,46 +798,30 @@ export default function ChatPage() {
                 <h1 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base dark:text-white">
                   Luna AI
                 </h1>
+                <span className="hidden text-xs text-slate-500 sm:block dark:text-slate-300">Your AI workspace</span>
               </div>
             </div>
 
-            {/* Mobile menu button */}
-            <div className="md:hidden">
+            {/* Desktop Primary Actions */}
+            <div className="hidden items-center gap-3 md:flex md:justify-center md:justify-self-center">
               <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="rounded-full p-2 text-slate-600 transition-colors hover:text-slate-900 focus:outline-none dark:text-slate-300 dark:hover:text-white"
                 type="button"
+                className={desktopActionClasses}
+                onClick={startNewChat}
               >
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  {isMobileMenuOpen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  )}
-                </svg>
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  New chat
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
+                />
               </button>
-            </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden items-center gap-3 md:flex">
-              {/* History Dropdown */}
               <div className="relative history-dropdown">
                 <button
+                  type="button"
                   className={desktopActionClasses}
                   onClick={() => {
                     setIsProfileOpen(false)
@@ -827,14 +830,16 @@ export default function ChatPage() {
                       if (next && !isHistoryLoading && conversations.length === 0) {
                         void loadConversations()
                       }
+                      if (!next) {
+                        setHistoryQuery("")
+                      }
                       return next
                     })
                   }}
-                  type="button"
                 >
                   <span className="relative z-10 inline-flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    <span>History</span>
+                    <Search className="h-4 w-4" />
+                    <span>Search chat</span>
                   </span>
                   <span
                     aria-hidden="true"
@@ -843,22 +848,33 @@ export default function ChatPage() {
                 </button>
 
                 {isHistoryOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-3 w-80 origin-top-right rounded-3xl border border-white/70 bg-white/85 p-1 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl transition-all dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
-                    <div className="flex items-center justify-between rounded-2xl border border-white/60 bg-white/75 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Chat history</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Select a conversation to resume</p>
+                  <div className="absolute left-1/2 top-full z-50 mt-3 w-[420px] -translate-x-1/2 origin-top rounded-3xl border border-white/70 bg-white/85 p-1 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl transition-all dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
+                    <div className="space-y-3 rounded-2xl border border-white/60 bg-white/75 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">Search chats</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Browse and reopen conversations</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-xs text-[#0071e3] hover:text-[#0081ff] dark:text-[#4aa8ff]"
+                          onClick={startNewChat}
+                          type="button"
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          New
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-xs text-[#0071e3] hover:text-[#0081ff] dark:text-[#4aa8ff]"
-                        onClick={startNewChat}
-                        type="button"
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        New
-                      </Button>
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                        <Input
+                          value={historyQuery}
+                          onChange={(event) => setHistoryQuery(event.target.value)}
+                          placeholder="Search conversations"
+                          className="h-10 rounded-2xl border border-white/60 bg-white/90 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus-visible:border-[#0f62fe]/40 focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+                        />
+                      </div>
                     </div>
 
                     <div className="max-h-80 overflow-y-auto overflow-x-hidden rounded-2xl border border-white/60 bg-white/65 p-2 dark:border-white/10 dark:bg-white/5">
@@ -870,9 +886,13 @@ export default function ChatPage() {
                         <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
                           No conversations yet
                         </div>
+                      ) : filteredHistory.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                          No chats found for “{historyQuery}”
+                        </div>
                       ) : (
                         <ul className="py-1">
-                          {conversations.map((conversation) => {
+                          {filteredHistory.map((conversation) => {
                             const isActive = currentConversationId === conversation.id
                             const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
 
@@ -916,21 +936,25 @@ export default function ChatPage() {
                   </div>
                 )}
               </div>
-              <Button
-                onClick={startNewChat}
-                variant="ghost"
-                size="sm"
+
+              <button
+                type="button"
                 className={desktopActionClasses}
+                onClick={() => toast("Library is coming soon")}
               >
                 <span className="relative z-10 inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  New chat
+                  <BookOpen className="h-4 w-4" />
+                  <span>Library</span>
                 </span>
                 <span
                   aria-hidden="true"
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
                 />
-              </Button>
+              </button>
+            </div>
+
+            {/* Desktop Secondary Actions */}
+            <div className="hidden items-center gap-3 md:flex md:justify-self-end">
               <div className="relative profile-dropdown">
                 <button
                   type="button"
@@ -943,14 +967,11 @@ export default function ChatPage() {
                   aria-haspopup="true"
                 >
                   <div className="relative z-10 flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
                       {userInitial}
                     </div>
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-semibold text-current">{displayName}</span>
-                      {displayEmail ? (
-                        <span className="truncate text-xs text-slate-500 dark:text-slate-300">{displayEmail}</span>
-                      ) : null}
+                      <span className="truncate text-sm font-semibold text-current">Profile</span>
                     </div>
                     <ChevronDown className={`h-4 w-4 text-current transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
                   </div>
