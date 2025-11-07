@@ -26,7 +26,7 @@ const STAGE_CONFIG: Array<{
   {
     key: "searching",
     title: "Searching the web",
-    description: "Collecting the latest insights",
+    description: "",
     icon: Search,
   },
   {

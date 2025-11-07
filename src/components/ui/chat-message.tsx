@@ -253,7 +253,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // Render message with files if present
   const renderMessageContent = (content: string) => (
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
-      <div className={cn(chatBubbleVariants({ isUser, animation }), "relative")}>
+      <div className={cn(chatBubbleVariants({ isUser, animation }), "relative") }>
         {files && (
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => (
@@ -570,25 +570,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   return (
                     <div
                       key={`${url}-${index}`}
-                      className="overflow-hidden rounded-2xl border border-white/50 bg-white/30 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+                      className="space-y-5 md:mx-auto md:max-w-2xl"
                     >
-                      <div className="flex items-center justify-between bg-white/40 px-3 py-2 text-muted-foreground dark:bg-white/10">
+                      <div className="flex flex-col gap-2 px-2 text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-3 md:px-0">
                         <span className="text-sm font-medium text-muted-foreground">{chartLabel}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadChart(url)}
-                          className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-60 disabled:pointer-events-none"
-                          disabled={isDownloading}
-                        >
-                          {isDownloading ? "Preparing..." : "Download"}
-                        </button>
-                      </div>
-                      <div className="px-3 pb-3 md:hidden">
                         <Button
                           type="button"
                           onClick={() => handleDownloadChart(url)}
                           variant="secondary"
-                          className="w-full justify-center gap-2 rounded-xl border border-white/40 bg-white/50 text-muted-foreground shadow-sm backdrop-blur-xl hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border/40 bg-background/80 text-muted-foreground shadow-sm transition hover:bg-background sm:w-auto"
                           disabled={isDownloading}
                         >
                           {isDownloading ? (
@@ -613,7 +603,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <img
                           src={url}
                           alt={chartLabel}
-                          className="w-full h-auto transition-transform duration-200 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] cursor-zoom-in"
+                          className="w-full h-auto cursor-zoom-in transition-transform duration-200 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] md:mx-auto md:max-h-[360px] md:w-auto"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement
                             target.style.display = "none"
@@ -634,7 +624,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 if (!open) setExpandedChartUrl(null)
               }}
             >
-              <DialogContent className="max-w-5xl w-[calc(100%-2rem)]">
+              <DialogContent className="w-full max-w-6xl gap-4 p-0 sm:p-6">
                 <DialogHeader className="flex flex-row items-center justify-between gap-4">
                   <DialogTitle className="text-base sm:text-lg">Generated chart</DialogTitle>
                   <Button
@@ -657,13 +647,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     )}
                   </Button>
                 </DialogHeader>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 px-4 pb-6 sm:px-0">
                   <div className="overflow-auto">
                     {expandedChartUrl && (
                       <img
                         src={expandedChartUrl}
                         alt="Expanded chart"
-                        className="mx-auto h-auto max-h-[70vh] w-full object-contain"
+                        className="mx-auto h-auto max-h-[80vh] w-full max-w-[1100px] object-contain"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement
                           target.style.display = "none"
@@ -803,6 +793,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           {formattedTime}
         </time>
       )}
+      {actions && (
+        <div
+          className={cn(
+            "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
+            isUser ? "self-end" : "self-start"
+          )}
+        >
+          {actions}
+        </div>
+      )}
     </div>
   );
 
@@ -825,11 +825,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               <div className="overflow-hidden">
                 <MarkdownRenderer>{part.text}</MarkdownRenderer>
               </div>
-              {actions ? (
-                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
-                  {actions}
-                </div>
-              ) : null}
             </div>
 
             {showTimeStamp && createdAt ? (
@@ -842,6 +837,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               >
                 {formattedTime}
               </time>
+            ) : null}
+            {actions ? (
+              <div
+                className={cn(
+                  "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
+                  isUser ? "self-end" : "self-start"
+                )}
+              >
+                {actions}
+              </div>
             ) : null}
           </div>
         )
@@ -875,11 +880,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         <div className="overflow-hidden">
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
-        {actions && (
-          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
-            {actions}
-          </div>
-        )}
       </div>
 
       {showTimeStamp && createdAt && (
@@ -892,6 +892,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         >
           {formattedTime}
         </time>
+      )}
+      {actions && (
+        <div
+          className={cn(
+            "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
+            isUser ? "self-end" : "self-start"
+          )}
+        >
+          {actions}
+        </div>
       )}
     </div>
   )

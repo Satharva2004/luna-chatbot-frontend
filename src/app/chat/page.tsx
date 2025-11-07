@@ -24,12 +24,15 @@ import {
   RotateCcw,
   ChevronDown,
   X,
+  MessageCircle,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
 import { fuzzySearch } from "@/services/suggestions/fuzzy"
 import { Playfair_Display } from "next/font/google"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { FeedbackDialog } from "@/components/ui/feedback-dialog"
+import { toast } from "sonner"
 
 function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
   if (!Array.isArray(raw)) return undefined
@@ -702,6 +705,13 @@ export default function ChatPage() {
 
   const onRateResponse = (messageId: string, rating: "thumbs-up" | "thumbs-down") => {
     console.log("Rated", messageId, rating)
+
+    toast.success(
+      rating === "thumbs-up" ? "Marked response as helpful" : "Marked response as not helpful",
+      {
+        description: "Thanks for your feedback!",
+      }
+    )
   }
 
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
