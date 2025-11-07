@@ -112,9 +112,9 @@ export default function ChatPage() {
   }, [displayName])
 
   const desktopActionClasses =
-    "group/nav relative inline-flex h-10 items-center overflow-hidden rounded-full border border-white/70 bg-white/80 px-5 text-sm font-medium text-slate-700 shadow-[0_12px_30px_rgba(15,17,26,0.14)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_16px_38px_rgba(15,17,26,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_22px_60px_rgba(0,0,0,0.6)] dark:focus-visible:ring-[#82aaff]/30"
+    "group/nav relative inline-flex h-8 items-center overflow-hidden rounded-full border border-white/70 bg-white/80 px-5 text-sm font-medium text-slate-700 shadow-[0_12px_30px_rgba(15,17,26,0.14)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_16px_38px_rgba(15,17,26,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_22px_60px_rgba(0,0,0,0.6)] dark:focus-visible:ring-[#82aaff]/30"
   const desktopProfileButtonClasses =
-    "group/profile relative flex min-h-[2.6rem] min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-2 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
+    "group/profile relative flex min-h-8 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-2 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
 
   // Layout heights state
   const [layoutHeights, setLayoutHeights] = useState({
@@ -788,17 +788,16 @@ export default function ChatPage() {
         className="fixed inset-x-0 top-0 z-20 flex justify-center px-3 sm:px-6 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-3"
       >
         <div className="flex w-full max-w-7xl items-center justify-between rounded-[35px] border border-white/40 bg-white/70 px-4 shadow-[0_20px_45px_rgba(15,17,26,0.16)] backdrop-blur-3xl transition-all duration-300 supports-[backdrop-filter]:bg-white/55 dark:border-white/10 dark:bg-[#0d0d12]/70 dark:shadow-[0_24px_70px_rgba(0,0,0,0.7)] sm:px-8">
-          <div className="flex h-[65px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
+          <div className="flex h-[60px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0f0f13] to-[#1d1f24] shadow-[0_6px_18px_rgba(15,17,26,0.35)] dark:from-white/90 dark:to-white/65 dark:shadow-[0_10px_28px_rgba(0,0,0,0.55)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0f0f13] to-[#1d1f24] shadow-[0_6px_18px_rgba(15,17,26,0.35)] dark:from-white/90 dark:to-white/65 dark:shadow-[0_10px_28px_rgba(0,0,0,0.55)]">
                 <Search className="h-4 w-4 text-white dark:text-[#0c0c12]" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base dark:text-white">
+                <h1 className="text-xs font-semibold tracking-tight text-slate-900 sm:text-base dark:text-white">
                   Luna AI
                 </h1>
-                <span className="hidden text-xs text-slate-500 sm:block dark:text-slate-300">Your AI workspace</span>
               </div>
             </div>
 
@@ -967,7 +966,7 @@ export default function ChatPage() {
                   aria-haspopup="true"
                 >
                   <div className="relative z-10 flex min-w-0 items-center gap-3">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
                       {userInitial}
                     </div>
                     <div className="flex min-w-0 flex-col">
