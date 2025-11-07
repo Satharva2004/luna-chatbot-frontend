@@ -1,6 +1,6 @@
 "use client"
 
-import React, { Suspense } from "react"
+import React from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -27,38 +27,65 @@ interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
 }
 
 const HighlightedPre = React.memo(
-  async ({ children, language, ...props }: HighlightedPre) => {
-    const { codeToTokens, bundledLanguages } = await import("shiki")
+  ({ children, language, ...props }: HighlightedPre) => {
+    const [highlighted, setHighlighted] = React.useState<React.ReactNode>(null)
 
-    if (!(language in bundledLanguages)) {
-      return <pre {...props}>{children}</pre>
-    }
+    React.useEffect(() => {
+      let cancelled = false
 
-    const { tokens } = await codeToTokens(children, {
-      lang: language as keyof typeof bundledLanguages,
-      defaultColor: false,
-      themes: {
-        light: "github-light",
-        dark: "github-dark",
-      },
-    })
+      async function highlight() {
+        try {
+          const { codeToTokens, bundledLanguages } = await import("shiki")
 
-    return (
-      <pre {...props}>
-        <code>
-          {tokens.map((line, lineIndex) => (
-            <React.Fragment key={lineIndex}>
-              {line.map((token, tokenIndex) => (
-                <span key={tokenIndex} style={token.color ? { color: token.color } : {}}>
-                  {token.content}
-                </span>
-              ))}
-              <br />
-            </React.Fragment>
-          ))}
-        </code>
-      </pre>
-    )
+          if (cancelled) return
+
+          if (!(language in bundledLanguages)) {
+            setHighlighted(<pre {...props}>{children}</pre>)
+            return
+          }
+
+          const { tokens } = await codeToTokens(children, {
+            lang: language as keyof typeof bundledLanguages,
+            defaultColor: false,
+            themes: {
+              light: "github-light",
+              dark: "github-dark",
+            },
+          })
+
+          if (cancelled) return
+
+          setHighlighted(
+            <pre {...props}>
+              <code>
+                {tokens.map((line, lineIndex) => (
+                  <React.Fragment key={lineIndex}>
+                    {line.map((token, tokenIndex) => (
+                      <span key={tokenIndex} style={token.color ? { color: token.color } : {}}>
+                        {token.content}
+                      </span>
+                    ))}
+                    <br />
+                  </React.Fragment>
+                ))}
+              </code>
+            </pre>
+          )
+        } catch (error) {
+          if (!cancelled) {
+            setHighlighted(<pre {...props}>{children}</pre>)
+          }
+        }
+      }
+
+      highlight()
+
+      return () => {
+        cancelled = true
+      }
+    }, [children, language, props])
+
+    return highlighted || <pre {...props}>{children}</pre>
   }
 )
 
@@ -83,17 +110,13 @@ function CodeBlock({
       <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
         <CopyButton content={code} />
       </div>
-      <Suspense fallback={<pre {...restProps} className={cn(className, 'p-4 rounded-md bg-muted')}>
-        <code>{code}</code>
-      </pre>}>
-        <HighlightedPre
-          className={cn('p-4 rounded-md bg-muted overflow-x-auto', className)}
-          language={language}
-          {...restProps}
-        >
-          {code}
-        </HighlightedPre>
-      </Suspense>
+      <HighlightedPre
+        className={cn('p-4 rounded-md bg-muted overflow-x-auto', className)}
+        language={language}
+        {...restProps}
+      >
+        {code}
+      </HighlightedPre>
     </div>
   )
 }

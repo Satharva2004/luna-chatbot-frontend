@@ -25,7 +25,7 @@ import {
   RotateCcw,
   ChevronDown,
   X,
-  MessageCircle,
+  Menu,
   BookOpen,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
@@ -482,6 +482,8 @@ export default function ChatPage() {
       let streamedImages: ImageResult[] = []
       let streamedVideos: any[] = []
       let currentEvent = ''
+      let updateTimer: NodeJS.Timeout | null = null
+      let pendingUpdate = false
 
       if (!reader) {
         throw new Error('No response body reader available')
@@ -492,6 +494,17 @@ export default function ChatPage() {
         
         if (done) {
           console.log('Stream complete')
+          // Flush any pending updates
+          if (updateTimer) {
+            clearTimeout(updateTimer)
+            setMessages((prev) => 
+              prev.map((msg) => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, content: streamedContent, createdAt: new Date() }
+                  : msg
+              )
+            )
+          }
           break
         }
 
@@ -518,32 +531,40 @@ export default function ChatPage() {
             try {
               const parsed = JSON.parse(data)
               
-              if (parsed.conversationId) {
+              // Handle different event types
+              if (currentEvent === 'conversationId' || parsed.conversationId) {
                 console.log('Setting conversation ID:', parsed.conversationId)
                 resolvedConversationId = parsed.conversationId
                 if (parsed.conversationId !== currentConversationId) {
                   setCurrentConversationId(parsed.conversationId)
                 }
               }
-              
-              if (parsed.text && typeof parsed.text === 'string') {
+              else if (currentEvent === 'message' && parsed.text && typeof parsed.text === 'string') {
                 streamedContent += parsed.text
-                console.log('📝 Streaming text chunk:', parsed.text.substring(0, 50), '... Total length:', streamedContent.length)
                 
-                setMessages((prev) => {
-                  const updated = prev.map((msg) => 
-                    msg.id === assistantMessageId 
-                      ? { ...msg, content: streamedContent, createdAt: new Date() }
-                      : msg
-                  )
-                  return updated
-                })
+                // Batch updates for smoother streaming - update every 50ms max
+                if (!pendingUpdate) {
+                  pendingUpdate = true
+                  if (updateTimer) clearTimeout(updateTimer)
+                  
+                  updateTimer = setTimeout(() => {
+                    setMessages((prev) => {
+                      const updated = prev.map((msg) => 
+                        msg.id === assistantMessageId 
+                          ? { ...msg, content: streamedContent, createdAt: new Date() }
+                          : msg
+                      )
+                      return updated
+                    })
+                    pendingUpdate = false
+                  }, 50)
+                }
               }
-              
-              if (parsed.images && Array.isArray(parsed.images)) {
+              else if (currentEvent === 'images' && parsed.images && Array.isArray(parsed.images)) {
                 const normalized = normalizeImageResults(parsed.images)
                 if (normalized) {
                   streamedImages = normalized
+                  console.log('🖼️ Received images:', normalized.length)
                   setMessages(prev =>
                     prev.map(msg =>
                       msg.id === assistantMessageId
@@ -553,7 +574,7 @@ export default function ChatPage() {
                   )
                 }
               }
-              else if (parsed.sources && Array.isArray(parsed.sources)) {
+              else if (currentEvent === 'sources' && parsed.sources && Array.isArray(parsed.sources)) {
                 streamedSourceObjs = parsed.sources
                 streamedSources = parsed.sources
                 console.log('📚 Received sources:', streamedSources.length)
@@ -565,8 +586,9 @@ export default function ChatPage() {
                   )
                 )
               }
-              else if (parsed.videos && Array.isArray(parsed.videos)) {
+              else if (currentEvent === 'youtubeResults' && parsed.videos && Array.isArray(parsed.videos)) {
                 streamedVideos = parsed.videos
+                console.log('🎥 Received YouTube videos:', streamedVideos.length)
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === assistantMessageId
@@ -575,12 +597,14 @@ export default function ChatPage() {
                   )
                 )
               }
-
-              if (parsed.finishReason) {
+              else if (currentEvent === 'finish' && parsed.finishReason) {
                 console.log('✅ Stream finished with reason:', parsed.finishReason)
+                setAssistantStatuses((prev: AssistantStatusMap) => ({
+                  ...prev,
+                  responding: "complete",
+                }))
               }
-              
-              if (parsed.error) {
+              else if (currentEvent === 'error' && parsed.error) {
                 console.error('❌ Stream error:', parsed.error)
                 throw new Error(parsed.error)
               }
@@ -612,11 +636,6 @@ export default function ChatPage() {
             : msg
         )
       )
-
-      setAssistantStatuses((prev: AssistantStatusMap) => ({
-        ...prev,
-        responding: "complete",
-      }))
 
       const chartsConversationId = resolvedConversationId ?? currentConversationId
 
@@ -802,6 +821,21 @@ export default function ChatPage() {
                 </h1>
               </div>
             </div>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              type="button"
+              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/70 text-slate-600 shadow-[0_10px_26px_rgba(15,17,26,0.14)] transition-colors duration-200 md:hidden dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+              onClick={() => {
+                setIsHistoryOpen(false)
+                setIsProfileOpen(false)
+                setIsMobileMenuOpen((value) => !value)
+              }}
+              aria-label="Open navigation"
+              aria-expanded={isMobileMenuOpen}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
 
             {/* Desktop Primary Actions */}
             <div className="hidden items-center gap-3 md:flex md:justify-center md:justify-self-center">
@@ -1038,19 +1072,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/70 text-slate-600 shadow-[0_10px_26px_rgba(15,17,26,0.14)] transition-colors duration-200 md:hidden dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
-          onClick={() => {
-            setIsHistoryOpen(false)
-            setIsProfileOpen(false)
-            setIsMobileMenuOpen((value) => !value)
-          }}
-          aria-label="Open navigation"
-          aria-expanded={isMobileMenuOpen}
-        >
-          <MessageCircle className="h-5 w-5" />
-        </button>
+        
 
         {isMobileMenuOpen && (
           <>
