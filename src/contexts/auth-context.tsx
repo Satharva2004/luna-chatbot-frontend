@@ -9,6 +9,8 @@ type User = {
   role: string;
   name?: string;
   username?: string;
+  profileImageUrl?: string;
+  avatarUrl?: string;
   // Add other user properties as needed
 };
 

@@ -101,6 +101,8 @@ export default function ChatPage() {
     return source ? source.slice(0, 1).toUpperCase() : 'U'
   }, [user])
 
+  const userAvatar = user?.profileImageUrl || user?.avatarUrl || null
+
   const { salutation, firstName } = useMemo(() => {
     const now = new Date()
     const hour = now.getHours()
@@ -114,7 +116,7 @@ export default function ChatPage() {
   const desktopActionClasses =
     "group/nav relative inline-flex h-8 items-center overflow-hidden rounded-full border border-white/70 bg-white/80 px-5 text-sm font-medium text-slate-700 shadow-[0_12px_30px_rgba(15,17,26,0.14)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_16px_38px_rgba(15,17,26,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_22px_60px_rgba(0,0,0,0.6)] dark:focus-visible:ring-[#82aaff]/30"
   const desktopProfileButtonClasses =
-    "group/profile relative flex min-h-8 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-2 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
+    "group/profile relative flex min-h-10 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-2 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
 
   // Layout heights state
   const [layoutHeights, setLayoutHeights] = useState({
@@ -966,9 +968,18 @@ export default function ChatPage() {
                   aria-haspopup="true"
                 >
                   <div className="relative z-10 flex min-w-0 items-center gap-3">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
-                      {userInitial}
-                    </div>
+                    {userAvatar ? (
+                      <img
+                        src={userAvatar}
+                        alt={displayName || "User avatar"}
+                        className="h-7 w-7 rounded-full border border-white/40 object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
+                        {userInitial}
+                      </div>
+                    )}
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-sm font-semibold text-current">Profile</span>
                     </div>
@@ -983,9 +994,18 @@ export default function ChatPage() {
                 {isProfileOpen && (
                   <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#111119]/90 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
                     <div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white/75 px-3 py-3 dark:border-white/10 dark:bg-white/10">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-base font-semibold text-white">
-                        {userInitial}
-                      </div>
+                      {userAvatar ? (
+                        <img
+                          src={userAvatar}
+                          alt={displayName || "User avatar"}
+                          className="h-12 w-12 rounded-full border border-white/50 object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
+                          {userInitial}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{displayName}</div>
                         {displayEmail ? (
@@ -1018,6 +1038,20 @@ export default function ChatPage() {
           </div>
         </div>
 
+        <button
+          type="button"
+          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/70 text-slate-600 shadow-[0_10px_26px_rgba(15,17,26,0.14)] transition-colors duration-200 md:hidden dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+          onClick={() => {
+            setIsHistoryOpen(false)
+            setIsProfileOpen(false)
+            setIsMobileMenuOpen((value) => !value)
+          }}
+          aria-label="Open navigation"
+          aria-expanded={isMobileMenuOpen}
+        >
+          <MessageCircle className="h-5 w-5" />
+        </button>
+
         {isMobileMenuOpen && (
           <>
             <div
@@ -1032,9 +1066,18 @@ export default function ChatPage() {
                 <div className="space-y-5 p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex flex-1 items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
-                        {userInitial}
-                      </div>
+                      {userAvatar ? (
+                        <img
+                          src={userAvatar}
+                          alt={displayName || "User avatar"}
+                          className="h-14 w-14 rounded-full border border-white/60 object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-xl font-semibold text-white">
+                          {userInitial}
+                        </div>
+                      )}
                       <div className="flex min-w-0 flex-col">
                         <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                           {displayName}
@@ -1236,39 +1279,45 @@ export default function ChatPage() {
                     messages={messages}
                     isTyping={isGenerating}
                     typingStatuses={assistantStatuses}
-                    messageOptions={(message) => ({
-                      actions: onRateResponse ? (
-                        <>
-                          <div className="border-r pr-1">
-                            <CopyButton
-                              content={message.content}
-                              copyMessage="Copied response to clipboard!"
-                            />
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => onRateResponse(message.id, "thumbs-up")}
-                          >
-                            <ThumbsUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => onRateResponse(message.id, "thumbs-down")}
-                          >
-                            <ThumbsDown className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <CopyButton
-                          content={message.content}
-                          copyMessage="Copied response to clipboard!"
-                        />
-                      ),
-                    })}
+                    messageOptions={(message) => {
+                      if (message.role === "user") {
+                        return {}
+                      }
+
+                      return {
+                        actions: onRateResponse ? (
+                          <>
+                            <div className="border-r pr-1">
+                              <CopyButton
+                                content={message.content}
+                                copyMessage="Copied response to clipboard!"
+                              />
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => onRateResponse(message.id, "thumbs-up")}
+                            >
+                              <ThumbsUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => onRateResponse(message.id, "thumbs-down")}
+                            >
+                              <ThumbsDown className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <CopyButton
+                            content={message.content}
+                            copyMessage="Copied response to clipboard!"
+                          />
+                        ),
+                      }
+                    }}
                   />
                 </div>
               )}
