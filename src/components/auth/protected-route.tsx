@@ -4,33 +4,26 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
+import { useAuth } from '@/contexts/auth-context';
+
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading: authLoading } = useAuth();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          router.push('/login');
-        } else {
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Error checking auth status', error);
-        router.push('/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (authLoading) return;
 
-    checkAuth();
-  }, [router]);
+    if (!user) {
+      router.replace('/login');
+    } else {
+      setIsChecking(false);
+    }
+  }, [authLoading, user, router]);
 
-  if (isLoading) {
+  if (authLoading || isChecking) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
