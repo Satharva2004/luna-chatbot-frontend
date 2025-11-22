@@ -816,7 +816,7 @@ export default function ChatPage() {
                 <Search className="h-4 w-4 text-white dark:text-[#0c0c12]" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="text-xs font-semibold tracking-tight text-slate-900 sm:text-base dark:text-white">
+                <h1 className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-sm leading-snug tracking-tight text-slate-100 sm:flex-nowrap sm:text-[1.2rem] dark:text-white`}>
                   Luna AI
                 </h1>
               </div>
