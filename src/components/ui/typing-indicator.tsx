@@ -64,77 +64,78 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
 
   const displayStage = activeStage ?? fallbackStage
   const displayState = mergedStatuses[displayStage.key]
-  const detailText = stageDetails?.[displayStage.key] ?? displayStage.description
-  const StageIcon = displayStage.icon
 
   const completedCount = STAGE_CONFIG.filter(({ key }) => mergedStatuses[key] === "complete").length
   const progress = Math.max(0.05, (completedCount + (displayState === "active" ? 0.35 : 0)) / STAGE_CONFIG.length)
-  const hints = sourceHints?.[displayStage.key] ?? DEFAULT_SOURCE_HINTS[displayStage.key]
+  const activeHints = sourceHints?.[displayStage.key] ?? DEFAULT_SOURCE_HINTS[displayStage.key]
 
   return (
-    <div className="flex justify-start">
-      <div className="w-full max-w-[17rem] sm:max-w-sm rounded-xl px-3 py-2.5 sm:px-4 shadow-[0_6px_20px_-18px_rgba(15,23,42,0.18)]">
-        <div className="flex items-start gap-2.5">
-          <motion.div
-            layout
-            className="grid h-[1.45rem] w-[1.45rem] sm:h-[1.65rem] sm:w-[1.65rem] place-items-center rounded-full bg-primary/12 text-primary"
-          >
-            <StageIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-          </motion.div>
-          <div className="flex-1 space-y-1">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={displayStage.key}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.9, ease: "easeOut" }}
-                className="space-y-1"
-              >
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-foreground">
-                  <span className="font-medium tracking-tight">{displayStage.title}</span>
-                  {displayState === "active" ? (
-                    <AnimatedDots />
-                  ) : displayState === "complete" ? (
+    <div className="flex justify-start text-xs font-mono">
+      <div className="w-full max-w-[20rem] rounded-lg border border-border/70 bg-background/95 px-3 py-2 shadow-[0_6px_20px_-18px_rgba(15,23,42,0.5)]">
+        <div className="flex flex-col gap-1.5">
+          {STAGE_CONFIG.map((stage) => {
+            const state = mergedStatuses[stage.key]
+            const Icon = stage.icon
+            const isActive = state === "active"
+            const isComplete = state === "complete"
+
+            const label =
+              stage.key === "searching"
+                ? "Searching web"
+                : stage.key === "responding"
+                ? "Generating answer"
+                : "Preparing charts"
+
+            return (
+              <div key={stage.key} className="flex items-center gap-2">
+                <span className="text-primary/80">
+                  {isComplete ? "✔" : isActive ? ">" : "."}
+                </span>
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Icon className="h-3 w-3 opacity-80" />
+                  <span className="tracking-tight">
+                    {label}
+                  </span>
+                  {isActive && <AnimatedDots />}
+                  {isComplete && !isActive && (
                     <Check className="h-3 w-3 text-emerald-500" />
-                  ) : null}
+                  )}
                 </div>
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={`${displayStage.key}-${detailText}`}
-                    initial={{ opacity: 0, y: 2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -2 }}
-                    transition={{ duration: 0.9, ease: "easeOut" }}
-                    className="text-[10px] sm:text-[11px] text-muted-foreground"
-                  >
-                    {detailText}
-                  </motion.p>
-                </AnimatePresence>
-                <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
-                  {hints.map((hint) => (
-                    <motion.span
-                      key={`${displayStage.key}-${hint}`}
-                      initial={{ opacity: 0, y: 2 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -2 }}
-                      transition={{ duration: 0.9, ease: "easeOut" }}
-                      className="rounded-full   px-1.5 sm:px-2 py-0.5 text-[8.5px] sm:text-[9.5px] text-muted-foreground"
-                    >
-                      {hint}
-                    </motion.span>
-                  ))}
-                </div>
-              </motion.div>
-            </AnimatePresence>
-            <div className="relative h-[1.5px] sm:h-[1.75px] w-full overflow-hidden rounded-full">
-              <motion.div
-                className="absolute inset-y-0 left-0 rounded-full bg-primary/70"
-                initial={false}
-                animate={{ width: `${Math.min(progress, 1) * 100}%` }}
-                transition={{ duration: 0.9, ease: [0.3, 0.8, 0.4, 1] }}
-              />
-            </div>
+              </div>
+            )
+          })}
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={displayStage.key}
+              initial={{ opacity: 0, y: 1 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground/80"
+            >
+              {activeHints.map((hint) => (
+                <motion.span
+                  key={`${displayStage.key}-${hint}`}
+                  initial={{ opacity: 0, y: 1 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="px-1.5 py-0.5 rounded-sm bg-muted/40"
+                >
+                  {hint}
+                </motion.span>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="relative mt-1 h-[2px] w-full overflow-hidden rounded-full bg-muted/40">
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full bg-primary/80"
+              initial={false}
+              animate={{ width: `${Math.min(progress, 1) * 100}%` }}
+              transition={{ duration: 0.7, ease: [0.3, 0.8, 0.4, 1] }}
+            />
           </div>
         </div>
       </div>

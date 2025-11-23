@@ -90,7 +90,8 @@ export default function ChatPage() {
   const [assistantStatuses, setAssistantStatuses] = useState<AssistantStatusMap>(
     createInitialAssistantStatuses()
   )
-  const [includeYouTube, setIncludeYouTube] = useState(true)
+  const [includeYouTube, setIncludeYouTube] = useState(false)
+  const [includeImageSearch, setIncludeImageSearch] = useState(false)
   const [viewportHeight, setViewportHeight] = useState('100dvh')
   const [historyQuery, setHistoryQuery] = useState("")
 
@@ -299,6 +300,26 @@ export default function ChatPage() {
     }
   }, [])
 
+  const attachPromptTitlesToHistory = useCallback((historyMessages: Message[]): Message[] => {
+    let lastUserContent: string | undefined
+
+    return historyMessages.map((msg) => {
+      if (msg.role === "user") {
+        lastUserContent = msg.content || ""
+        return msg
+      }
+
+      if (msg.role === "assistant" && !msg.promptTitle && lastUserContent && lastUserContent.trim().length > 0) {
+        return {
+          ...msg,
+          promptTitle: lastUserContent,
+        }
+      }
+
+      return msg
+    })
+  }, [])
+
   const handleConversationSelect = useCallback(async (conversationId: string) => {
     stop()
     setLoadingConversationId(conversationId)
@@ -331,7 +352,9 @@ export default function ChatPage() {
             .map(normalizeMessageFromHistory)
         : []
 
-      setMessages(historyMessages)
+      const historyWithTitles = attachPromptTitlesToHistory(historyMessages)
+
+      setMessages(historyWithTitles)
       setCurrentConversationId(data?.id ? String(data.id) : conversationId)
       setInput("")
       setShowSuggestions(false)
@@ -342,7 +365,7 @@ export default function ChatPage() {
     } finally {
       setLoadingConversationId(null)
     }
-  }, [normalizeMessageFromHistory, stop, token])
+  }, [attachPromptTitlesToHistory, normalizeMessageFromHistory, stop, token])
 
   const handleDeleteConversation = useCallback(async (conversationId: string, event?: React.MouseEvent<HTMLButtonElement>) => {
     event?.preventDefault()
@@ -414,7 +437,7 @@ export default function ChatPage() {
         const formData = new FormData()
         formData.append('prompt', userContent)
         if (conversationId) formData.append('conversationId', conversationId)
-        formData.append('options', JSON.stringify({ includeYouTube }))
+        formData.append('options', JSON.stringify({ includeYouTube, includeImageSearch }))
         Array.from(attachments).forEach((file) => {
           formData.append('files', file, file.name)
         })
@@ -439,6 +462,7 @@ export default function ChatPage() {
             conversationId: conversationId || undefined,
             options: {
               includeYouTube,
+              includeImageSearch,
             },
           }),
           signal: abortControllerRef.current.signal,
@@ -467,6 +491,8 @@ export default function ChatPage() {
         chartUrl: null,
         chartUrls: [],
         images: [],
+        promptTitle: userContent,
+        isComplete: false,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -548,14 +574,13 @@ export default function ChatPage() {
                   if (updateTimer) clearTimeout(updateTimer)
                   
                   updateTimer = setTimeout(() => {
-                    setMessages((prev) => {
-                      const updated = prev.map((msg) => 
-                        msg.id === assistantMessageId 
-                          ? { ...msg, content: streamedContent, createdAt: new Date() }
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId
+                          ? { ...msg, content: streamedContent, createdAt: new Date(), isComplete: false }
                           : msg
                       )
-                      return updated
-                    })
+                    )
                     pendingUpdate = false
                   }, 50)
                 }
@@ -620,18 +645,19 @@ export default function ChatPage() {
 
       const finalContent = (streamedContent || "I couldn't fetch the details. Please try again later.")
 
-      setMessages((prev) => 
-        prev.map((msg) => 
-          msg.id === assistantMessageId 
-            ? { 
-                ...msg, 
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
                 content: finalContent,
                 sources: streamedSources,
                 chartUrl: msg.chartUrl,
                 chartUrls: msg.chartUrls ?? [],
                 images: streamedImages.length > 0 ? streamedImages : msg.images,
                 videos: streamedVideos.length > 0 ? streamedVideos : (msg as any).videos,
-                createdAt: new Date()
+                createdAt: new Date(),
+                isComplete: true,
               }
             : msg
         )
@@ -1338,6 +1364,7 @@ export default function ChatPage() {
                             copyMessage="Copied response to clipboard!"
                           />
                         ),
+                        isComplete: message.isComplete,
                       }
                     }}
                   />
@@ -1385,6 +1412,8 @@ export default function ChatPage() {
                   setFiles={setFiles}
                   includeYouTube={includeYouTube}
                   onToggleYouTube={(next: boolean) => setIncludeYouTube(next)}
+                  includeImageSearch={includeImageSearch}
+                  onToggleImageSearch={(next: boolean) => setIncludeImageSearch(next)}
                 />
               </div>
             )}

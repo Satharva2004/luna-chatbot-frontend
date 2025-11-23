@@ -182,3 +182,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide horizontal scrollbar for WEB IMAGES rail while keeping scroll behavior */
+.web-images-scroll {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE and Edge */
+}
+
+.web-images-scroll::-webkit-scrollbar {
+  display: none;               /* Chrome, Safari, Opera */
+}

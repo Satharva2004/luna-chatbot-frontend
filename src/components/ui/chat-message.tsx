@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
 import { Ban, ChevronRight, Code2, Download, Loader2, Terminal } from "lucide-react"
@@ -152,7 +152,9 @@ export interface Message {
       high?: { url?: string }
     }
   }> | null
-
+  // Optional title for assistant responses, typically the user's prompt.
+  promptTitle?: string
+  isComplete?: boolean
 }
 
 export interface ImageResult {
@@ -183,6 +185,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   toolInvocations,
   parts,
   sources,
+  promptTitle,
+  isComplete,
 }) => {
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -198,6 +202,29 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const [downloadingChartUrl, setDownloadingChartUrl] = useState<string | null>(null)
   const [expandedChartUrl, setExpandedChartUrl] = useState<string | null>(null)
   const videoScrollRef = useRef<HTMLDivElement | null>(null)
+  const imageScrollRef = useRef<HTMLDivElement | null>(null)
+  const [canScrollImagesLeft, setCanScrollImagesLeft] = useState(false)
+  const [canScrollImagesRight, setCanScrollImagesRight] = useState(false)
+
+  const updateImageScrollButtons = useCallback(() => {
+    if (!imageScrollRef.current) {
+      setCanScrollImagesLeft(false)
+      setCanScrollImagesRight(false)
+      return
+    }
+
+    const el = imageScrollRef.current
+    const maxScrollLeft = el.scrollWidth - el.clientWidth
+    const scrollLeft = el.scrollLeft
+    const epsilon = 4
+
+    setCanScrollImagesLeft(scrollLeft > epsilon)
+    setCanScrollImagesRight(scrollLeft < maxScrollLeft - epsilon)
+  }, [])
+
+  useEffect(() => {
+    updateImageScrollButtons()
+  }, [images, updateImageScrollButtons])
 
   const resolvedChartUrls = useMemo(() => {
     const urls = [chartUrl, ...(Array.isArray(chartUrls) ? chartUrls : [])]
@@ -251,7 +278,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   })
 
   // Render message with files if present
-  const renderMessageContent = (content: string) => (
+  const renderMessageContent = (content: string, promptTitleOverride?: string) => (
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
       <div className={cn(chatBubbleVariants({ isUser, animation }), "relative") }>
         {files && (
@@ -261,32 +288,75 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             ))}
           </div>
         )}
-        
-      
-        <div
-          className="overflow-hidden"
-          style={{
-            fontFamily: '"Inter", "Nunito", "Helvetica Neue", Arial, sans-serif',
-            fontWeight: 400,
-            lineHeight: 2,
-            fontSize: '0.9rem',
-          }}
-        >
-          <MarkdownRenderer>
-            {content}
-          </MarkdownRenderer>
-        </div>
-        
+
+        {!isUser && (promptTitleOverride || promptTitle) && (
+          <div className="mb-6 text-3xl font-semibold tracking-tight text-foreground">
+            {promptTitleOverride || promptTitle}
+            <hr style={{width: "100%", marginTop: "20px" }}/>
+          </div>
+        )}
+
         {Array.isArray(images) && images.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-muted-foreground/20">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold text-muted-foreground">IMAGE RESULTS</span>
-              <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
-                {images.length}
-              </span>
-            </div>
-            <div className="-mx-3 overflow-x-auto pb-3">
-              <div className="flex gap-3 px-3 min-w-[280px]">
+          <div className="mt-0 pt-0">
+            <div className="relative -mx-3 pb-3">
+              {images.length > 1 && canScrollImagesLeft && (
+                <button
+                  type="button"
+                  className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 p-1 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/70"
+                  onClick={() => {
+                    if (imageScrollRef.current) {
+                      imageScrollRef.current.scrollBy({ left: -260, behavior: 'smooth' })
+                    }
+                  }}
+                  aria-label="Scroll images left"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M15 6l-6 6 6 6" />
+                  </svg>
+                </button>
+              )}
+              {images.length > 1 && canScrollImagesRight && (
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 p-1 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/70"
+                  onClick={() => {
+                    if (imageScrollRef.current) {
+                      imageScrollRef.current.scrollBy({ left: 260, behavior: 'smooth' })
+                    }
+                  }}
+                  aria-label="Scroll images right"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              )}
+              <div
+                ref={imageScrollRef}
+                onScroll={updateImageScrollButtons}
+                className="web-images-scroll flex min-w-[280px] gap-3 px-3 overflow-x-auto"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
                 {images
                   .filter((img) => typeof img?.imageUrl === 'string' && img.imageUrl)
                   .map((img, index) => {
@@ -303,9 +373,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         href={targetHref ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group relative flex w-[220px] flex-shrink-0 flex-col rounded-2xl border border-white/50 bg-white/60 p-3 shadow-[0_16px_40px_rgba(15,17,26,0.12)] backdrop-blur-xl transition-transform hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,17,26,0.18)] dark:border-white/10 dark:bg-white/10 dark:shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+                        className="group relative flex w-[240px] flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-[0_16px_40px_rgba(15,17,26,0.16)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(15,17,26,0.38)] dark:border-white/10 dark:bg-[#101015] dark:shadow-[0_22px_60px_rgba(0,0,0,0.75)]"
                       >
-                        <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
+                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
                           <img
                             src={img.imageUrl || ''}
                             alt={caption}
@@ -316,14 +386,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               el.src = img.thumbnailUrl || '';
                             }}
                           />
-                        </div>
-                        <div className="mt-2 flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-muted-foreground line-clamp-2">
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 via-black/50 to-transparent px-3 pb-3 pt-6 text-xs text-white transition-transform duration-200 group-hover:translate-y-0">
+                            <div className="line-clamp-2 font-medium leading-snug">
                               {caption}
                             </div>
                             {targetHref && (
-                              <div className="mt-1 text-[11px] text-muted-foreground/80 truncate">
+                              <div className="mt-1 text-[11px] text-white/80 truncate">
                                 {(() => {
                                   try {
                                     const url = new URL(targetHref);
@@ -335,20 +403,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               </div>
                             )}
                           </div>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mt-0.5 text-muted-foreground/60"
-                          >
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                          </svg>
                         </div>
                       </a>
                     );
@@ -357,6 +411,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </div>
           </div>
         )}
+
+        <div
+          className="overflow-hidden"
+          style={{
+            fontFamily: '"Inter", "Nunito", "Helvetica Neue", Arial, sans-serif',
+            fontWeight: 400,
+            lineHeight: 2,
+            fontSize: '0.9rem',
+          }}
+          >
+          <MarkdownRenderer>
+            {content}
+          </MarkdownRenderer>
+        </div>
         {Array.isArray(videos) && videos.length > 0 && (
           <div className="mt-4 pt-4 border-t border-muted-foreground/20">
             <div className="flex items-center justify-between gap-2 mb-3">
@@ -793,7 +861,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           {formattedTime}
         </time>
       )}
-      {actions && (
+      {actions && (isComplete === undefined || isComplete) && (
         <div
           className={cn(
             "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",

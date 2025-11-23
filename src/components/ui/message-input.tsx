@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUp, ChevronDown, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
+import { ArrowUp, ChevronDown, Image as ImageIcon, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
 import { omit } from "remeda"
 
 import { cn } from "@/lib/utils"
@@ -25,6 +25,8 @@ interface MessageInputBaseProps
   transcribeAudio?: (blob: Blob) => Promise<string>
   includeYouTube?: boolean
   onToggleYouTube?: (next: boolean) => void
+  includeImageSearch?: boolean
+  onToggleImageSearch?: (next: boolean) => void
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -54,6 +56,8 @@ export function MessageInput({
   transcribeAudio,
   includeYouTube = true,
   onToggleYouTube,
+  includeImageSearch = true,
+  onToggleImageSearch,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -285,7 +289,7 @@ export function MessageInput({
       </div>
 
       <div className="absolute right-3 top-3 z-20 flex gap-2">
-        {onToggleYouTube && (
+        {(onToggleYouTube || onToggleImageSearch) && (
           <div ref={youTubeMenuRef} className="relative">
             <Button
               type="button"
@@ -307,26 +311,50 @@ export function MessageInput({
                 aria-label="Tools"
                 className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-md border bg-popover p-2 text-popover-foreground shadow-md"
               >
-                <div
-                  role="menuitem"
-                  className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm"
-                >
-                  <label
-                    htmlFor="message-input-youtube-switch"
-                    className="flex items-center gap-2 font-medium"
+                {onToggleYouTube && (
+                  <div
+                    role="menuitem"
+                    className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm"
                   >
-                    <Youtube className="h-4 w-4 text-red-500" />
-                    <span>YouTube Search</span>
-                  </label>
-                  <Switch
-                    id="message-input-youtube-switch"
-                    checked={includeYouTube}
-                    onCheckedChange={(checked) => {
-                      onToggleYouTube(checked)
-                    }}
-                    aria-label="Toggle YouTube tool"
-                  />
-                </div>
+                    <label
+                      htmlFor="message-input-youtube-switch"
+                      className="flex items-center gap-2 font-medium"
+                    >
+                      <Youtube className="h-4 w-4" />
+                      <span>YouTube</span>
+                    </label>
+                    <Switch
+                      id="message-input-youtube-switch"
+                      checked={includeYouTube}
+                      onCheckedChange={(checked) => {
+                        onToggleYouTube(checked)
+                      }}
+                      aria-label="Toggle YouTube tool"
+                    />
+                  </div>
+                )}
+                {onToggleImageSearch && (
+                  <div
+                    role="menuitem"
+                    className="mt-1 flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm"
+                  >
+                    <label
+                      htmlFor="message-input-image-switch"
+                      className="flex items-center gap-2 font-medium"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      <span>Web Images</span>
+                    </label>
+                    <Switch
+                      id="message-input-image-switch"
+                      checked={includeImageSearch}
+                      onCheckedChange={(checked) => {
+                        onToggleImageSearch(checked)
+                      }}
+                      aria-label="Toggle image search"
+                    />
+                  </div>
+                )}
                 {props.allowAttachments && (
                   <button
                     type="button"
