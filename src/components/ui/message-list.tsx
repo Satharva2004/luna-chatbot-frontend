@@ -42,7 +42,7 @@ export function MessageList({
     if (nextCount > prevCount) {
       scrollToBottom(nextCount - prevCount === 1 ? "smooth" : "auto")
     }
-
+//dddddds
     previousMessageCountRef.current = nextCount
   }, [messages.length])
 
