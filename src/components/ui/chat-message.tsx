@@ -288,7 +288,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             ))}
           </div>
         )}
-
+        {/* commit */}
         {!isUser && (promptTitleOverride || promptTitle) && (
           <div className="mb-6 text-3xl font-semibold tracking-tight text-foreground">
             {promptTitleOverride || promptTitle}
