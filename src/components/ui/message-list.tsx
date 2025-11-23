@@ -40,7 +40,6 @@ export function MessageList({
     const nextCount = messages.length
 
     if (nextCount > prevCount) {
-      // Smoothly scroll when a single new message arrives, otherwise jump
       scrollToBottom(nextCount - prevCount === 1 ? "smooth" : "auto")
     }
 
