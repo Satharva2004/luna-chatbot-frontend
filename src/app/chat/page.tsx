@@ -1014,6 +1014,21 @@ export default function ChatPage() {
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
                 />
               </button>
+
+              <button
+                type="button"
+                className={desktopActionClasses}
+                onClick={() => setIsFeedbackOpen(true)}
+              >
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Feedback</span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
+                />
+              </button>
             </div>
 
             {/* Desktop Secondary Actions */}
@@ -1155,6 +1170,17 @@ export default function ChatPage() {
                     >
                       <Plus className="h-4 w-4" />
                       Start new chat
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false)
+                        setIsFeedbackOpen(true)
+                      }}
+                      variant="secondary"
+                      className="justify-start gap-2"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Feedback
                     </Button>
                     <Button
                       onClick={() => {
@@ -1422,15 +1448,6 @@ export default function ChatPage() {
           </ChatForm>
         </div>
       </div>
-      <Button
-        type="button"
-        onClick={() => setIsFeedbackOpen(true)}
-        className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-black/20 backdrop-blur transition hover:border-white/50 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 dark:border-white/25 dark:bg-white/5"
-        aria-label="Open feedback form"
-      >
-        <MessageCircle className="h-4 w-4" />
-        <span>Feedback</span>
-      </Button>
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}
