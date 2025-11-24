@@ -13,7 +13,7 @@ import {
   type AssistantStatusMap,
 } from "@/components/ui/typing-indicator"
 import { Toaster } from "@/components/ui/sonner"
-import { 
+import {
   ThumbsUp, 
   ThumbsDown, 
   Sparkles, 
@@ -27,6 +27,7 @@ import {
   X,
   Menu,
   BookOpen,
+  MessageCircle,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
@@ -94,6 +95,7 @@ export default function ChatPage() {
   const [includeImageSearch, setIncludeImageSearch] = useState(false)
   const [viewportHeight, setViewportHeight] = useState('100dvh')
   const [historyQuery, setHistoryQuery] = useState("")
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
 
   const displayName = user?.username || user?.name || 'User'
   const displayEmail = user?.email ?? ''
@@ -1420,6 +1422,22 @@ export default function ChatPage() {
           </ChatForm>
         </div>
       </div>
+      <Button
+        type="button"
+        onClick={() => setIsFeedbackOpen(true)}
+        className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-black/20 backdrop-blur transition hover:border-white/50 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 dark:border-white/25 dark:bg-white/5"
+        aria-label="Open feedback form"
+      >
+        <MessageCircle className="h-4 w-4" />
+        <span>Feedback</span>
+      </Button>
+      <FeedbackDialog
+        open={isFeedbackOpen}
+        onOpenChange={setIsFeedbackOpen}
+        conversationId={currentConversationId}
+        userEmail={displayEmail}
+        userId={user ? user.email : null}
+      />
       <Toaster position="top-center" richColors />
     </div>
   )
