@@ -736,10 +736,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <>
             <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground">CHARTS</span>
-                <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
-                  {resolvedChartUrls.length}
-                </span>
+                
               </div>
               <div className="space-y-3">
                 {resolvedChartUrls.map((url, index) => {
