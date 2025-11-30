@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useToast } from "@/lib/hooks/use-toast";
+import { toast } from "sonner";
 
 type User = {
   email: string;
@@ -30,8 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  const { toast } = useToast();
 
   const handleAuthSuccess = useCallback((loggedInUser: User | null | undefined, jwt: string | null | undefined) => {
     if (loggedInUser) {
@@ -68,18 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         handleAuthSuccess(loggedInUser, jwt);
         return { success: true };
       } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
+        toast.error("Login Failed", {
           description: data.message || data.error || 'Invalid email or password',
         });
         return { success: false, error: data.message || 'Login failed' };
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
+      toast.error("Error", {
         description: "An error occurred during login. Please try again.",
       });
       return { success: false, error: 'An error occurred during login' };
@@ -108,17 +102,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true };
       }
 
-      toast({
-        variant: "destructive",
-        title: "Google Login Failed",
+      toast.error("Google Login Failed", {
         description: data.message || data.error || 'Unable to sign in with Google',
       });
       return { success: false, error: data.message || 'Google login failed' };
     } catch (error) {
       console.error('Google login error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
+      toast.error("Error", {
         description: "An error occurred during Google login. Please try again.",
       });
       return { success: false, error: 'An error occurred during Google login' };

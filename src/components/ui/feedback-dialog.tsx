@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { useToast } from "@/lib/hooks/use-toast"
+import { toast } from "sonner"
 
 type FeedbackDialogProps = {
   open: boolean
@@ -45,7 +45,6 @@ function formatBytes(bytes: number) {
 }
 
 export function FeedbackDialog({ open, onOpenChange, conversationId, userEmail, userId }: FeedbackDialogProps) {
-  const { toast } = useToast()
   const [form, setForm] = useState<FeedbackFormState>(DEFAULT_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageMeta, setImageMeta] = useState<{ name: string; size: number } | null>(null)
@@ -81,9 +80,7 @@ export function FeedbackDialog({ open, onOpenChange, conversationId, userEmail, 
     event.preventDefault()
 
     if (!form.title.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Feedback incomplete",
+      toast.error("Feedback incomplete", {
         description: "Please add a short title so we know what this is about.",
       })
       return
@@ -114,8 +111,7 @@ export function FeedbackDialog({ open, onOpenChange, conversationId, userEmail, 
         throw new Error(error?.error || "Failed to send feedback")
       }
 
-      toast({
-        title: "Thank you!",
+      toast.success("Thank you!", {
         description: "Your feedback has been shared with the team.",
       })
 
@@ -123,30 +119,24 @@ export function FeedbackDialog({ open, onOpenChange, conversationId, userEmail, 
       onOpenChange(false)
     } catch (error) {
       console.error("Feedback submission failed", error)
-      toast({
-        variant: "destructive",
-        title: "Unable to send feedback",
+      toast.error("Unable to send feedback", {
         description: error instanceof Error ? error.message : "Please try again shortly.",
       })
     } finally {
       setIsSubmitting(false)
     }
-  }, [apiEndpoint, conversationId, form, onOpenChange, toast, userId])
+  }, [apiEndpoint, conversationId, form, onOpenChange, userId])
 
   const handleImageFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast({
-        variant: "destructive",
-        title: "Unsupported file",
+      toast.error("Unsupported file", {
         description: "Please attach an image (PNG, JPG, GIF).",
       })
       return
     }
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      toast({
-        variant: "destructive",
-        title: "Image too large",
+      toast.error("Image too large", {
         description: "Please keep screenshots under 6MB.",
       })
       return
@@ -164,7 +154,7 @@ export function FeedbackDialog({ open, onOpenChange, conversationId, userEmail, 
       image: dataUrl,
     }))
     setImageMeta({ name: file.name, size: file.size })
-  }, [toast])
+  }, [])
 
   const handleFileInputChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {

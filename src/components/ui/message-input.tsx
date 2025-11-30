@@ -254,8 +254,8 @@ export function MessageInput({
               className
             )}
             {...(props.allowAttachments
-              ? omit(props, ["allowAttachments", "files", "setFiles"])
-              : omit(props, ["allowAttachments"]))}
+              ? omit(props, ["allowAttachments", "files", "setFiles", "inputRef"])
+              : omit(props, ["allowAttachments", "inputRef"]))}
           />
 
           {props.allowAttachments && (
@@ -326,7 +326,7 @@ export function MessageInput({
                     <Switch
                       id="message-input-youtube-switch"
                       checked={includeYouTube}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         onToggleYouTube(checked)
                       }}
                       aria-label="Toggle YouTube tool"
@@ -348,7 +348,7 @@ export function MessageInput({
                     <Switch
                       id="message-input-image-switch"
                       checked={includeImageSearch}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         onToggleImageSearch(checked)
                       }}
                       aria-label="Toggle image search"

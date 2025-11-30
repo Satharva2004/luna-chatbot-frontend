@@ -12,8 +12,8 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/lib/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 const GoogleLogo = () => (
   <svg
@@ -41,8 +41,6 @@ export function SignupForm({
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
-  const { toast } = useToast()
-
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -67,38 +65,22 @@ export function SignupForm({
     
     // Input validation
     if (!username.trim()) {
-      toast({
-        title: "Error",
-        description: "Username is required",
-        variant: "destructive",
-      });
+      toast.error("Username is required");
       return;
     }
 
     if (!email.trim() || !validateEmail(email)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
+      toast.error("Please enter a valid email address");
       return;
     }
     
     if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
+      toast.error("Passwords do not match");
       return;
     }
 
     if (password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive",
-      });
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
@@ -133,10 +115,8 @@ export function SignupForm({
       setPassword('');
       setConfirmPassword('');
 
-      toast({
-        title: "Success!",
+      toast.success("Success!", {
         description: "Account created successfully. Redirecting to login...",
-        variant: "default",
       });
 
       // Redirect after a short delay
@@ -162,10 +142,8 @@ export function SignupForm({
         }
       }
 
-      toast({
-        title: "Registration Failed",
+      toast.error("Registration Failed", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -178,9 +156,7 @@ export function SignupForm({
 
       const { google } = window as typeof window & { google?: any }
       if (!google || !google.accounts || !google.accounts.oauth2) {
-        toast({
-          variant: "destructive",
-          title: "Google SDK not loaded",
+        toast.error("Google SDK not loaded", {
           description: "Please check your network connection and try again.",
         })
         setIsGoogleLoading(false)
@@ -188,9 +164,7 @@ export function SignupForm({
       }
 
       if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-        toast({
-          variant: "destructive",
-          title: "Missing Google client ID",
+        toast.error("Missing Google client ID", {
           description: "Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment.",
         })
         setIsGoogleLoading(false)
@@ -204,9 +178,7 @@ export function SignupForm({
         callback: async (response: { code?: string; error?: string }) => {
           if (response.error || !response.code) {
             console.error("Google sign-up error:", response.error)
-            toast({
-              variant: "destructive",
-              title: "Google sign-up failed",
+            toast.error("Google sign-up failed", {
               description: response.error || "The Google popup was closed before finishing sign-up.",
             })
             setIsGoogleLoading(false)
@@ -223,9 +195,7 @@ export function SignupForm({
       client.requestCode()
     } catch (error) {
       console.error("Google sign-up error:", error)
-      toast({
-        variant: "destructive",
-        title: "Google sign-up failed",
+      toast.error("Google sign-up failed", {
         description: "An unexpected error occurred.",
       })
       setIsGoogleLoading(false)

@@ -7,6 +7,7 @@ import { Ban, ChevronRight, Code2, Download, Loader2, Terminal } from "lucide-re
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { CopyButton } from "@/components/ui/copy-button"
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,92 @@ import {
 } from "@/components/ui/collapsible"
 import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
+
+const MINOR_TITLE_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "but",
+  "by",
+  "for",
+  "from",
+  "in",
+  "into",
+  "nor",
+  "of",
+  "on",
+  "onto",
+  "or",
+  "over",
+  "per",
+  "so",
+  "the",
+  "to",
+  "up",
+  "via",
+  "vs",
+  "with",
+  "yet",
+])
+
+function splitToken(token: string) {
+  if (!token) {
+    return { prefix: "", core: "", suffix: "" }
+  }
+
+  const prefixMatch = token.match(/^[^A-Za-z0-9]+/)
+  const prefix = prefixMatch?.[0] ?? ""
+  const remainder = token.slice(prefix.length)
+  const suffixMatch = remainder.match(/[^A-Za-z0-9]+$/)
+  const suffix = suffixMatch?.[0] ?? ""
+  const core = remainder.slice(0, remainder.length - suffix.length)
+
+  return { prefix, core, suffix }
+}
+
+function toTitleCase(text: string): string {
+  if (typeof text !== "string" || text.trim().length === 0) {
+    return text ?? ""
+  }
+
+  const tokens = text.split(/(\s+)/)
+  const totalWords = tokens.reduce((count, token) => {
+    const { core } = splitToken(token)
+    return core ? count + 1 : count
+  }, 0)
+
+  if (totalWords === 0) {
+    return text
+  }
+
+  let wordIndex = 0
+  const transformed = tokens.map((token) => {
+    const { prefix, core, suffix } = splitToken(token)
+    if (!core) return token
+
+    wordIndex += 1
+    const normalizedCore = core.toLowerCase()
+    const shouldLowercase =
+      MINOR_TITLE_WORDS.has(normalizedCore) && wordIndex !== 1 && wordIndex !== totalWords
+
+    const updatedCore = shouldLowercase
+      ? normalizedCore
+      : normalizedCore
+          .split(/(-)/)
+          .map((segment) => {
+            if (segment === "-") return segment
+            if (!segment) return segment
+            return segment.charAt(0).toUpperCase() + segment.slice(1)
+          })
+          .join("")
+
+    return `${prefix}${updatedCore}${suffix}`
+  })
+
+  return transformed.join("")
+}
 
 const chatBubbleVariants = cva(
   "group/message relative break-words text-sm transition-all duration-300",
@@ -120,6 +207,24 @@ interface StepStartPart {
   type: "step-start"
 }
 
+export interface CodeSnippet {
+  language?: string
+  code: string
+}
+
+export interface ExecutionOutput {
+  outcome?: string
+  output: string
+}
+
+export interface MermaidBlockUpdate {
+  index: number
+  status?: 'valid' | 'corrected' | 'failed'
+  original?: string
+  replacement?: string
+  error?: string
+}
+
 export type MessagePart =
   | TextPart
   | ReasoningPart
@@ -155,6 +260,9 @@ export interface Message {
   // Optional title for assistant responses, typically the user's prompt.
   promptTitle?: string
   isComplete?: boolean
+  codeSnippets?: CodeSnippet[]
+  executionOutputs?: ExecutionOutput[]
+  mermaidBlocks?: MermaidBlockUpdate[]
 }
 
 export interface ImageResult {
@@ -187,6 +295,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   sources,
   promptTitle,
   isComplete,
+  codeSnippets,
+  executionOutputs,
 }) => {
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -291,7 +401,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         {/* commit */}
         {!isUser && (promptTitleOverride || promptTitle) && (
           <div className="mb-6 text-3xl font-semibold tracking-tight text-foreground">
-            {promptTitleOverride || promptTitle}
+            {toTitleCase(promptTitleOverride || promptTitle || "")}
             <hr style={{width: "100%", marginTop: "20px" }}/>
           </div>
         )}
@@ -847,7 +957,45 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
 
-        
+        {!isUser && Array.isArray(codeSnippets) && codeSnippets.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {codeSnippets.map((snippet, index) => (
+              <div
+                key={`${snippet.language || 'code'}-${index}`}
+                className="rounded-2xl border border-border/60 bg-slate-950/90 p-4 text-slate-100 shadow-[0_15px_40px_rgba(15,17,26,0.35)] dark:border-white/10"
+              >
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                  <span>{snippet.language ? snippet.language : 'Code snippet'}</span>
+                  <CopyButton content={snippet.code} />
+                </div>
+                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-sm font-mono leading-relaxed text-white/90">
+                  {snippet.code}
+                </pre>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isUser && Array.isArray(executionOutputs) && executionOutputs.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {executionOutputs.map((result, index) => (
+              <div
+                key={`${result.outcome || 'output'}-${index}`}
+                className="rounded-2xl border border-border/60 bg-slate-900/80 p-4 text-slate-100 shadow-[0_15px_35px_rgba(15,17,26,0.25)] dark:border-white/10"
+              >
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-300">
+                  <span>{result.outcome ? `Execution (${result.outcome})` : 'Execution output'}</span>
+                  {result.output && <CopyButton content={result.output} />}
+                </div>
+                {result.output && (
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-sm font-mono leading-relaxed text-white/90">
+                    {result.output}
+                  </pre>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showTimeStamp && createdAt && (

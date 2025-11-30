@@ -3,7 +3,7 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
-import { type ImageResult, type Message } from "@/components/ui/chat-message"
+import { type ImageResult, type Message, type MermaidBlockUpdate } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
 import { Input } from "@/components/ui/input"
 import { MessageInput } from "@/components/ui/message-input"
@@ -12,7 +12,6 @@ import {
   createInitialAssistantStatuses,
   type AssistantStatusMap,
 } from "@/components/ui/typing-indicator"
-import { Toaster } from "@/components/ui/sonner"
 import {
   ThumbsUp, 
   ThumbsDown, 
@@ -57,6 +56,19 @@ function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
     .filter((entry): entry is ImageResult => entry !== null)
 
   return normalized.length > 0 ? normalized : undefined
+}
+
+function applyMermaidReplacements(content: string, blocks: MermaidBlockUpdate[] | undefined) {
+  if (typeof content !== 'string' || !Array.isArray(blocks) || blocks.length === 0) {
+    return content
+  }
+
+  return blocks.reduce((acc, block) => {
+    if (typeof block.original === 'string' && typeof block.replacement === 'string') {
+      return acc.replace(block.original, block.replacement)
+    }
+    return acc
+  }, content)
 }
 
 const playfair = Playfair_Display({
@@ -509,6 +521,9 @@ export default function ChatPage() {
       let streamedSourceObjs: Array<{ url?: string; title?: string }> = []
       let streamedImages: ImageResult[] = []
       let streamedVideos: any[] = []
+      let streamedCodeSnippets: Message["codeSnippets"] = []
+      let streamedExecutionOutputs: Message["executionOutputs"] = []
+      let streamedMermaidBlocks: MermaidBlockUpdate[] | undefined
       let currentEvent = ''
       let updateTimer: NodeJS.Timeout | null = null
       let pendingUpdate = false
@@ -613,6 +628,53 @@ export default function ChatPage() {
                   )
                 )
               }
+              else if (currentEvent === 'code' && parsed.code) {
+                const snippet = {
+                  language: typeof parsed.language === 'string' ? parsed.language : undefined,
+                  code: String(parsed.code)
+                }
+                streamedCodeSnippets = [...(streamedCodeSnippets ?? []), snippet]
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, codeSnippets: streamedCodeSnippets }
+                      : msg
+                  )
+                )
+              }
+              else if (currentEvent === 'codeResult' && parsed.output) {
+                const executionResult = {
+                  outcome: typeof parsed.outcome === 'string' ? parsed.outcome : undefined,
+                  output: String(parsed.output)
+                }
+                streamedExecutionOutputs = [...(streamedExecutionOutputs ?? []), executionResult]
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, executionOutputs: streamedExecutionOutputs }
+                      : msg
+                  )
+                )
+              }
+              else if (currentEvent === 'mermaid' && Array.isArray(parsed.blocks)) {
+                streamedMermaidBlocks = parsed.blocks as MermaidBlockUpdate[]
+                const updatedContent = applyMermaidReplacements(streamedContent, streamedMermaidBlocks)
+                if (updatedContent !== streamedContent) {
+                  streamedContent = updatedContent
+                }
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? {
+                          ...msg,
+                          content: streamedContent,
+                          mermaidBlocks: streamedMermaidBlocks,
+                          isComplete: false,
+                        }
+                      : msg
+                  )
+                )
+              }
               else if (currentEvent === 'youtubeResults' && parsed.videos && Array.isArray(parsed.videos)) {
                 streamedVideos = parsed.videos
                 console.log('🎥 Received YouTube videos:', streamedVideos.length)
@@ -658,6 +720,9 @@ export default function ChatPage() {
                 chartUrls: msg.chartUrls ?? [],
                 images: streamedImages.length > 0 ? streamedImages : msg.images,
                 videos: streamedVideos.length > 0 ? streamedVideos : (msg as any).videos,
+                codeSnippets: streamedCodeSnippets,
+                executionOutputs: streamedExecutionOutputs,
+                mermaidBlocks: streamedMermaidBlocks,
                 createdAt: new Date(),
                 isComplete: true,
               }
@@ -873,8 +938,9 @@ export default function ChatPage() {
                 onClick={startNewChat}
               >
                 <span className="relative z-10 inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" /> 
                   New chat
+                  {/* <span className="ml-1 text-[12px] text-muted-foreground ">⌘ + N</span> */}
                 </span>
                 <span
                   aria-hidden="true"
@@ -902,7 +968,7 @@ export default function ChatPage() {
                 >
                   <span className="relative z-10 inline-flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    <span>Search chat</span>
+                    <span>History</span>
                   </span>
                   <span
                     aria-hidden="true"
@@ -1281,9 +1347,7 @@ export default function ChatPage() {
         style={{
           minHeight: viewportHeight,
           paddingTop: messages.length > 0 ? `${layoutHeights.header}px` : 0,
-          paddingBottom: messages.length > 0
-            ? `calc(${layoutHeights.footer}px + env(safe-area-inset-bottom, 0px))`
-            : 0,
+          paddingBottom: messages.length > 0 ? `${layoutHeights.footer}px` : 0,
         }}
       >
         <div className={`h-full ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
@@ -1406,7 +1470,7 @@ export default function ChatPage() {
       {/* Input Area */}
       <div
         ref={footerRef}
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-transparent bg-white/75 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-18px_45px_rgba(15,17,26,0.1)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/85 dark:shadow-[0_-18px_60px_rgba(0,0,0,0.65)]"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-transparent bg-white/75 shadow-[0_-18px_45px_rgba(15,17,26,0.1)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/85 dark:shadow-[0_-18px_60px_rgba(0,0,0,0.65)]"
       >
         <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6">
           <ChatForm
@@ -1455,7 +1519,6 @@ export default function ChatPage() {
         userEmail={displayEmail}
         userId={user ? user.email : null}
       />
-      <Toaster position="top-center" richColors />
     </div>
   )
 }

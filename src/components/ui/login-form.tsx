@@ -13,8 +13,8 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/lib/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 const GoogleLogo = () => (
   <svg
@@ -46,8 +46,6 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
-  const { toast } = useToast()
-
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -65,11 +63,7 @@ export function LoginForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!email || !password) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter both email and password",
-      })
+      toast.error("Please enter both email and password")
       return
     }
 
@@ -79,24 +73,14 @@ export function LoginForm({
       const { success, error } = await login(email, password)
 
       if (success) {
-        toast({
-          title: "Login successful!"
-        })
+        toast.success("Login successful!")
         // The auth context will handle the redirect
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error || 'Login failed',
-        })
+        toast.error(error || "Login failed")
       }
     } catch (error) {
       console.error("Login error:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An error occurred during login",
-      })
+      toast.error("An error occurred during login")
     } finally {
       setIsLoading(false)
     }
@@ -110,18 +94,14 @@ export function LoginForm({
       // Ensure Google accounts SDK is available
       const { google } = window as typeof window & { google?: any }
       if (!google || !google.accounts || !google.accounts.oauth2) {
-        toast({
-          variant: "destructive",
-          title: "Google SDK not loaded",
+        toast.error("Google SDK not loaded", {
           description: "Please check your network connection and try again.",
         })
         return
       }
 
       if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-        toast({
-          variant: "destructive",
-          title: "Missing Google client ID",
+        toast.error("Missing Google client ID", {
           description: "Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment.",
         })
         return
@@ -134,9 +114,7 @@ export function LoginForm({
         callback: async (response: { code?: string; error?: string }) => {
           if (response.error || !response.code) {
             console.error("Google login error:", response.error)
-            toast({
-              variant: "destructive",
-              title: "Google login failed",
+            toast.error("Google login failed", {
               description: response.error || "The Google popup was closed before completing sign-in.",
             })
             setIsGoogleLoading(false)
@@ -153,9 +131,7 @@ export function LoginForm({
       client.requestCode()
     } catch (error) {
       console.error("Google sign-in error:", error)
-      toast({
-        variant: "destructive",
-        title: "Google login failed",
+      toast.error("Google login failed", {
         description: "An unexpected error occurred.",
       })
       setIsGoogleLoading(false)
