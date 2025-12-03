@@ -732,134 +732,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </div>
           </div>
         )}
-        {resolvedChartUrls.length > 0 && (
-          <>
-            <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10 space-y-3">
-              <div className="flex items-center gap-2">
-                
-              </div>
-              <div className="space-y-3">
-                {resolvedChartUrls.map((url, index) => {
-                  const isDownloading = downloadingChartUrl === url
-                  const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
-                  return (
-                    <div
-                      key={`${url}-${index}`}
-                      className="space-y-5 md:mx-auto md:max-w-2xl"
-                    >
-                      <div className="flex flex-col gap-2 px-2 text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-3 md:px-0">
-                        <span className="text-sm font-medium text-muted-foreground">{chartLabel}</span>
-                        <Button
-                          type="button"
-                          onClick={() => handleDownloadChart(url)}
-                          variant="secondary"
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border/40 bg-background/80 text-muted-foreground shadow-sm transition hover:bg-background sm:w-auto"
-                          disabled={isDownloading}
-                        >
-                          {isDownloading ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Preparing...
-                            </>
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4" />
-                              Download chart
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedChartUrl(url)}
-                        className="relative block w-full group focus:outline-none"
-                        aria-label={`Expand ${chartLabel}`}
-                      >
-                        <img
-                          src={url}
-                          alt={chartLabel}
-                          className="w-full h-auto cursor-zoom-in transition-transform duration-200 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] md:mx-auto md:max-h-[360px] md:w-auto"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.style.display = "none"
-                          }}
-                        />
-                        <span className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
-                          Tap to expand
-                        </span>
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-            <Dialog
-              open={Boolean(expandedChartUrl)}
-              onOpenChange={(open) => {
-                if (!open) setExpandedChartUrl(null)
-              }}
-            >
-              <DialogContent className="w-full max-w-6xl gap-4 p-0 sm:p-6">
-                <DialogHeader className="flex flex-row items-center justify-between gap-4">
-                  <DialogTitle className="text-base sm:text-lg">Generated chart</DialogTitle>
-                  <Button
-                    type="button"
-                    onClick={() => expandedChartUrl && handleDownloadChart(expandedChartUrl)}
-                    variant="secondary"
-                    className="hidden sm:inline-flex items-center gap-2"
-                    disabled={Boolean(expandedChartUrl && downloadingChartUrl === expandedChartUrl)}
-                  >
-                    {expandedChartUrl && downloadingChartUrl === expandedChartUrl ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Preparing...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4" />
-                        Download
-                      </>
-                    )}
-                  </Button>
-                </DialogHeader>
-                <div className="flex flex-col gap-4 px-4 pb-6 sm:px-0">
-                  <div className="overflow-auto">
-                    {expandedChartUrl && (
-                      <img
-                        src={expandedChartUrl}
-                        alt="Expanded chart"
-                        className="mx-auto h-auto max-h-[80vh] w-full max-w-[1100px] object-contain"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = "none"
-                        }}
-                      />
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => expandedChartUrl && handleDownloadChart(expandedChartUrl)}
-                    variant="secondary"
-                    className="sm:hidden w-full justify-center gap-2"
-                    disabled={Boolean(expandedChartUrl && downloadingChartUrl === expandedChartUrl)}
-                  >
-                    {expandedChartUrl && downloadingChartUrl === expandedChartUrl ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Preparing...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4" />
-                        Download chart
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </>
-        )}
         {sources && sources.length > 0 && (
           <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10">
             <div className="flex items-center gap-2 mb-2">
@@ -953,6 +825,135 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="absolute bottom-0 left-0 right-4 h-6 pointer-events-none" />
           </div>
         )}
+        {resolvedChartUrls.length > 0 && (
+          <>
+            <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10 space-y-3">
+              <div className="flex items-center gap-2">
+                
+              </div>
+              <div className="space-y-3">
+                {resolvedChartUrls.map((url, index) => {
+                  const isDownloading = downloadingChartUrl === url
+                  const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
+                  return (
+                    <div
+                      key={`${url}-${index}`}
+                      className="space-y-5 md:mx-auto md:max-w-2xl"
+                    >
+                      <div className="flex flex-col gap-2 px-2 text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-3 md:px-0">
+                        <span className="text-sm font-medium text-muted-foreground">{chartLabel}</span>
+                        <Button
+                          type="button"
+                          onClick={() => handleDownloadChart(url)}
+                          variant="secondary"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border/40 bg-background/80 text-muted-foreground shadow-sm transition hover:bg-background sm:w-auto"
+                          disabled={isDownloading}
+                        >
+                          {isDownloading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Preparing...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4" />
+                              Download chart
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedChartUrl(url)}
+                        className="relative block w-full group focus:outline-none"
+                        aria-label={`Expand ${chartLabel}`}
+                      >
+                        <img
+                          src={url}
+                          alt={chartLabel}
+                          className="w-full h-auto cursor-zoom-in transition-transform duration-200 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] md:mx-auto md:max-h-[360px] md:w-auto"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = "none"
+                          }}
+                        />
+                        <span className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
+                          Tap to expand
+                        </span>
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <Dialog
+              open={Boolean(expandedChartUrl)}
+              onOpenChange={(open) => {
+                if (!open) setExpandedChartUrl(null)
+              }}
+            >
+              <DialogContent size="fullscreen" className="w-full gap-4 p-0 sm:p-6">
+                <DialogHeader className="flex flex-row items-center justify-between gap-4">
+                  <DialogTitle className="text-base sm:text-lg">Generated chart</DialogTitle>
+                  <Button
+                    type="button"
+                    onClick={() => expandedChartUrl && handleDownloadChart(expandedChartUrl)}
+                    variant="secondary"
+                    className="hidden sm:inline-flex items-center gap-2"
+                    disabled={Boolean(expandedChartUrl && downloadingChartUrl === expandedChartUrl)}
+                  >
+                    {expandedChartUrl && downloadingChartUrl === expandedChartUrl ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Preparing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download
+                      </>
+                    )}
+                  </Button>
+                </DialogHeader>
+                <div className="flex h-full flex-col gap-4 px-4 pb-6 sm:px-0">
+                  <div className="flex-1 overflow-auto">
+                    {expandedChartUrl && (
+                      <img
+                        src={expandedChartUrl}
+                        alt="Expanded chart"
+                        className="mx-auto h-full max-h-[calc(100vh-12rem)] w-full max-w-[min(1400px,100%)] object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = "none"
+                        }}
+                      />
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => expandedChartUrl && handleDownloadChart(expandedChartUrl)}
+                    variant="secondary"
+                    className="sm:hidden w-full justify-center gap-2"
+                    disabled={Boolean(expandedChartUrl && downloadingChartUrl === expandedChartUrl)}
+                  >
+                    {expandedChartUrl && downloadingChartUrl === expandedChartUrl ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Preparing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download chart
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+        
 
         {!isUser && Array.isArray(codeSnippets) && codeSnippets.length > 0 && (
           <div className="mt-6 space-y-4">

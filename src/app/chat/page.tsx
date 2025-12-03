@@ -528,21 +528,185 @@ export default function ChatPage() {
       let updateTimer: NodeJS.Timeout | null = null
       let pendingUpdate = false
 
+      const processSseLine = (line: string) => {
+        if (!line.trim()) {
+          currentEvent = ''
+          return
+        }
+
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7).trim()
+          return
+        }
+
+        if (!line.startsWith('data: ')) {
+          return
+        }
+
+        const data = line.slice(6).trim()
+
+        if (!data) return
+
+        try {
+          const parsed = JSON.parse(data)
+
+          // Handle different event types
+          if (currentEvent === 'conversationId' || parsed.conversationId) {
+            console.log('Setting conversation ID:', parsed.conversationId)
+            resolvedConversationId = parsed.conversationId
+            if (parsed.conversationId !== currentConversationId) {
+              setCurrentConversationId(parsed.conversationId)
+            }
+          }
+          else if (currentEvent === 'message' && parsed.text && typeof parsed.text === 'string') {
+            streamedContent += parsed.text
+
+            // Batch updates for smoother streaming - update every 50ms max
+            if (!pendingUpdate) {
+              pendingUpdate = true
+              if (updateTimer) clearTimeout(updateTimer)
+
+              updateTimer = setTimeout(() => {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: streamedContent, createdAt: new Date(), isComplete: false }
+                      : msg
+                  )
+                )
+                pendingUpdate = false
+              }, 50)
+            }
+          }
+          else if (currentEvent === 'images' && parsed.images && Array.isArray(parsed.images)) {
+            const normalized = normalizeImageResults(parsed.images)
+            if (normalized) {
+              streamedImages = normalized
+              console.log('🖼️ Received images:', normalized.length)
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, images: normalized }
+                    : msg
+                )
+              )
+            }
+          }
+          else if (currentEvent === 'sources' && parsed.sources && Array.isArray(parsed.sources)) {
+            streamedSourceObjs = parsed.sources
+            streamedSources = parsed.sources
+            console.log('📚 Received sources:', streamedSources.length)
+            setMessages((prev) => 
+              prev.map((msg) => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, sources: streamedSources as any }
+                  : msg
+              )
+            )
+          }
+          else if (currentEvent === 'code' && parsed.code) {
+            const snippet = {
+              language: typeof parsed.language === 'string' ? parsed.language : undefined,
+              code: String(parsed.code)
+            }
+            streamedCodeSnippets = [...(streamedCodeSnippets ?? []), snippet]
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, codeSnippets: streamedCodeSnippets }
+                  : msg
+              )
+            )
+          }
+          else if (currentEvent === 'codeResult' && parsed.output) {
+            const executionResult = {
+              outcome: typeof parsed.outcome === 'string' ? parsed.outcome : undefined,
+              output: String(parsed.output)
+            }
+            streamedExecutionOutputs = [...(streamedExecutionOutputs ?? []), executionResult]
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, executionOutputs: streamedExecutionOutputs }
+                  : msg
+              )
+            )
+          }
+          else if (currentEvent === 'mermaid' && Array.isArray(parsed.blocks)) {
+            streamedMermaidBlocks = parsed.blocks as MermaidBlockUpdate[]
+            const updatedContent = applyMermaidReplacements(streamedContent, streamedMermaidBlocks)
+            if (updatedContent !== streamedContent) {
+              streamedContent = updatedContent
+            }
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? {
+                      ...msg,
+                      content: streamedContent,
+                      mermaidBlocks: streamedMermaidBlocks,
+                      isComplete: false,
+                    }
+                  : msg
+              )
+            )
+          }
+          else if (currentEvent === 'youtubeResults' && parsed.videos && Array.isArray(parsed.videos)) {
+            streamedVideos = parsed.videos
+            console.log('🎥 Received YouTube videos:', streamedVideos.length)
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, videos: parsed.videos as any }
+                  : msg
+              )
+            )
+          }
+          else if (currentEvent === 'finish' && parsed.finishReason) {
+            console.log('✅ Stream finished with reason:', parsed.finishReason)
+            setAssistantStatuses((prev: AssistantStatusMap) => ({
+              ...prev,
+              responding: "complete",
+            }))
+          }
+          else if (currentEvent === 'error' && parsed.error) {
+            console.error('❌ Stream error:', parsed.error)
+            throw new Error(parsed.error)
+          }
+          
+        } catch (parseError) {
+          if (data !== '[DONE]') {
+            console.warn('Failed to parse SSE data:', data, parseError)
+          }
+        }
+      }
+
       if (!reader) {
         throw new Error('No response body reader available')
       }
 
       while (true) {
         const { done, value } = await reader.read()
-        
+
         if (done) {
           console.log('Stream complete')
+          // Process any remaining buffered data when the stream ends
+          if (buffer.trim().length > 0) {
+            const remainingLines = buffer.split('\n')
+            for (const line of remainingLines) {
+              if (line) {
+                processSseLine(line)
+              }
+            }
+            buffer = ''
+          }
+
           // Flush any pending updates
           if (updateTimer) {
             clearTimeout(updateTimer)
-            setMessages((prev) => 
-              prev.map((msg) => 
-                msg.id === assistantMessageId 
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
                   ? { ...msg, content: streamedContent, createdAt: new Date() }
                   : msg
               )
@@ -556,154 +720,7 @@ export default function ChatPage() {
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (!line.trim()) {
-            currentEvent = ''
-            continue
-          }
-          
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7).trim()
-            continue
-          }
-          
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
-            
-            if (!data) continue
-            
-            try {
-              const parsed = JSON.parse(data)
-              
-              // Handle different event types
-              if (currentEvent === 'conversationId' || parsed.conversationId) {
-                console.log('Setting conversation ID:', parsed.conversationId)
-                resolvedConversationId = parsed.conversationId
-                if (parsed.conversationId !== currentConversationId) {
-                  setCurrentConversationId(parsed.conversationId)
-                }
-              }
-              else if (currentEvent === 'message' && parsed.text && typeof parsed.text === 'string') {
-                streamedContent += parsed.text
-                
-                // Batch updates for smoother streaming - update every 50ms max
-                if (!pendingUpdate) {
-                  pendingUpdate = true
-                  if (updateTimer) clearTimeout(updateTimer)
-                  
-                  updateTimer = setTimeout(() => {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessageId
-                          ? { ...msg, content: streamedContent, createdAt: new Date(), isComplete: false }
-                          : msg
-                      )
-                    )
-                    pendingUpdate = false
-                  }, 50)
-                }
-              }
-              else if (currentEvent === 'images' && parsed.images && Array.isArray(parsed.images)) {
-                const normalized = normalizeImageResults(parsed.images)
-                if (normalized) {
-                  streamedImages = normalized
-                  console.log('🖼️ Received images:', normalized.length)
-                  setMessages(prev =>
-                    prev.map(msg =>
-                      msg.id === assistantMessageId
-                        ? { ...msg, images: normalized }
-                        : msg
-                    )
-                  )
-                }
-              }
-              else if (currentEvent === 'sources' && parsed.sources && Array.isArray(parsed.sources)) {
-                streamedSourceObjs = parsed.sources
-                streamedSources = parsed.sources
-                console.log('📚 Received sources:', streamedSources.length)
-                setMessages((prev) => 
-                  prev.map((msg) => 
-                    msg.id === assistantMessageId 
-                      ? { ...msg, sources: streamedSources as any }
-                      : msg
-                  )
-                )
-              }
-              else if (currentEvent === 'code' && parsed.code) {
-                const snippet = {
-                  language: typeof parsed.language === 'string' ? parsed.language : undefined,
-                  code: String(parsed.code)
-                }
-                streamedCodeSnippets = [...(streamedCodeSnippets ?? []), snippet]
-                setMessages(prev =>
-                  prev.map(msg =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, codeSnippets: streamedCodeSnippets }
-                      : msg
-                  )
-                )
-              }
-              else if (currentEvent === 'codeResult' && parsed.output) {
-                const executionResult = {
-                  outcome: typeof parsed.outcome === 'string' ? parsed.outcome : undefined,
-                  output: String(parsed.output)
-                }
-                streamedExecutionOutputs = [...(streamedExecutionOutputs ?? []), executionResult]
-                setMessages(prev =>
-                  prev.map(msg =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, executionOutputs: streamedExecutionOutputs }
-                      : msg
-                  )
-                )
-              }
-              else if (currentEvent === 'mermaid' && Array.isArray(parsed.blocks)) {
-                streamedMermaidBlocks = parsed.blocks as MermaidBlockUpdate[]
-                const updatedContent = applyMermaidReplacements(streamedContent, streamedMermaidBlocks)
-                if (updatedContent !== streamedContent) {
-                  streamedContent = updatedContent
-                }
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? {
-                          ...msg,
-                          content: streamedContent,
-                          mermaidBlocks: streamedMermaidBlocks,
-                          isComplete: false,
-                        }
-                      : msg
-                  )
-                )
-              }
-              else if (currentEvent === 'youtubeResults' && parsed.videos && Array.isArray(parsed.videos)) {
-                streamedVideos = parsed.videos
-                console.log('🎥 Received YouTube videos:', streamedVideos.length)
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, videos: parsed.videos as any }
-                      : msg
-                  )
-                )
-              }
-              else if (currentEvent === 'finish' && parsed.finishReason) {
-                console.log('✅ Stream finished with reason:', parsed.finishReason)
-                setAssistantStatuses((prev: AssistantStatusMap) => ({
-                  ...prev,
-                  responding: "complete",
-                }))
-              }
-              else if (currentEvent === 'error' && parsed.error) {
-                console.error('❌ Stream error:', parsed.error)
-                throw new Error(parsed.error)
-              }
-              
-            } catch (parseError) {
-              if (data !== '[DONE]') {
-                console.warn('Failed to parse SSE data:', data, parseError)
-              }
-            }
-          }
+          processSseLine(line)
         }
       }
 
@@ -909,7 +926,7 @@ export default function ChatPage() {
                 <Search className="h-4 w-4 text-white dark:text-[#0c0c12]" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-sm leading-snug tracking-tight text-slate-100 sm:flex-nowrap sm:text-[1.2rem] dark:text-white`}>
+                <h1 className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-sm leading-snug tracking-tight text-slate-100 sm:flex-nowrap sm:text-[1rem] dark:text-white`}>
                   Luna AI
                 </h1>
               </div>
