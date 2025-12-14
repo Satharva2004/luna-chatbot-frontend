@@ -13,14 +13,14 @@ import {
   type AssistantStatusMap,
 } from "@/components/ui/typing-indicator"
 import {
-  ThumbsUp, 
-  ThumbsDown, 
-  Sparkles, 
-  Search, 
-  History, 
-  Plus, 
-  Trash2, 
-  LogOut, 
+  ThumbsUp,
+  ThumbsDown,
+  Sparkles,
+  Search,
+  History,
+  Plus,
+  Trash2,
+  LogOut,
   RotateCcw,
   ChevronDown,
   X,
@@ -35,6 +35,7 @@ import { Playfair_Display } from "next/font/google"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { FeedbackDialog } from "@/components/ui/feedback-dialog"
 import { toast } from "sonner"
+import { TTSButton } from "@/components/ui/tts-button"
 
 function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
   if (!Array.isArray(raw)) return undefined
@@ -355,15 +356,15 @@ export default function ChatPage() {
       const data = await resp.json()
       const historyMessages = Array.isArray(data?.messages)
         ? [...data.messages]
-            .sort((a, b) => {
-              const aTime = new Date(a?.created_at ?? a?.createdAt ?? 0).getTime()
-              const bTime = new Date(b?.created_at ?? b?.createdAt ?? 0).getTime()
-              if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0
-              if (Number.isNaN(aTime)) return -1
-              if (Number.isNaN(bTime)) return 1
-              return aTime - bTime
-            })
-            .map(normalizeMessageFromHistory)
+          .sort((a, b) => {
+            const aTime = new Date(a?.created_at ?? a?.createdAt ?? 0).getTime()
+            const bTime = new Date(b?.created_at ?? b?.createdAt ?? 0).getTime()
+            if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0
+            if (Number.isNaN(aTime)) return -1
+            if (Number.isNaN(bTime)) return 1
+            return aTime - bTime
+          })
+          .map(normalizeMessageFromHistory)
         : []
 
       const historyWithTitles = attachPromptTitlesToHistory(historyMessages)
@@ -442,10 +443,10 @@ export default function ChatPage() {
   const simulateAssistant = async (userContent: string, attachments?: FileList) => {
     try {
       console.log('Starting streaming request with prompt:', userContent)
-      
+
       const conversationId = currentConversationId
       abortControllerRef.current = new AbortController()
-      
+
       let response: Response
       if (attachments && attachments.length > 0) {
         const formData = new FormData()
@@ -596,9 +597,9 @@ export default function ChatPage() {
             streamedSourceObjs = parsed.sources
             streamedSources = parsed.sources
             console.log('📚 Received sources:', streamedSources.length)
-            setMessages((prev) => 
-              prev.map((msg) => 
-                msg.id === assistantMessageId 
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
                   ? { ...msg, sources: streamedSources as any }
                   : msg
               )
@@ -642,11 +643,11 @@ export default function ChatPage() {
               prev.map((msg) =>
                 msg.id === assistantMessageId
                   ? {
-                      ...msg,
-                      content: streamedContent,
-                      mermaidBlocks: streamedMermaidBlocks,
-                      isComplete: false,
-                    }
+                    ...msg,
+                    content: streamedContent,
+                    mermaidBlocks: streamedMermaidBlocks,
+                    isComplete: false,
+                  }
                   : msg
               )
             )
@@ -673,7 +674,7 @@ export default function ChatPage() {
             console.error('❌ Stream error:', parsed.error)
             throw new Error(parsed.error)
           }
-          
+
         } catch (parseError) {
           if (data !== '[DONE]') {
             console.warn('Failed to parse SSE data:', data, parseError)
@@ -730,19 +731,19 @@ export default function ChatPage() {
         prev.map((msg) =>
           msg.id === assistantMessageId
             ? {
-                ...msg,
-                content: finalContent,
-                sources: streamedSources,
-                chartUrl: msg.chartUrl,
-                chartUrls: msg.chartUrls ?? [],
-                images: streamedImages.length > 0 ? streamedImages : msg.images,
-                videos: streamedVideos.length > 0 ? streamedVideos : (msg as any).videos,
-                codeSnippets: streamedCodeSnippets,
-                executionOutputs: streamedExecutionOutputs,
-                mermaidBlocks: streamedMermaidBlocks,
-                createdAt: new Date(),
-                isComplete: true,
-              }
+              ...msg,
+              content: finalContent,
+              sources: streamedSources,
+              chartUrl: msg.chartUrl,
+              chartUrls: msg.chartUrls ?? [],
+              images: streamedImages.length > 0 ? streamedImages : msg.images,
+              videos: streamedVideos.length > 0 ? streamedVideos : (msg as any).videos,
+              codeSnippets: streamedCodeSnippets,
+              executionOutputs: streamedExecutionOutputs,
+              mermaidBlocks: streamedMermaidBlocks,
+              createdAt: new Date(),
+              isComplete: true,
+            }
             : msg
         )
       )
@@ -778,10 +779,10 @@ export default function ChatPage() {
                 prev.map((msg) =>
                   msg.id === assistantMessageId
                     ? {
-                        ...msg,
-                        chartUrl: chartUrlFromResponse,
-                        chartUrls: Array.from(new Set([...(msg.chartUrls ?? []), chartUrlFromResponse])),
-                      }
+                      ...msg,
+                      chartUrl: chartUrlFromResponse,
+                      chartUrls: Array.from(new Set([...(msg.chartUrls ?? []), chartUrlFromResponse])),
+                    }
                     : msg
                 )
               )
@@ -802,13 +803,13 @@ export default function ChatPage() {
           }))
         }
       }
-      
+
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Stream was aborted by user')
         return
       }
-      
+
       console.error('Error in streaming:', error)
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -835,10 +836,10 @@ export default function ChatPage() {
       createdAt: new Date(),
       experimental_attachments: options?.experimental_attachments
         ? Array.from(options.experimental_attachments).map((f) => ({
-            name: f.name,
-            contentType: f.type,
-            url: "data:;base64,",
-          }))
+          name: f.name,
+          contentType: f.type,
+          url: "data:;base64,",
+        }))
         : undefined,
     }
 
@@ -868,7 +869,7 @@ export default function ChatPage() {
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.wav')
-      
+
       const response = await fetch('/api/speech/transcribe', {
         method: 'POST',
         body: formData,
@@ -912,7 +913,7 @@ export default function ChatPage() {
             'radial-gradient(circle at 20% 20%, rgba(79,82,128,0.5), transparent 60%), radial-gradient(circle at 80% 0%, rgba(36,40,78,0.45), transparent 55%), radial-gradient(circle at 50% 120%, rgba(16,98,255,0.22), transparent 70%)',
         }}
       />
-      
+
       {/* Header */}
       <header
         ref={headerRef}
@@ -955,7 +956,7 @@ export default function ChatPage() {
                 onClick={startNewChat}
               >
                 <span className="relative z-10 inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" /> 
+                  <Plus className="h-4 w-4" />
                   New chat
                   {/* <span className="ml-1 text-[12px] text-muted-foreground ">⌘ + N</span> */}
                 </span>
@@ -1198,7 +1199,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        
+
 
         {isMobileMenuOpen && (
           <>
@@ -1311,11 +1312,10 @@ export default function ChatPage() {
                           return (
                             <li key={conversation.id} className="transition-transform duration-200 ease-out hover:translate-x-1">
                               <button
-                                className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${
-                                  isActive
-                                    ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
-                                    : 'hover:bg-white/80 dark:hover:bg-white/10'
-                                }`}
+                                className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${isActive
+                                  ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
+                                  : 'hover:bg-white/80 dark:hover:bg-white/10'
+                                  }`}
                                 onClick={() => handleConversationSelect(conversation.id)}
                                 type="button"
                               >
@@ -1444,7 +1444,8 @@ export default function ChatPage() {
                       return {
                         actions: onRateResponse ? (
                           <>
-                            <div className="border-r pr-1">
+                            <div className="border-r pr-1 flex items-center gap-1">
+                              <TTSButton content={message.content} />
                               <CopyButton
                                 content={message.content}
                                 copyMessage="Copied response to clipboard!"
@@ -1454,7 +1455,11 @@ export default function ChatPage() {
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
-                              onClick={() => onRateResponse(message.id, "thumbs-up")}
+                              onClick={() => {
+                                if (onRateResponse) {
+                                  onRateResponse(message.id, "thumbs-up")
+                                }
+                              }}
                             >
                               <ThumbsUp className="h-4 w-4" />
                             </Button>
@@ -1462,16 +1467,23 @@ export default function ChatPage() {
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
-                              onClick={() => onRateResponse(message.id, "thumbs-down")}
+                              onClick={() => {
+                                if (onRateResponse) {
+                                  onRateResponse(message.id, "thumbs-down")
+                                }
+                              }}
                             >
                               <ThumbsDown className="h-4 w-4" />
                             </Button>
                           </>
                         ) : (
-                          <CopyButton
-                            content={message.content}
-                            copyMessage="Copied response to clipboard!"
-                          />
+                          <div className="flex items-center gap-1">
+                            <TTSButton content={message.content} />
+                            <CopyButton
+                              content={message.content}
+                              copyMessage="Copied response to clipboard!"
+                            />
+                          </div>
                         ),
                         isComplete: message.isComplete,
                       }
@@ -1483,7 +1495,7 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Input Area */}
       <div
         ref={footerRef}
