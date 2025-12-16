@@ -33,9 +33,7 @@ const nextConfig = {
   // Enable static HTML export
   output: 'standalone',
   // Enable server components
-  experimental: {
-    appDir: true,
-  },
+
 };
 
 module.exports = nextConfig;
