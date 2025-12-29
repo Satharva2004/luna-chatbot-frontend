@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Download, Maximize2, Minimize2, Loader2 } from 'lucide-react'
+import { Download, Maximize2, Minimize2, Loader2, FileJson } from 'lucide-react'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogTitle } from './dialog'
+import { sanitizeExcalidrawElements } from '@/lib/excalidraw-sanitizer'
 
 // IMPORTANT: Import Excalidraw styles to fix UI rendering
 import "@excalidraw/excalidraw/index.css";
@@ -15,7 +16,7 @@ const Excalidraw = dynamic(
     {
         ssr: false,
         loading: () => (
-            <div className="flex h-full w-full items-center justify-center bg-gray-50 dark:bg-gray-800">
+            <div className="flex h-full w-full items-center justify-center bg-gray-50 dark:bg-gray-800 min-h-[500px]">
                 <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
         ),
@@ -39,36 +40,6 @@ interface ExcalidrawViewerProps {
     className?: string
 }
 
-// Validation helper to prevent "New element size or position is too large" errors and missing properties
-const sanitizeElements = (elements: any[]) => {
-    if (!Array.isArray(elements)) return []
-
-    return elements.filter(el => {
-        // Ensure element is an object and has a type
-        if (!el || typeof el !== 'object') return false
-        if (!el.type || typeof el.type !== 'string') return false // CRITICAL: Excalidraw crashes if type is missing
-
-        // Basic coordinate validation
-        const isValidNumber = (n: any) => typeof n === 'number' && Number.isFinite(n) && !Number.isNaN(n)
-
-        // Excalidraw has limits on coordinate size (usually +/- 30000-50000 is safe visual range, 
-        // internal limits are higher but we want to catch AI hallucinations)
-        const MAX_COORD = 50000
-
-        const validCoords =
-            isValidNumber(el.x) && Math.abs(el.x) < MAX_COORD &&
-            isValidNumber(el.y) && Math.abs(el.y) < MAX_COORD &&
-            isValidNumber(el.width) && Math.abs(el.width) < MAX_COORD &&
-            isValidNumber(el.height) && Math.abs(el.height) < MAX_COORD
-
-        if (!validCoords) {
-            console.warn('⚠️ Filtered out invalid Excalidraw element:', el)
-        }
-
-        return validCoords
-    })
-}
-
 export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps) {
     // Safety guard
     if (!data) {
@@ -79,70 +50,79 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [isDownloading, setIsDownloading] = useState(false)
     const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null)
-    const [key, setKey] = useState(0) // Used to force re-render if needed
+    const excalidrawAPIRef = useRef<any>(null)
+    const [key, setKey] = useState(0)
 
     // Memoize sanitized elements to prevent re-calculations
-    const sanitizedElements = useMemo(() => sanitizeElements(data.elements), [data.elements])
+    const sanitizedElements = useMemo(() => sanitizeExcalidrawElements(data.elements), [data.elements])
 
-    // Update scene when data changes
+    // Capture API and ref
+    const onExcalidrawAPIChange = useCallback((api: any) => {
+        console.log('🔄 ExcalidrawViewer: API Ready', !!api)
+        setExcalidrawAPI(api)
+        excalidrawAPIRef.current = api
+    }, [])
+
+    // Safe scroll to content function
+    const safeScrollToContent = useCallback(() => {
+        if (!excalidrawAPIRef.current) return
+
+        const elements = excalidrawAPIRef.current.getSceneElements();
+        if (!elements || elements.length === 0) return
+
+        try {
+            // Use Excalidraw's native scrolling which is more robust
+            excalidrawAPIRef.current.scrollToContent(elements, {
+                fitToViewport: true,
+                viewportZoomFactor: 0.9,
+                animate: true
+            })
+
+            // Double check zoom state after small delay to fix NaN if it occurred
+            setTimeout(() => {
+                const state = excalidrawAPIRef.current.getAppState();
+                if (!Number.isFinite(state.zoom.value) || state.zoom.value <= 0) {
+                    console.warn('⚠️ ExcalidrawViewer: NaN zoom detected after auto-scroll, fixing...')
+                    excalidrawAPIRef.current.updateScene({
+                        appState: { zoom: { value: 1 as any }, scrollX: 0, scrollY: 0 }
+                    })
+                }
+            }, 100)
+
+        } catch (err) {
+            console.error('❌ ExcalidrawViewer: safeScrollToContent failed', err)
+        }
+    }, [])
+
+    // Center content when API is ready
     useEffect(() => {
         if (!excalidrawAPI) return
 
-        console.log('🔄 ExcalidrawViewer: Scene update triggered', {
-            elementCount: sanitizedElements.length,
-            hasAPI: !!excalidrawAPI
-        })
-
-        if (!sanitizedElements || sanitizedElements.length === 0) {
-            console.warn('⚠️ ExcalidrawViewer: No elements to render')
-            return
-        }
-
-        // Small delay to ensure the component is fully mounted and ready for scene updates
+        // Wait slightly for canvas to layout
         const timer = setTimeout(() => {
-            requestAnimationFrame(() => {
-                try {
-                    console.log('🎨 ExcalidrawViewer: Updating scene...')
-
-                    // Force update the scene
-                    excalidrawAPI.updateScene({
-                        elements: sanitizedElements,
-                        appState: {
-                            viewBackgroundColor: data.appState?.viewBackgroundColor || '#ffffff',
-                            gridSize: data.appState?.gridSize || undefined,
-                            // Important to avoid carrying over previous state that might conflict
-                            isLoading: false,
-                        },
-                        commitToHistory: false
-                    })
-
-                    // Center content
-                    if (sanitizedElements.length > 0) {
-                        console.log('🔭 ExcalidrawViewer: Scrolling to content...')
-                        excalidrawAPI.scrollToContent(sanitizedElements, {
-                            fitToViewport: true,
-                            viewportZoomFactor: 0.8, // Zoom out a bit more to be safe
-                            animate: false // Disable animation for initial render to ensure instant visibility
-                        })
-                    }
-                } catch (error) {
-                    console.error('❌ Failed to update Excalidraw scene:', error)
-                }
-            })
-        }, 500) // Increased delay to 500ms to allow layout to settle
+            safeScrollToContent()
+        }, 100)
 
         return () => clearTimeout(timer)
-    }, [excalidrawAPI, sanitizedElements, data.appState])
+    }, [excalidrawAPI, safeScrollToContent])
 
     const handleDownload = async () => {
+        if (!excalidrawAPI) return
+
         try {
             setIsDownloading(true)
-            // Dynamically import utility to avoid SSR issues
             const { exportToBlob } = await import('@excalidraw/excalidraw')
 
+            const elements = excalidrawAPI.getSceneElements()
+            const appState = excalidrawAPI.getAppState()
+
             const blob = await exportToBlob({
-                elements: sanitizedElements,
-                appState: data.appState,
+                elements: elements,
+                appState: {
+                    ...appState,
+                    exportBackground: true,
+                    viewBackgroundColor: appState.viewBackgroundColor || '#ffffff'
+                },
                 files: data.files,
                 mimeType: 'image/png'
             })
@@ -150,7 +130,9 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
             link.href = url
-            link.download = `flowchart-${new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')}.png`
+            // Sanitize filename
+            const filename = `flowchart-${new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')}.png`
+            link.download = filename
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
@@ -162,21 +144,62 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
         }
     }
 
+    const handleSaveJson = async () => {
+        if (!excalidrawAPI) return
+
+        try {
+            const elements = excalidrawAPI.getSceneElements()
+            const appState = excalidrawAPI.getAppState()
+
+            const payload = {
+                type: 'excalidraw',
+                version: 2,
+                source: 'https://excalidraw.com',
+                elements: elements,
+                appState: {
+                    viewBackgroundColor: appState.viewBackgroundColor,
+                    gridSize: appState.gridSize
+                },
+                files: data.files || {}
+            }
+
+            const json = JSON.stringify(payload, null, 2)
+            const blob = new Blob([json], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            const filename = `flowchart-${new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')}.excalidraw`
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error('Failed to save JSON:', error)
+        }
+    }
+
     const renderExcalidraw = (height: string = '500px') => {
+        // Generate a unique key based on content to force clean re-mounts
+        const contentKey = `excalidraw-${sanitizedElements.length}-${sanitizedElements[0]?.id || 'empty'}`;
+
         return (
-            <div className="relative w-full rounded-b-xl overflow-hidden" style={{ height }}>
+            <div className="relative w-full rounded-b-xl overflow-hidden bg-white" style={{ height, minHeight: height }}>
                 <Excalidraw
-                    key={key}
-                    excalidrawAPI={(api) => setExcalidrawAPI(api)}
+                    key={contentKey}
+                    excalidrawAPI={onExcalidrawAPIChange}
                     initialData={{
                         elements: sanitizedElements || [],
                         appState: {
                             viewBackgroundColor: data.appState?.viewBackgroundColor || '#ffffff',
                             gridSize: data.appState?.gridSize || undefined,
+                            zoom: { value: 1 as any },
+                            scrollX: 0,
+                            scrollY: 0
                         },
                         scrollToContent: true
                     }}
-                    viewModeEnabled={false} // Allow interaction
+                    viewModeEnabled={false}
                     zenModeEnabled={false}
                     gridModeEnabled={true}
                     theme="light"
@@ -195,7 +218,6 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
             </div>
         )
     }
-
 
     return (
         <>
@@ -220,6 +242,25 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={safeScrollToContent}
+                            className="h-8 px-3"
+                            title="Fit execution to screen"
+                        >
+                            <Minimize2 className="h-4 w-4 rotate-45" />
+                            <span className="ml-2 text-xs">Fit</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleSaveJson}
+                            className="h-8 px-3"
+                        >
+                            <FileJson className="h-4 w-4" />
+                            <span className="ml-2 text-xs">Save</span>
+                        </Button>
                         <Button
                             variant="ghost"
                             size="sm"
@@ -267,6 +308,15 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleSaveJson}
+                                className="h-8 px-3"
+                            >
+                                <FileJson className="h-4 w-4" />
+                                <span className="ml-2 text-xs">Save</span>
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"

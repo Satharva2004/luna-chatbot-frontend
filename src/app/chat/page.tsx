@@ -293,6 +293,11 @@ export default function ChatPage() {
   }, [stop])
 
   const normalizeMessageFromHistory = useCallback((message: any): Message => {
+    // DEBUG: Check what excalidraw data is coming from backend
+    if (message?.excalidraw || message?.excalidraw_data) {
+      console.log('🔄 Data from DB:', { id: message.id, excalidraw: message.excalidraw, old_data: message.excalidraw_data })
+    }
+
     const role = message?.role === 'model' ? 'assistant' : message?.role ?? 'assistant'
     const createdAtIso = message?.created_at ?? message?.createdAt
     const normalizedVideos = Array.isArray(message?.videos)
@@ -310,6 +315,7 @@ export default function ChatPage() {
         : (typeof message?.charts === 'string' && message.charts.trim().length > 0)
           ? [message.charts]
           : undefined,
+      excalidrawData: message.excalidraw ?? message.excalidraw_data ?? message.excalidrawData ?? undefined,
       images: normalizeImageResults(message?.images),
       videos: normalizedVideos,
     }
