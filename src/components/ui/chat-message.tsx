@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/collapsible"
 import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
+import { ExcalidrawViewer } from "@/components/ui/excalidraw-viewer"
 
 const MINOR_TITLE_WORDS = new Set([
   "a",
@@ -94,13 +95,13 @@ function toTitleCase(text: string): string {
     const updatedCore = shouldLowercase
       ? normalizedCore
       : normalizedCore
-          .split(/(-)/)
-          .map((segment) => {
-            if (segment === "-") return segment
-            if (!segment) return segment
-            return segment.charAt(0).toUpperCase() + segment.slice(1)
-          })
-          .join("")
+        .split(/(-)/)
+        .map((segment) => {
+          if (segment === "-") return segment
+          if (!segment) return segment
+          return segment.charAt(0).toUpperCase() + segment.slice(1)
+        })
+        .join("")
 
     return `${prefix}${updatedCore}${suffix}`
   })
@@ -263,6 +264,17 @@ export interface Message {
   codeSnippets?: CodeSnippet[]
   executionOutputs?: ExecutionOutput[]
   mermaidBlocks?: MermaidBlockUpdate[]
+  excalidrawData?: Array<{
+    type: 'excalidraw'
+    version: number
+    source: string
+    elements: any[]
+    appState: {
+      gridSize: number | null
+      viewBackgroundColor: string
+    }
+    files: Record<string, any>
+  }> | null
 }
 
 export interface ImageResult {
@@ -297,6 +309,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isComplete,
   codeSnippets,
   executionOutputs,
+  excalidrawData,
 }) => {
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -369,14 +382,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       setDownloadingChartUrl(null)
     }
   }
-  
+
   // Debug logging
   if (process.env.NODE_ENV === 'development') {
-    console.log('ChatMessage - Role:', role, 
-      'Sources:', sources ? `Array(${sources.length})` : 'none', 
+    console.log('ChatMessage - Role:', role,
+      'Sources:', sources ? `Array(${sources.length})` : 'none',
       'Content:', content ? `${content.substring(0, 50)}${content.length > 50 ? '...' : ''}` : 'empty'
     )
-    
+
     if (sources && sources.length > 0) {
       console.log('Sources details:', JSON.stringify(sources, null, 2));
     }
@@ -390,7 +403,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // Render message with files if present
   const renderMessageContent = (content: string, promptTitleOverride?: string) => (
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
-      <div className={cn(chatBubbleVariants({ isUser, animation }), "relative") }>
+      <div className={cn(chatBubbleVariants({ isUser, animation }), "relative")}>
         {files && (
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => (
@@ -402,7 +415,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         {!isUser && (promptTitleOverride || promptTitle) && (
           <div className="mb-6 text-3xl font-semibold tracking-tight text-foreground">
             {toTitleCase(promptTitleOverride || promptTitle || "")}
-            <hr style={{width: "100%", marginTop: "20px" }}/>
+            <hr style={{ width: "100%", marginTop: "20px" }} />
           </div>
         )}
 
@@ -530,7 +543,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             lineHeight: 2,
             fontSize: '0.9rem',
           }}
-          >
+        >
           <MarkdownRenderer>
             {content}
           </MarkdownRenderer>
@@ -743,11 +756,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="space-y-1.5 max-h-60 overflow-y-auto pr-2 -mr-2 pl-1">
               {sources.map((source, index) => {
                 if (!source) return null;
-                
+
                 try {
                   let href: string;
                   let displayText: string;
-                  
+
                   if (typeof source === 'string') {
                     // Handle string source (URL)
                     href = source;
@@ -774,7 +787,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       }
                     })();
                   }
-                  
+
                   return (
                     <a
                       key={index}
@@ -825,11 +838,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="absolute bottom-0 left-0 right-4 h-6 pointer-events-none" />
           </div>
         )}
+        {excalidrawData && excalidrawData.length > 0 && (
+          <div className="mt-4">
+            {excalidrawData.map((diagram, index) => (
+              <ExcalidrawViewer key={index} data={diagram} />
+            ))}
+          </div>
+        )}
         {resolvedChartUrls.length > 0 && (
           <>
             <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10 space-y-3">
               <div className="flex items-center gap-2">
-                
+
               </div>
               <div className="space-y-3">
                 {resolvedChartUrls.map((url, index) => {
@@ -953,7 +973,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </Dialog>
           </>
         )}
-        
+
 
         {!isUser && Array.isArray(codeSnippets) && codeSnippets.length > 0 && (
           <div className="mt-6 space-y-4">
@@ -1086,7 +1106,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (content) {
     return renderMessageContent(content);
   }
-  
+
   // Fallback for any other case
   return (
     <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>

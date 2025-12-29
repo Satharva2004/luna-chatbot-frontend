@@ -663,6 +663,16 @@ export default function ChatPage() {
               )
             )
           }
+          else if (currentEvent === 'excalidraw' && parsed.excalidrawData && Array.isArray(parsed.excalidrawData)) {
+            console.log('🎨 Received Excalidraw data:', parsed.excalidrawData.length)
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, excalidrawData: parsed.excalidrawData }
+                  : msg
+              )
+            )
+          }
           else if (currentEvent === 'finish' && parsed.finishReason) {
             console.log('✅ Stream finished with reason:', parsed.finishReason)
             setAssistantStatuses((prev: AssistantStatusMap) => ({
