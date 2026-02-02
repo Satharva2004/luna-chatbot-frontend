@@ -944,7 +944,7 @@ export default function ChatPage() {
               </div>
               <div className="flex flex-col justify-center">
                 <h1 className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-sm leading-snug tracking-tight text-slate-100 sm:flex-nowrap sm:text-[1rem] dark:text-white`}>
-                  Luna AI
+                  IRIS AI
                 </h1>
               </div>
             </div>

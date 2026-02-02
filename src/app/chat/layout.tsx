@@ -1,4 +1,4 @@
-    import { Metadata } from 'next';
+import { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Navbar } from '@/components/ui/navbar';
@@ -6,8 +6,8 @@ import { Navbar } from '@/components/ui/navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Chat | Luna AI',
-  description: 'Chat with Luna AI',
+  title: 'Chat | IRIS AI',
+  description: 'Chat with IRIS AI',
 };
 
 export default function ChatLayout({
