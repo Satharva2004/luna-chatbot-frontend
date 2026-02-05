@@ -4,7 +4,7 @@
 @import "tw-animate-css";
 
 :root {
-  --transition-duration: 2s;
+  --transition-duration: 180ms;
   --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
