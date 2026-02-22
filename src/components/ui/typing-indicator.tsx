@@ -1,5 +1,6 @@
 import { BarChart3, Check, Search, Sparkles } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 export type AssistantStage = "searching" | "responding" | "charting"
 export type AssistantStageState = "pending" | "active" | "complete"
@@ -23,25 +24,25 @@ const STAGE_CONFIG: Array<{
   description: string
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
 }> = [
-  {
-    key: "searching",
-    title: "Searching the web",
-    description: "",
-    icon: Search,
-  },
-  {
-    key: "responding",
-    title: "Generating insights",
-    description: "",
-    icon: Sparkles,
-  },
-  {
-    key: "charting",
-    title: "Preparing charts",
-    description: "Visualizing key findings",
-    icon: BarChart3,
-  },
-]
+    {
+      key: "searching",
+      title: "Searching the web",
+      description: "",
+      icon: Search,
+    },
+    {
+      key: "responding",
+      title: "Generating insights",
+      description: "",
+      icon: Sparkles,
+    },
+    {
+      key: "charting",
+      title: "Preparing charts",
+      description: "Visualizing key findings",
+      icon: BarChart3,
+    },
+  ]
 
 const DEFAULT_SOURCE_HINTS: Record<AssistantStage, string[]> = {
   searching: ["Google", "Bing", "Reuters"],
@@ -70,9 +71,13 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
   const activeHints = sourceHints?.[displayStage.key] ?? DEFAULT_SOURCE_HINTS[displayStage.key]
 
   return (
-    <div className="flex justify-start text-xs font-mono">
-      <div className="w-full max-w-[20rem] rounded-lg border border-border/70 bg-background/95 px-3 py-2 shadow-[0_6px_20px_-18px_rgba(15,23,42,0.5)]">
-        <div className="flex flex-col gap-1.5">
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className="flex justify-start text-xs"
+    >
+      <div className="w-full max-w-[20rem] overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-background/90 via-background/95 to-primary/5 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-md dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+        <div className="flex flex-col gap-3">
           {STAGE_CONFIG.map((stage) => {
             const state = mergedStatuses[stage.key]
             const Icon = stage.icon
@@ -81,65 +86,68 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
 
             const label =
               stage.key === "searching"
-                ? "Searching web"
+                ? "Searching Deep Web"
                 : stage.key === "responding"
-                ? "Generating answer"
-                : "Preparing charts"
+                  ? "Reasoning & Analyzing"
+                  : "Visualizing Insights"
 
             return (
-              <div key={stage.key} className="flex items-center gap-2">
-                <span className="text-primary/80">
-                  {isComplete ? "✔" : isActive ? ">" : "."}
-                </span>
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  <Icon className="h-3 w-3 opacity-80" />
-                  <span className="tracking-tight">
+              <div key={stage.key} className="flex items-center gap-3">
+                <div className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300",
+                  isComplete ? "bg-emerald-500/10 text-emerald-500" : isActive ? "bg-primary/20 text-primary animate-pulse" : "bg-muted text-muted-foreground/50"
+                )}>
+                  {isComplete ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Icon className={cn("h-3.5 w-3.5", isActive && "animate-spin-slow")} />
+                  )}
+                </div>
+                <div className="flex flex-1 items-center justify-between gap-2 overflow-hidden">
+                  <span className={cn(
+                    "font-medium tracking-tight",
+                    isActive ? "text-foreground" : "text-muted-foreground/70"
+                  )}>
                     {label}
                   </span>
                   {isActive && <AnimatedDots />}
-                  {isComplete && !isActive && (
-                    <Check className="h-3 w-3 text-emerald-500" />
-                  )}
                 </div>
               </div>
             )
           })}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={displayStage.key}
-              initial={{ opacity: 0, y: 1 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -1 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground/80"
-            >
-              {activeHints.map((hint) => (
-                <motion.span
-                  key={`${displayStage.key}-${hint}`}
-                  initial={{ opacity: 0, y: 1 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -1 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="px-1.5 py-0.5 rounded-sm bg-muted/40"
-                >
-                  {hint}
-                </motion.span>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+          <div className="space-y-2 mt-1">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={displayStage.key}
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 5 }}
+                className="flex flex-wrap items-center gap-1.5"
+              >
+                {activeHints.map((hint) => (
+                  <span
+                    key={`${displayStage.key}-${hint}`}
+                    className="px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-[9px] font-medium text-primary/70 uppercase tracking-widest whitespace-nowrap"
+                  >
+                    {hint}
+                  </span>
+                ))}
+              </motion.div>
+            </AnimatePresence>
 
-          <div className="relative mt-1 h-[2px] w-full overflow-hidden rounded-full bg-muted/40">
-            <motion.div
-              className="absolute inset-y-0 left-0 rounded-full bg-primary/80"
-              initial={false}
-              animate={{ width: `${Math.min(progress, 1) * 100}%` }}
-              transition={{ duration: 0.7, ease: [0.3, 0.8, 0.4, 1] }}
-            />
+            <div className="relative h-1 w-full overflow-hidden rounded-full bg-primary/5">
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary/60 to-primary shadow-[0_0_10px_rgba(var(--primary),0.3)]"
+                initial={false}
+                animate={{ width: `${Math.min(progress, 1) * 100}%` }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

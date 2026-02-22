@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { Ban, ChevronRight, Code2, Download, Loader2, Terminal } from "lucide-react"
+import { Ban, ChevronRight, Code2, Download, ExternalLink, Globe, Image as ImageIcon, Loader2, Sparkles, Terminal, Youtube } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -23,91 +23,16 @@ import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 import { ExcalidrawViewer } from "@/components/ui/excalidraw-viewer"
 
-const MINOR_TITLE_WORDS = new Set([
-  "a",
-  "an",
-  "and",
-  "as",
-  "at",
-  "but",
-  "by",
-  "for",
-  "from",
-  "in",
-  "into",
-  "nor",
-  "of",
-  "on",
-  "onto",
-  "or",
-  "over",
-  "per",
-  "so",
-  "the",
-  "to",
-  "up",
-  "via",
-  "vs",
-  "with",
-  "yet",
-])
 
-function splitToken(token: string) {
-  if (!token) {
-    return { prefix: "", core: "", suffix: "" }
-  }
 
-  const prefixMatch = token.match(/^[^A-Za-z0-9]+/)
-  const prefix = prefixMatch?.[0] ?? ""
-  const remainder = token.slice(prefix.length)
-  const suffixMatch = remainder.match(/[^A-Za-z0-9]+$/)
-  const suffix = suffixMatch?.[0] ?? ""
-  const core = remainder.slice(0, remainder.length - suffix.length)
-
-  return { prefix, core, suffix }
-}
-
-function toTitleCase(text: string): string {
+function toSentenceCase(text: string): string {
   if (typeof text !== "string" || text.trim().length === 0) {
     return text ?? ""
   }
-
-  const tokens = text.split(/(\s+)/)
-  const totalWords = tokens.reduce((count, token) => {
-    const { core } = splitToken(token)
-    return core ? count + 1 : count
-  }, 0)
-
-  if (totalWords === 0) {
-    return text
-  }
-
-  let wordIndex = 0
-  const transformed = tokens.map((token) => {
-    const { prefix, core, suffix } = splitToken(token)
-    if (!core) return token
-
-    wordIndex += 1
-    const normalizedCore = core.toLowerCase()
-    const shouldLowercase =
-      MINOR_TITLE_WORDS.has(normalizedCore) && wordIndex !== 1 && wordIndex !== totalWords
-
-    const updatedCore = shouldLowercase
-      ? normalizedCore
-      : normalizedCore
-        .split(/(-)/)
-        .map((segment) => {
-          if (segment === "-") return segment
-          if (!segment) return segment
-          return segment.charAt(0).toUpperCase() + segment.slice(1)
-        })
-        .join("")
-
-    return `${prefix}${updatedCore}${suffix}`
-  })
-
-  return transformed.join("")
+  const trimmed = text.trim()
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
 }
+
 
 const chatBubbleVariants = cva(
   "group/message relative break-words text-sm transition-all duration-300",
@@ -147,6 +72,19 @@ const chatBubbleVariants = cva(
       },
     ],
   }
+)
+
+const BlinkingCursor = () => (
+  <motion.span
+    initial={{ opacity: 0 }}
+    animate={{ opacity: [0, 1, 0] }}
+    transition={{
+      duration: 0.8,
+      repeat: Infinity,
+      ease: "linear",
+    }}
+    className="inline-block h-4 w-1.5 translate-y-0.5 rounded-full bg-primary/60"
+  />
 )
 
 type Animation = VariantProps<typeof chatBubbleVariants>["animation"]
@@ -413,19 +351,63 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         )}
         {/* commit */}
         {!isUser && (promptTitleOverride || promptTitle) && (
-          <div className="mb-6 text-3xl font-semibold tracking-tight text-foreground">
-            {toTitleCase(promptTitleOverride || promptTitle || "")}
-            <hr style={{ width: "100%", marginTop: "20px" }} />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mb-8 text-3xl font-semibold tracking-tight text-foreground"
+          >
+            {toSentenceCase(promptTitleOverride || promptTitle || "")}
+            <div className="mt-6 h-px w-full bg-gradient-to-r from-border via-border to-transparent" />
+          </motion.div>
         )}
 
         {Array.isArray(images) && images.length > 0 && (
-          <div className="mt-0 pt-0">
-            <div className="relative -mx-3 pb-3">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mt-2"
+          >
+            <div className="relative -mx-3 mb-6">
+              <div className="flex items-center gap-2.5 mb-4 px-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white shadow-sm ring-1 ring-border/10">
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xs font-semibold text-foreground">Google Image Search</h3>
+                <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-blue-500/10 px-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  {images.length}
+                </span>
+              </div>
+
+              {images.length > 1 && (
+                <div className="absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-background to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
+              {images.length > 1 && (
+                <div className="absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
+
               {images.length > 1 && canScrollImagesLeft && (
                 <button
                   type="button"
-                  className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 p-1 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/70"
+                  className="absolute left-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border border-border/40 bg-background/80 p-2 text-foreground shadow-lg backdrop-blur-md transition-all hover:bg-background hover:scale-110 active:scale-95"
                   onClick={() => {
                     if (imageScrollRef.current) {
                       imageScrollRef.current.scrollBy({ left: -260, behavior: 'smooth' })
@@ -433,24 +415,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   }}
                   aria-label="Scroll images left"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M15 6l-6 6 6 6" />
-                  </svg>
+                  <ChevronRight className="h-4 w-4 rotate-180" />
                 </button>
               )}
               {images.length > 1 && canScrollImagesRight && (
                 <button
                   type="button"
-                  className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 p-1 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/70"
+                  className="absolute right-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border border-border/40 bg-background/80 p-2 text-foreground shadow-lg backdrop-blur-md transition-all hover:bg-background hover:scale-110 active:scale-95"
                   onClick={() => {
                     if (imageScrollRef.current) {
                       imageScrollRef.current.scrollBy({ left: 260, behavior: 'smooth' })
@@ -458,24 +429,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   }}
                   aria-label="Scroll images right"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M9 6l6 6-6 6" />
-                  </svg>
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               )}
+
               <div
                 ref={imageScrollRef}
                 onScroll={updateImageScrollButtons}
-                className="web-images-scroll flex min-w-[280px] gap-3 px-3 overflow-x-auto"
+                className="web-images-scroll flex min-w-[280px] gap-4 px-4 overflow-x-auto no-scrollbar py-2"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                 }}
@@ -490,53 +451,67 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       ? img.title
                       : 'View image';
 
+                    const hostname = (() => {
+                      try {
+                        const url = new URL(targetHref || '');
+                        return url.hostname.replace(/^www\./, '');
+                      } catch {
+                        return '';
+                      }
+                    })();
+
                     return (
-                      <a
+                      <motion.a
                         key={`${img.imageUrl}-${index}`}
                         href={targetHref ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group relative flex w-[240px] flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-[0_16px_40px_rgba(15,17,26,0.16)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(15,17,26,0.38)] dark:border-white/10 dark:bg-[#101015] dark:shadow-[0_22px_60px_rgba(0,0,0,0.75)]"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="group relative flex w-[230px] flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border/40 bg-background/40 backdrop-blur-sm shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-white/5 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
                       >
-                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+                        <div className="relative aspect-[4/3] w-full overflow-hidden">
                           <img
                             src={img.imageUrl || ''}
                             alt={caption}
-                            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                             loading="lazy"
                             onError={(event) => {
                               const el = event.target as HTMLImageElement;
                               el.src = img.thumbnailUrl || '';
                             }}
                           />
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 via-black/50 to-transparent px-3 pb-3 pt-6 text-xs text-white transition-transform duration-200 group-hover:translate-y-0">
-                            <div className="line-clamp-2 font-medium leading-snug">
-                              {caption}
-                            </div>
-                            {targetHref && (
-                              <div className="mt-1 text-[11px] text-white/80 truncate">
-                                {(() => {
-                                  try {
-                                    const url = new URL(targetHref);
-                                    return url.hostname.replace(/^www\./, '');
-                                  } catch {
-                                    return targetHref;
-                                  }
-                                })()}
-                              </div>
-                            )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                          <div className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-md transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 translate-x-2">
+                            <ExternalLink className="h-3.5 w-3.5" />
                           </div>
                         </div>
-                      </a>
+
+                        <div className="flex flex-col p-3 pt-2.5">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <div className="flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[8px] font-bold">
+                              {hostname.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                              {hostname}
+                            </span>
+                          </div>
+                          <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground/90 group-hover:text-primary transition-colors">
+                            {caption}
+                          </p>
+                        </div>
+                      </motion.a>
                     );
                   })}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         <div
-          className="overflow-hidden"
+          className="relative min-h-[1.5em] overflow-hidden"
           style={{
             fontFamily: '"Inter", "Nunito", "Helvetica Neue", Arial, sans-serif',
             fontWeight: 400,
@@ -547,73 +522,70 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <MarkdownRenderer>
             {content}
           </MarkdownRenderer>
+          {!isComplete && !isUser && <BlinkingCursor />}
         </div>
         {Array.isArray(videos) && videos.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-muted-foreground/20">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground">YOUTUBE RECOMMENDATIONS</span>
-                <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
-                  {videos.length}
-                </span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="mt-8 pt-6 border-t border-border/40"
+          >
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border/10 overflow-hidden">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5">
+                    <path
+                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
+                      fill="#FF0000"
+                    />
+                    <path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FFFFFF" />
+                  </svg>
+                </div>
+                <div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground">Video Recommendations</span>
+                    <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-bold text-primary">
+                      {videos.length}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="hidden items-center gap-2 text-[11px] text-muted-foreground/70 md:flex">
-                <button
-                  type="button"
-                  className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-muted/50"
                   onClick={() => {
                     if (videoScrollRef.current) {
                       videoScrollRef.current.scrollBy({ left: -280, behavior: 'smooth' })
                     }
                   }}
-                  aria-label="Scroll left"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M15 6l-6 6 6 6" />
-                  </svg>
-                </button>
-                <span>Powered by YouTube search</span>
-                <button
-                  type="button"
-                  className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:text-foreground"
+                  <ChevronRight className="h-4 w-4 rotate-180" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-muted/50"
                   onClick={() => {
                     if (videoScrollRef.current) {
                       videoScrollRef.current.scrollBy({ left: 280, behavior: 'smooth' })
                     }
                   }}
-                  aria-label="Scroll right"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="relative -mx-3 pb-3 md:mx-0">
+
+            <div className="relative -mx-3 pb-4">
               <div
                 ref={videoScrollRef}
-                className="flex gap-3 px-3 overflow-x-auto pt-2 pb-1 md:px-0 md:pt-2 md:pb-0"
+                className="flex gap-4 px-4 overflow-x-auto no-scrollbar py-2"
                 style={{
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: 'rgba(255,255,255,0.25) transparent',
                   WebkitOverflowScrolling: 'touch',
                 }}
               >
@@ -672,88 +644,91 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       : undefined;
 
                     return (
-                      <a
+                      <motion.a
                         key={`${video?.videoId || video?.url || index}`}
                         href={targetHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group/video relative flex w-[260px] flex-shrink-0 flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#161616] transition-transform hover:-translate-y-0.5 hover:border-white/20"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.1 + 0.3 }}
+                        className="group/video relative flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-[22px] border border-border/40 bg-background/40 backdrop-blur-sm transition-all hover:-translate-y-1.5 hover:border-red-500/30 hover:shadow-[0_20px_40px_rgba(239,68,68,0.1)] dark:border-white/10 dark:bg-white/5"
                       >
-                        <div className="relative aspect-video w-full bg-black">
+                        <div className="relative aspect-video w-full overflow-hidden bg-black/20">
                           {thumbnailUrl ? (
                             <img
                               src={thumbnailUrl}
                               alt={title}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover/video:scale-105"
                               loading="lazy"
-                              onError={(event) => {
-                                const el = event.target as HTMLImageElement;
-                                el.style.display = 'none';
-                              }}
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
                               Video unavailable
                             </div>
                           )}
-                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/70 via-black/25 to-transparent opacity-0 transition-opacity duration-200 group-hover/video:opacity-60" />
-                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur group-hover/video:bg-white/25">
+
+                          <div className="absolute inset-0 bg-black/20 transition-colors duration-300 group-hover/video:bg-black/10" />
+
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600/90 shadow-[0_4px_15px_rgba(220,38,38,0.4)] transition-all duration-300 group-hover/video:scale-110 group-hover/video:bg-red-600">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
-                                className="h-6 w-6 text-white"
+                                className="h-6 w-6 text-white ml-0.5"
                                 fill="currentColor"
                               >
                                 <path d="M10 15.5v-7l6 3.5-6 3.5Z" />
                               </svg>
-                            </span>
+                            </div>
                           </div>
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-3 pt-6 opacity-0 transition-opacity duration-200 group-hover/video:opacity-100">
-                            <p className="text-sm font-medium leading-tight text-white line-clamp-2">
-                              {title}
-                            </p>
-                            {channel && (
-                              <span className="mt-1 text-xs text-white/70">
+
+                          <div className="absolute bottom-2 right-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
+                            4:20
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col p-4 pt-3.5">
+                          <h4 className="line-clamp-2 text-sm font-bold leading-tight text-foreground/90 transition-colors group-hover/video:text-red-500">
+                            {title}
+                          </h4>
+                          {channel && (
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <span className="text-[11px] font-medium text-muted-foreground">
                                 {channel}
                               </span>
-                            )}
-                          </div>
+                              <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                              <span className="text-[11px] font-medium text-muted-foreground">
+                                YouTube
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center justify-between px-3 py-2 text-[11px] text-white/70">
-                          <span className="line-clamp-1">youtube.com</span>
-                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors group-hover/video:bg-white/20 group-hover/video:text-white">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                            >
-                              <path d="M7 17L17 7" />
-                              <path d="M7 7h10v10" />
-                            </svg>
-                          </span>
-                        </div>
-                      </a>
+                      </motion.a>
                     );
                   })}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
         {sources && sources.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold text-muted-foreground">SOURCES</span>
-              <span className="text-xs bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="mt-8 pt-6 border-t border-border/40 relative z-10"
+          >
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                <Globe className="h-3.5 w-3.5" />
+              </div>
+              <h3 className="text-xs font-semibold text-foreground">Sources & Citations</h3>
+              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-blue-500/10 px-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
                 {sources.length}
               </span>
             </div>
-            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-2 -mr-2 pl-1">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto no-scrollbar pr-1">
               {sources.map((source, index) => {
                 if (!source) return null;
 
@@ -762,21 +737,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   let displayText: string;
 
                   if (typeof source === 'string') {
-                    // Handle string source (URL)
                     href = source;
                     try {
                       const url = new URL(href);
                       displayText = url.hostname.replace('www.', '');
                     } catch (e) {
-                      console.warn('Invalid URL in sources, showing as text:', source);
                       return (
-                        <div key={index} className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
-                          Source: {source.substring(0, 100)}{source.length > 100 ? '...' : ''}
+                        <div key={index} className="flex items-center gap-2 p-2 rounded-xl bg-muted/30 border border-border/40 text-[10px] text-muted-foreground">
+                          <Globe className="h-3 w-3" />
+                          <span className="truncate">{source.substring(0, 50)}</span>
                         </div>
                       );
                     }
                   } else {
-                    // Handle object source with url and optional title
                     href = source.url;
                     displayText = source.title || (() => {
                       try {
@@ -789,54 +762,37 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   }
 
                   return (
-                    <a
+                    <motion.a
                       key={index}
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-2 p-2 mx-0 rounded-md text-xs hover:bg-muted-foreground/5 transition-colors border border-border/50"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 + 0.5 }}
+                      className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm transition-all hover:bg-muted/50 hover:border-blue-500/30 hover:translate-x-1"
                       title={displayText}
-                      style={{
-                        WebkitTapHighlightColor: 'transparent',
-                        WebkitTouchCallout: 'none',
-                        WebkitUserSelect: 'none',
-                        KhtmlUserSelect: 'none',
-                        MozUserSelect: 'none',
-                        msUserSelect: 'none',
-                        userSelect: 'none',
-                      }}
                     >
+                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-blue-500/10 group-hover:text-blue-600 transition-colors">
+                        <Globe className="h-3.5 w-3.5" />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-blue-600 dark:text-blue-400 truncate">
+                        <div className="text-[11px] font-semibold text-foreground/80 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate transition-colors">
                           {displayText}
                         </div>
+                        <div className="text-[9px] text-muted-foreground truncate opacity-70">
+                          {href}
+                        </div>
                       </div>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                      >
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                      </svg>
-                    </a>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                    </motion.a>
                   );
                 } catch (e) {
-                  console.warn('Error processing source:', source, e);
                   return null;
                 }
               })}
             </div>
-            <div className="absolute bottom-0 left-0 right-4 h-6 pointer-events-none" />
-          </div>
+          </motion.div>
         )}
         {excalidrawData && excalidrawData.length > 0 && (
           <div className="mt-4">
@@ -847,7 +803,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         )}
         {resolvedChartUrls.length > 0 && (
           <>
-            <div className="mt-4 pt-3 border-t border-muted-foreground/20 relative z-10 space-y-3">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
+              className="mt-8 pt-6 border-t border-muted-foreground/20 relative z-10 space-y-3"
+            >
               <div className="flex items-center gap-2">
 
               </div>
@@ -905,7 +866,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   )
                 })}
               </div>
-            </div>
+            </motion.div>
             <Dialog
               open={Boolean(expandedChartUrl)}
               onOpenChange={(open) => {
@@ -976,20 +937,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
 
         {!isUser && Array.isArray(codeSnippets) && codeSnippets.length > 0 && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-8 space-y-4">
             {codeSnippets.map((snippet, index) => (
-              <div
+              <motion.div
                 key={`${snippet.language || 'code'}-${index}`}
-                className="rounded-2xl border border-border/60 bg-slate-950/90 p-4 text-slate-100 shadow-[0_15px_40px_rgba(15,17,26,0.35)] dark:border-white/10"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="overflow-hidden rounded-2xl border border-border/40 bg-[#0d0d12] shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:border-white/10"
               >
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                  <span>{snippet.language ? snippet.language : 'Code snippet'}</span>
+                <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-[10px] font-bold text-primary">
+                      {snippet.language ? snippet.language.slice(0, 2).toUpperCase() : 'CO'}
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                      {snippet.language ? snippet.language : 'Code snippet'}
+                    </span>
+                  </div>
                   <CopyButton content={snippet.code} />
                 </div>
-                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-sm font-mono leading-relaxed text-white/90">
-                  {snippet.code}
-                </pre>
-              </div>
+                <div className="p-4">
+                  <pre className="overflow-x-auto whitespace-pre-wrap text-[13px] font-mono leading-relaxed text-slate-300">
+                    {snippet.code}
+                  </pre>
+                </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -997,47 +970,60 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         {!isUser && Array.isArray(executionOutputs) && executionOutputs.length > 0 && (
           <div className="mt-6 space-y-4">
             {executionOutputs.map((result, index) => (
-              <div
+              <motion.div
                 key={`${result.outcome || 'output'}-${index}`}
-                className="rounded-2xl border border-border/60 bg-slate-900/80 p-4 text-slate-100 shadow-[0_15px_35px_rgba(15,17,26,0.25)] dark:border-white/10"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="overflow-hidden rounded-2xl border border-border/40 bg-slate-900/40 backdrop-blur-sm dark:border-white/10"
               >
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-300">
-                  <span>{result.outcome ? `Execution (${result.outcome})` : 'Execution output'}</span>
+                <div className="flex items-center justify-between border-b border-white/5 px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80">
+                      {result.outcome ? `Terminal — ${result.outcome}` : 'Execution Output'}
+                    </span>
+                  </div>
                   {result.output && <CopyButton content={result.output} />}
                 </div>
                 {result.output && (
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-sm font-mono leading-relaxed text-white/90">
-                    {result.output}
-                  </pre>
+                  <div className="p-4 bg-black/20">
+                    <pre className="overflow-x-auto whitespace-pre-wrap text-[12px] font-mono leading-relaxed text-emerald-400/90">
+                      {result.output}
+                    </pre>
+                  </div>
                 )}
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
       </div>
 
-      {showTimeStamp && createdAt && (
-        <time
-          dateTime={createdAt.toISOString()}
-          className={cn(
-            "mt-1 block px-1 text-xs opacity-50",
-            animation !== "none" && "duration-500 animate-in fade-in-0"
-          )}
-        >
-          {formattedTime}
-        </time>
-      )}
-      {actions && (isComplete === undefined || isComplete) && (
-        <div
-          className={cn(
-            "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
-            isUser ? "self-end" : "self-start"
-          )}
-        >
-          {actions}
-        </div>
-      )}
-    </div>
+      {
+        showTimeStamp && createdAt && (
+          <time
+            dateTime={createdAt.toISOString()}
+            className={cn(
+              "mt-1 block px-1 text-xs opacity-50",
+              animation !== "none" && "duration-500 animate-in fade-in-0"
+            )}
+          >
+            {formattedTime}
+          </time>
+        )
+      }
+      {
+        actions && (isComplete === undefined || isComplete) && (
+          <div
+            className={cn(
+              "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
+              isUser ? "self-end" : "self-start"
+            )}
+          >
+            {actions}
+          </div>
+        )
+      }
+    </div >
   );
 
   if (isUser) {
@@ -1151,17 +1137,30 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="mb-2 flex flex-col items-start max-w-[90%] sm:max-w-[80%]">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 flex flex-col items-start w-full max-w-[95%] sm:max-w-[85%]"
+    >
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="group w-full overflow-hidden rounded-lg border bg-muted/50"
+        className="group w-full overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/5 to-primary/10 shadow-[0_10px_30px_rgba(var(--primary-rgb),0.05)] backdrop-blur-md transition-all hover:border-primary/30"
       >
-        <div className="flex items-center p-2">
+        <div className="p-1">
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-              <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-              <span>Thinking</span>
+            <button className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-primary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-inner transition-transform group-hover:scale-105">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <h3 className="text-xs font-semibold text-primary">Thought Process</h3>
+                </div>
+              </div>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 transition-transform group-data-[state=open]:rotate-90">
+                <ChevronRight className="h-3.5 w-3.5 text-primary" />
+              </div>
             </button>
           </CollapsibleTrigger>
         </div>
@@ -1173,18 +1172,19 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
               open: { height: "auto", opacity: 1 },
               closed: { height: 0, opacity: 0 },
             }}
-            transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
-            className="border-t"
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
           >
-            <div className="p-2">
-              <div className="whitespace-pre-wrap text-xs overflow-hidden">
-                {part.reasoning}
+            <div className="px-5 pb-5 pt-2">
+              <div className="relative rounded-2xl bg-white/40 p-5 text-[14px] leading-relaxed text-slate-700 shadow-sm dark:bg-black/30 dark:text-slate-300">
+                <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-primary/30" />
+                <MarkdownRenderer>{part.reasoning}</MarkdownRenderer>
               </div>
             </div>
           </motion.div>
         </CollapsibleContent>
       </Collapsible>
-    </div>
+    </motion.div>
   )
 }
 
@@ -1223,44 +1223,44 @@ function ToolCall({
           case "partial-call":
           case "call":
             return (
-              <div
+              <motion.div
                 key={index}
-                className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/50 px-4 py-2.5 text-sm shadow-sm backdrop-blur-sm"
               >
-                <Terminal className="h-4 w-4" />
-                <span>
-                  Calling{" "}
-                  <span className="font-mono">
-                    {"`"}
+                <div className="flex h-6 w-6 animate-pulse items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Terminal className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Executing</span>
+                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-bold text-foreground">
                     {invocation.toolName}
-                    {"`"}
                   </span>
-                  ...
-                </span>
-                <Loader2 className="h-3 w-3 animate-spin" />
-              </div>
+                </div>
+                <Loader2 className="ml-2 h-3 w-3 animate-spin text-primary" />
+              </motion.div>
             )
           case "result":
             return (
-              <div
+              <motion.div
                 key={index}
-                className="flex flex-col gap-1.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm w-full"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex w-full flex-col overflow-hidden rounded-2xl border border-border/40 bg-background/40 shadow-sm backdrop-blur-sm"
               >
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Code2 className="h-4 w-4" />
-                  <span>
-                    Result from{" "}
-                    <span className="font-mono">
-                      {"`"}
-                      {invocation.toolName}
-                      {"`"}
-                    </span>
-                  </span>
+                <div className="flex items-center gap-2 border-b border-border/40 bg-muted/30 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                  <div className="flex h-5 w-5 items-center justify-center rounded bg-emerald-500/10 text-emerald-600">
+                    <Code2 className="h-3.5 w-3.5" />
+                  </div>
+                  <span>Function Result — {invocation.toolName}</span>
                 </div>
-                <pre className="overflow-x-auto whitespace-pre-wrap text-foreground text-xs break-words">
-                  {JSON.stringify(invocation.result, null, 2)}
-                </pre>
-              </div>
+                <div className="p-4 overflow-x-auto">
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-foreground/80">
+                    {JSON.stringify(invocation.result, null, 2)}
+                  </pre>
+                </div>
+              </motion.div>
             )
           default:
             return null
