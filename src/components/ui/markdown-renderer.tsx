@@ -109,7 +109,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
             "Mermaid render error",
             err,
             `\n--- Mermaid code begin ---\n${normalizedCode}\n--- Mermaid code end ---` +
-              (details ? `\nDetails: ${details}` : "")
+            (details ? `\nDetails: ${details}` : "")
           )
           if (canvasRef.current) {
             canvasRef.current.innerHTML = ""
@@ -565,17 +565,17 @@ function childrenTakeAllStringContents(element: unknown): string {
 }
 
 const COMPONENTS = {
-  h1: withClass("h1", "text-2xl font-semibold"),
-  h2: withClass("h2", "font-semibold text-xl"),
-  h3: withClass("h3", "font-semibold text-lg"),
-  p: withClass("p", "leading-relaxed"),
-  a: withClass("a", "text-primary underline underline-offset-4 hover:text-primary/80"),
-  blockquote: withClass("blockquote", "border-l-4 border-muted-foreground/20 pl-4 text-muted-foreground"),
-  
+  h1: withClass("h1", "text-3xl font-bold font-playfair mb-6 mt-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent tracking-tight"),
+  h2: withClass("h2", "text-2xl font-bold font-playfair mb-4 mt-6 text-primary/90 border-b border-primary/10 pb-1"),
+  h3: withClass("h3", "text-xl font-semibold font-playfair mb-3 mt-5 text-primary/80"),
+  p: withClass("p", "leading-[1.8] text-foreground/90 mb-4 selection:bg-primary/10"),
+  a: withClass("a", "text-primary font-medium underline underline-offset-4 ring-offset-background transition-colors hover:text-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"),
+  blockquote: withClass("blockquote", "relative my-6 border-l-4 border-primary/30 pl-6 py-2 text-foreground/80 font-playfair bg-primary/5 rounded-r-lg shadow-sm before:content-['\"'] before:absolute before:left-2 before:top-0 before:text-4xl before:text-primary/20 before:font-serif"),
+
   code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
     const match = /language-(\w+)/.exec(className || '')
     const language = match ? match[1] : ''
-    
+
     if (language) {
       return (
         <CodeBlock language={language} className={className} {...rest}>
@@ -585,30 +585,42 @@ const COMPONENTS = {
     }
 
     return (
-      <code className={cn("rounded bg-muted px-1.5 py-0.5 text-sm font-mono", className)} {...rest}>
+      <code className={cn("rounded-md bg-muted/80 border border-border/50 px-1.5 py-0.5 text-[0.9em] font-mono text-primary/90", className)} {...rest}>
         {children}
       </code>
     )
   },
-  
+
   pre({ children }: { children: React.ReactNode }) {
-    return <>{children}</>
+    return <div className="my-6">{children}</div>
   },
-  
-  ol: withClass("ol", "list-decimal space-y-2 pl-6"),
-  ul: withClass("ul", "list-disc space-y-2 pl-6"),
-  li: withClass("li", "my-1.5"),
+
+  ol: withClass("ol", "list-decimal space-y-4 pl-8 mb-6 mt-4"),
+  ul: withClass("ul", "list-none space-y-4 pl-0 mb-6 mt-4"),
+  li({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
+    return (
+      <li className={cn(
+        "relative pl-7",
+        "before:absolute before:left-0 before:top-[0.6em] before:h-2 before:w-2 before:rounded-full before:bg-primary/40",
+        className
+      )} {...props}>
+        <div className="text-foreground/90 leading-relaxed">
+          {children}
+        </div>
+      </li>
+    )
+  },
   table: withClass(
     "table",
-    "w-full border-collapse border border-border rounded-md overflow-hidden"
+    "w-full border-separate border-spacing-0 border border-border/60 rounded-xl overflow-hidden my-8 shadow-sm"
   ),
-  thead: withClass("thead", "bg-muted"),
-  tbody: withClass("tbody", "divide-y divide-border"),
-  tr: withClass("tr", "hover:bg-muted/50"),
-  th: withClass("th", "border border-border p-2 text-left font-medium"),
-  td: withClass("td", "border border-border p-2"),
-  hr: withClass("hr", "my-4 border-t border-border"),
-  img: withClass("img", "rounded-md border border-border"),
+  thead: withClass("thead", "bg-muted/50"),
+  tbody: withClass("tbody", "divide-y divide-border/40"),
+  tr: withClass("tr", "group hover:bg-primary/[0.02] transition-colors"),
+  th: withClass("th", "border-b border-border/60 p-4 text-left font-semibold text-primary/80 uppercase tracking-wider text-xs bg-muted/30"),
+  td: withClass("td", "p-4 text-sm text-foreground/80 transition-colors"),
+  hr: withClass("hr", "my-10 border-t-2 border-dashed border-border/50 opacity-60"),
+  img: withClass("img", "rounded-xl border border-border/40 shadow-lg mx-auto my-8 transition-transform hover:scale-[1.01] duration-500"),
 }
 
 function withClass<TagName extends keyof HTMLElementTagNameMap>(

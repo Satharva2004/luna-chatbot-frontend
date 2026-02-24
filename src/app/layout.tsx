@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Silkscreen } from 'next/font/google';
+import { Geist, Geist_Mono, Playfair_Display, Silkscreen } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { GradientBackdrop } from "@/components/ui/gradient-bg";
@@ -16,6 +15,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-playfair',
 });
 
 const silkscreen = Silkscreen({
@@ -37,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} antialiased h-full`}
+        className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} ${playfair.variable} antialiased h-full`}
         suppressHydrationWarning
       >
         {/* <GridPattern />  */}

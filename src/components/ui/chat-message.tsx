@@ -35,30 +35,30 @@ function toSentenceCase(text: string): string {
 
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words text-sm transition-all duration-300",
+  "group/message relative break-words transition-all duration-300",
   {
     variants: {
       isUser: {
-        true: "max-w-[85%] sm:max-w-[70%] rounded-3xl px-4 py-3 text-slate-900 ring-1 ring-white/70 bg-white/80 shadow-[0_20px_60px_rgba(15,17,26,0.08)] hover:translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,17,26,0.12)] dark:bg-white/10 dark:text-slate-100 dark:ring-white/15",
-        false: "w-full max-w-[95%] sm:max-w-[88%] px-1 py-1 text-slate-900 dark:text-slate-100",
+        true: "max-w-[85%] sm:max-w-[70%] rounded-2xl px-5 py-3.5 text-slate-900 glass-morphism hover:bg-white/10 dark:text-slate-100 dark:hover:bg-white/5",
+        false: "w-full max-w-full px-0 py-0 text-slate-900 dark:text-slate-100",
       },
       animation: {
         none: "",
         slide: "duration-300 animate-in fade-in-0",
-        scale: "duration-300 animate-in fade-in-0 zoom-in-75",
-        fade: "duration-500 animate-in fade-in-0",
+        scale: "duration-500 animate-in fade-in-0 zoom-in-95",
+        fade: "duration-700 animate-in fade-in-0",
       },
     },
     compoundVariants: [
       {
         isUser: true,
         animation: "slide",
-        class: "slide-in-from-right",
+        class: "slide-in-from-right-4",
       },
       {
         isUser: false,
         animation: "slide",
-        class: "slide-in-from-left",
+        class: "slide-in-from-left-4",
       },
       {
         isUser: true,
@@ -351,22 +351,24 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         )}
         {/* commit */}
         {!isUser && (promptTitleOverride || promptTitle) && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="mb-8 text-3xl font-semibold tracking-tight text-foreground"
-          >
-            {toSentenceCase(promptTitleOverride || promptTitle || "")}
-            <div className="mt-6 h-px w-full bg-gradient-to-r from-border via-border to-transparent" />
-          </motion.div>
+          <div className="flex flex-col gap-1">
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: "circOut" }}
+              className="mb-8 text-4xl font-bold font-playfair tracking-tight text-foreground bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent"
+            >
+              {toSentenceCase(promptTitleOverride || promptTitle || "")}
+              <div className="mt-8 h-[2px] w-48 rounded-full bg-gradient-to-r from-primary/40 to-transparent" />
+            </motion.div>
+          </div>
         )}
 
         {Array.isArray(images) && images.length > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
             className="mt-2"
           >
             <div className="relative -mx-3 mb-6">
@@ -436,7 +438,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               <div
                 ref={imageScrollRef}
                 onScroll={updateImageScrollButtons}
-                className="web-images-scroll flex min-w-[280px] gap-4 px-4 overflow-x-auto no-scrollbar py-2"
+                className="web-images-scroll flex min-w-[280px] gap-5 px-4 overflow-x-auto no-scrollbar py-4"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                 }}
@@ -510,7 +512,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </motion.div>
         )}
 
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
           className="relative min-h-[1.5em] overflow-hidden"
           style={{
             fontFamily: '"Inter", "Nunito", "Helvetica Neue", Arial, sans-serif',
@@ -522,13 +527,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <MarkdownRenderer>
             {content}
           </MarkdownRenderer>
-          {!isComplete && !isUser && <BlinkingCursor />}
-        </div>
+          {/* {!isComplete && !isUser && <BlinkingCursor />} */}
+        </motion.div>
         {Array.isArray(videos) && videos.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
             className="mt-8 pt-6 border-t border-border/40"
           >
             <div className="flex items-center justify-between gap-4 mb-5">
@@ -649,10 +654,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         href={targetHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.1 + 0.3 }}
-                        className="group/video relative flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-[22px] border border-border/40 bg-background/40 backdrop-blur-sm transition-all hover:-translate-y-1.5 hover:border-red-500/30 hover:shadow-[0_20px_40px_rgba(239,68,68,0.1)] dark:border-white/10 dark:bg-white/5"
+                        className="group/video relative flex w-[300px] flex-shrink-0 flex-col overflow-hidden rounded-[24px] border border-border/40 bg-background/40 backdrop-blur-md transition-all hover:-translate-y-2 hover:border-red-500/40 hover:shadow-[0_20px_60px_rgba(239,68,68,0.15)] dark:border-white/10 dark:bg-white/5"
                       >
                         <div className="relative aspect-video w-full overflow-hidden bg-black/20">
                           {thumbnailUrl ? (
@@ -715,7 +720,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
             className="mt-8 pt-6 border-t border-border/40 relative z-10"
           >
             <div className="flex items-center gap-2.5 mb-4">

@@ -76,8 +76,8 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
       animate={{ opacity: 1, y: 0, scale: 1 }}
       className="flex justify-start text-xs"
     >
-      <div className="w-full max-w-[20rem] overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-background/90 via-background/95 to-primary/5 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-md dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-        <div className="flex flex-col gap-3">
+      <div className="w-full max-w-[22rem] overflow-hidden rounded-3xl p-5 glass-morphism">
+        <div className="flex flex-col gap-4">
           {STAGE_CONFIG.map((stage) => {
             const state = mergedStatuses[stage.key]
             const Icon = stage.icon
@@ -92,43 +92,43 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
                   : "Visualizing Insights"
 
             return (
-              <div key={stage.key} className="flex items-center gap-3">
+              <div key={stage.key} className="flex items-center gap-4">
                 <div className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300",
-                  isComplete ? "bg-emerald-500/10 text-emerald-500" : isActive ? "bg-primary/20 text-primary animate-pulse" : "bg-muted text-muted-foreground/50"
+                  "flex h-7 w-7 items-center justify-center rounded-full transition-all duration-500",
+                  isComplete ? "bg-emerald-500/10 text-emerald-500" : isActive ? "bg-primary/10 text-primary animate-pulse" : "bg-muted text-muted-foreground/30"
                 )}>
                   {isComplete ? (
-                    <Check className="h-3.5 w-3.5" />
+                    <Check className="h-4 w-4" />
                   ) : (
-                    <Icon className={cn("h-3.5 w-3.5", isActive && "animate-spin-slow")} />
+                    <Icon className="h-4 w-4" />
                   )}
                 </div>
-                <div className="flex flex-1 items-center justify-between gap-2 overflow-hidden">
+                <div className="flex flex-1 items-center justify-between gap-3 overflow-hidden">
                   <span className={cn(
-                    "font-medium tracking-tight",
-                    isActive ? "text-foreground" : "text-muted-foreground/70"
+                    "font-semibold tracking-tight text-[13px] transition-colors duration-500",
+                    isActive ? "text-foreground" : "text-muted-foreground/30"
                   )}>
                     {label}
                   </span>
-                  {isActive && <AnimatedDots />}
+                  {isActive && <PulsingSpark />}
                 </div>
               </div>
             )
           })}
 
-          <div className="space-y-2 mt-1">
+          <div className="space-y-3 mt-1">
             <AnimatePresence mode="wait">
               <motion.div
                 key={displayStage.key}
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 5 }}
-                className="flex flex-wrap items-center gap-1.5"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                className="flex flex-wrap items-center gap-2"
               >
                 {activeHints.map((hint) => (
                   <span
                     key={`${displayStage.key}-${hint}`}
-                    className="px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-[9px] font-medium text-primary/70 uppercase tracking-widest whitespace-nowrap"
+                    className="px-3 py-1 rounded-full bg-white/10 border border-white/5 text-[10px] font-bold text-primary/60 uppercase tracking-tighter dark:bg-white/5"
                   >
                     {hint}
                   </span>
@@ -138,10 +138,10 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
 
             <div className="relative h-1 w-full overflow-hidden rounded-full bg-primary/5">
               <motion.div
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary/60 to-primary shadow-[0_0_10px_rgba(var(--primary),0.3)]"
+                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
                 initial={false}
                 animate={{ width: `${Math.min(progress, 1) * 100}%` }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
               />
             </div>
           </div>
@@ -151,22 +151,22 @@ export function TypingIndicator({ statuses, stageDetails, sourceHints }: TypingI
   )
 }
 
-function AnimatedDots() {
+function PulsingSpark() {
   return (
-    <div className="flex items-center gap-0.5">
-      {[0, 1, 2].map((index) => (
-        <motion.span
-          key={index}
-          className="h-1.5 w-1.5 rounded-full bg-primary/70"
-          animate={{ opacity: [0.4, 1, 0.4], y: [0, -1.5, 0] }}
-          transition={{
-            duration: 0.3,
-            repeat: Infinity,
-            delay: index * 0.15,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
+    <div className="relative h-2 w-12 overflow-hidden flex items-center justify-end">
+      <motion.div
+        className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]"
+        animate={{
+          opacity: [0.2, 1, 0.2],
+          scale: [0.8, 1.2, 0.8],
+          x: [-20, 0]
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
     </div>
   )
 }
