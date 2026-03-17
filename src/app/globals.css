@@ -248,4 +248,38 @@
   .animate-spin-slow {
     animation: spin 8s linear infinite;
   }
+
+  @keyframes luna-orbit {
+    0% {
+      transform: rotate(0deg) translateX(7px) rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg) translateX(7px) rotate(-360deg);
+    }
+  }
+
+  @keyframes luna-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(0.96);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.08);
+    }
+  }
+
+  .luna-icon {
+    transform: translateZ(0);
+  }
+
+  .luna-orbit {
+    transform-origin: 12px 12px;
+    animation: luna-orbit 3.8s linear infinite;
+  }
+
+  .luna-pulse {
+    animation: luna-pulse 2.6s ease-in-out infinite;
+  }
 }

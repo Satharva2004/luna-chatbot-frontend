@@ -22,6 +22,7 @@ import {
 import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 import { ExcalidrawViewer } from "@/components/ui/excalidraw-viewer"
+import { LunaIcon } from "@/components/ui/luna-icon"
 
 
 
@@ -206,12 +207,12 @@ export interface Message {
     type: 'excalidraw'
     version: number
     source: string
-    elements: any[]
+    elements: unknown[]
     appState: {
       gridSize: number | null
       viewBackgroundColor: string
     }
-    files: Record<string, any>
+    files: Record<string, unknown>
   }> | null
 }
 
@@ -341,6 +342,21 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // Render message with files if present
   const renderMessageContent = (content: string, promptTitleOverride?: string) => (
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
+      {!isUser ? (
+        <div className="mb-2 flex w-full items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <LunaIcon className="h-4 w-4" />
+          </span>
+          <span className="text-xs font-semibold tracking-tight text-foreground/80">
+            Luna
+          </span>
+          {showTimeStamp && createdAt ? (
+            <span className="ml-auto text-[11px] text-muted-foreground">
+              {formattedTime}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <div className={cn(chatBubbleVariants({ isUser, animation }), "relative")}>
         {files && (
           <div className="mb-1 flex flex-wrap gap-2">
