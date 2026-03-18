@@ -6,6 +6,7 @@ import { GradientBackdrop } from "@/components/ui/gradient-bg";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
+import { AnimationProvider } from "@/components/ui/animation-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,16 +52,18 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          <div className="relative min-h-full">
-            {/* <div className="fixed inset-0 -z-10">
-              <GradientBackdrop />
-            </div> */}
-            <AuthProvider>
-              {children}
-              <Toaster position="top-center" richColors />
-              <Analytics />
-            </AuthProvider>
-          </div>
+          <AnimationProvider>
+            <div className="relative min-h-full">
+              {/* <div className="fixed inset-0 -z-10">
+                <GradientBackdrop />
+              </div> */}
+              <AuthProvider>
+                {children}
+                <Toaster position="top-center" richColors />
+                <Analytics />
+              </AuthProvider>
+            </div>
+          </AnimationProvider>
         </ThemeProvider>
       </body>
     </html>

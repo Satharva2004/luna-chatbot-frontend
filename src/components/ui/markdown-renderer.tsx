@@ -323,12 +323,13 @@ const ToolbarButton = ({
 
 interface MarkdownRendererProps {
   children: string
+  onLinkClick?: (url: string) => void
 }
 
-export function MarkdownRenderer({ children }: MarkdownRendererProps) {
+export function MarkdownRenderer({ children, onLinkClick }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS as unknown as Components}>
+      <Markdown remarkPlugins={[remarkGfm]} components={getComponents(onLinkClick) as unknown as Components}>
         {children}
       </Markdown>
     </div>
@@ -564,12 +565,36 @@ function childrenTakeAllStringContents(element: unknown): string {
   return ''
 }
 
-const COMPONENTS = {
+function getComponents(onLinkClick?: (url: string) => void) {
+  return {
   h1: withClass("h1", "text-3xl font-bold font-playfair mb-6 mt-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent tracking-tight"),
   h2: withClass("h2", "text-2xl font-bold font-playfair mb-4 mt-6 text-primary/90 border-b border-primary/10 pb-1"),
   h3: withClass("h3", "text-xl font-semibold font-playfair mb-3 mt-5 text-primary/80"),
   p: withClass("p", "leading-[1.8] text-foreground/90 mb-4 selection:bg-primary/10"),
-  a: withClass("a", "text-primary font-medium underline underline-offset-4 ring-offset-background transition-colors hover:text-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"),
+  a({
+    children,
+    className,
+    href,
+    onClick,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+    return (
+      <a
+        href={href}
+        className={cn("text-primary font-medium underline underline-offset-4 ring-offset-background transition-colors hover:text-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}
+        onClick={(event) => {
+          onClick?.(event)
+          if (event.defaultPrevented) return
+          if (!href || !onLinkClick) return
+          event.preventDefault()
+          onLinkClick(href)
+        }}
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  },
   blockquote: withClass("blockquote", "relative my-6 border-l-4 border-primary/30 pl-6 py-2 text-foreground/80 font-playfair bg-primary/5 rounded-r-lg shadow-sm before:content-['\"'] before:absolute before:left-2 before:top-0 before:text-4xl before:text-primary/20 before:font-serif"),
 
   code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
@@ -621,6 +646,7 @@ const COMPONENTS = {
   td: withClass("td", "p-4 text-sm text-foreground/80 transition-colors"),
   hr: withClass("hr", "my-10 border-t-2 border-dashed border-border/50 opacity-60"),
   img: withClass("img", "rounded-xl border border-border/40 shadow-lg mx-auto my-8 transition-transform hover:scale-[1.01] duration-500"),
+}
 }
 
 function withClass<TagName extends keyof HTMLElementTagNameMap>(

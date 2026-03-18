@@ -29,6 +29,7 @@ import { fuzzySearch } from "@/services/suggestions/fuzzy"
 import { Playfair_Display } from "next/font/google"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { FeedbackDialog } from "@/components/ui/feedback-dialog"
+import { LinkPreviewSheet } from "@/components/ui/link-preview-sheet"
 import { toast } from "sonner"
 import { TTSButton } from "@/components/ui/tts-button"
 import { LunaIcon } from "@/components/ui/luna-icon"
@@ -200,6 +201,9 @@ export default function ChatPage() {
   const [viewportHeight, setViewportHeight] = useState('100dvh')
   const [historyQuery, setHistoryQuery] = useState("")
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewTitle, setPreviewTitle] = useState<string | null>(null)
+  const [isLinkPreviewOpen, setIsLinkPreviewOpen] = useState(false)
 
   const displayName = user?.username || user?.name || 'User'
   const displayEmail = user?.email ?? ''
@@ -949,6 +953,12 @@ export default function ChatPage() {
     )
   }
 
+  const handleOpenExternalPreview = useCallback((url: string, title?: string) => {
+    setPreviewUrl(url)
+    setPreviewTitle(title ?? null)
+    setIsLinkPreviewOpen(true)
+  }, [])
+
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
     try {
       const formData = new FormData()
@@ -1541,6 +1551,7 @@ export default function ChatPage() {
                           </div>
                         ),
                         isComplete: message.isComplete,
+                        onOpenExternalPreview: handleOpenExternalPreview,
                       }
                     }}
                   />
@@ -1602,6 +1613,12 @@ export default function ChatPage() {
         conversationId={currentConversationId}
         userEmail={displayEmail}
         userId={user ? user.email : null}
+      />
+      <LinkPreviewSheet
+        open={isLinkPreviewOpen}
+        onOpenChange={setIsLinkPreviewOpen}
+        url={previewUrl}
+        title={previewTitle}
       />
     </div>
   )

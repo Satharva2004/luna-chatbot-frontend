@@ -2,7 +2,15 @@
 
 import React, { useEffect } from "react"
 import { motion } from "framer-motion"
-import { FileIcon, X } from "lucide-react"
+import { FileIcon, X, Eye } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { CustomPDFViewer } from "@/components/ui/pdf-viewer"
 
 interface FilePreviewProps {
   file: File
@@ -23,10 +31,81 @@ export const FilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
       return <TextFilePreview {...props} ref={ref} />
     }
 
+    if (props.file.type === "application/pdf") {
+      return <PDFFilePreview {...props} ref={ref} />
+    }
+
     return <GenericFilePreview {...props} ref={ref} />
   }
 )
 FilePreview.displayName = "FilePreview"
+
+const PDFFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
+  ({ file, onRemove }, ref) => {
+    const [url, setUrl] = React.useState<string>("")
+
+    useEffect(() => {
+      const objectUrl = URL.createObjectURL(file)
+      setUrl(objectUrl)
+      return () => URL.revokeObjectURL(objectUrl)
+    }, [file])
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <motion.div
+            ref={ref}
+            className="relative flex max-w-[200px] cursor-pointer rounded-md border p-1.5 pr-2 text-xs bg-red-500/5 border-red-500/20 hover:bg-red-500/10 transition-colors group"
+            layout
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+          >
+            <div className="flex w-full items-center space-x-2">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
+                <div className="text-[10px] font-bold text-red-600 dark:text-red-400">PDF</div>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="w-full truncate text-muted-foreground font-medium">
+                  {file.name}
+                </span>
+                <span className="text-[10px] text-red-500/60 font-medium flex items-center gap-1">
+                  <Eye className="h-2.5 w-2.5" />
+                  Click to view
+                </span>
+              </div>
+            </div>
+
+            {onRemove ? (
+              <button
+                className="absolute -right-2 -top-2 z-30 flex h-4 w-4 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-muted"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onRemove()
+                }}
+                aria-label="Remove attachment"
+              >
+                <X className="h-2.5 w-2.5 text-muted-foreground" />
+              </button>
+            ) : null}
+          </motion.div>
+        </DialogTrigger>
+        <DialogContent size="fullscreen" className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>{file.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-1 flex-col h-[80vh]">
+            {url && <CustomPDFViewer url={url} height="100%" />}
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+)
+PDFFilePreview.displayName = "PDFFilePreview"
 
 const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
   ({ file, onRemove }, ref) => {

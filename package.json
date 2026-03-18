@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@embedpdf/react-pdf-viewer": "^2.9.0",
     "@excalidraw/excalidraw": "^0.18.0",
     "@google/generative-ai": "^0.24.1",
     "@radix-ui/react-collapsible": "^1.1.12",

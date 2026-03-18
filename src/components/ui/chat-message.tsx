@@ -22,6 +22,7 @@ import {
 import { FilePreview } from "@/components/ui/file-preview"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 import { ExcalidrawViewer } from "@/components/ui/excalidraw-viewer"
+import { CustomPDFViewer } from "@/components/ui/pdf-viewer"
 import { LunaIcon } from "@/components/ui/luna-icon"
 
 
@@ -227,6 +228,7 @@ export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
   animation?: Animation
   actions?: React.ReactNode
+  onOpenExternalPreview?: (url: string, title?: string) => void
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -249,6 +251,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   codeSnippets,
   executionOutputs,
   excalidrawData,
+  onOpenExternalPreview,
 }) => {
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -259,6 +262,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       return file
     })
   }, [experimental_attachments])
+
+  const openExternalPreview = useCallback((url?: string, title?: string) => {
+    if (!url) return
+
+    if (onOpenExternalPreview) {
+      onOpenExternalPreview(url, title)
+      return
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer")
+  }, [onOpenExternalPreview])
 
   const isUser = role === "user"
   const [downloadingChartUrl, setDownloadingChartUrl] = useState<string | null>(null)
@@ -482,8 +496,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <motion.a
                         key={`${img.imageUrl}-${index}`}
                         href={targetHref ?? undefined}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        onClick={(event) => {
+                          if (!targetHref) return
+                          event.preventDefault()
+                          openExternalPreview(targetHref, caption)
+                        }}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
@@ -540,7 +557,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             fontSize: '0.9rem',
           }}
         >
-          <MarkdownRenderer>
+          <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>
             {content}
           </MarkdownRenderer>
           {/* {!isComplete && !isUser && <BlinkingCursor />} */}
@@ -668,8 +685,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <motion.a
                         key={`${video?.videoId || video?.url || index}`}
                         href={targetHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        onClick={(event) => {
+                          if (!targetHref) return
+                          event.preventDefault()
+                          openExternalPreview(targetHref, title)
+                        }}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.1 + 0.3 }}
@@ -733,87 +753,99 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </motion.div>
         )}
         {sources && sources.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="mt-8 pt-6 border-t border-border/40 relative z-10"
-          >
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                <Globe className="h-3.5 w-3.5" />
+          <div className="space-y-4">
+            {sources
+              .map((source) => typeof source === 'string' ? source : source.url)
+              .filter(url => url.toLowerCase().endsWith('.pdf'))
+              .map((url, idx) => (
+                <CustomPDFViewer key={`pdf-${idx}`} url={url} className="mt-4" />
+              ))
+            }
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="mt-8 pt-6 border-t border-border/40 relative z-10"
+            >
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                  <Globe className="h-3.5 w-3.5" />
+                </div>
+                <h3 className="text-xs font-semibold text-foreground">Sources & Citations</h3>
+                <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-blue-500/10 px-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  {sources.length}
+                </span>
               </div>
-              <h3 className="text-xs font-semibold text-foreground">Sources & Citations</h3>
-              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-blue-500/10 px-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                {sources.length}
-              </span>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto no-scrollbar pr-1">
-              {sources.map((source, index) => {
-                if (!source) return null;
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto no-scrollbar pr-1">
+                {sources.map((source, index) => {
+                  if (!source) return null;
 
-                try {
-                  let href: string;
-                  let displayText: string;
+                  try {
+                    let href: string;
+                    let displayText: string;
 
-                  if (typeof source === 'string') {
-                    href = source;
-                    try {
-                      const url = new URL(href);
-                      displayText = url.hostname.replace('www.', '');
-                    } catch (e) {
-                      return (
-                        <div key={index} className="flex items-center gap-2 p-2 rounded-xl bg-muted/30 border border-border/40 text-[10px] text-muted-foreground">
-                          <Globe className="h-3 w-3" />
-                          <span className="truncate">{source.substring(0, 50)}</span>
-                        </div>
-                      );
-                    }
-                  } else {
-                    href = source.url;
-                    displayText = source.title || (() => {
+                    if (typeof source === 'string') {
+                      href = source;
                       try {
                         const url = new URL(href);
-                        return url.hostname.replace('www.', '');
-                      } catch {
-                        return href;
+                        displayText = url.hostname.replace('www.', '');
+                      } catch (e) {
+                        return (
+                          <div key={index} className="flex items-center gap-2 p-2 rounded-xl bg-muted/30 border border-border/40 text-[10px] text-muted-foreground">
+                            <Globe className="h-3 w-3" />
+                            <span className="truncate">{source.substring(0, 50)}</span>
+                          </div>
+                        );
                       }
-                    })();
-                  }
+                    } else {
+                      href = source.url;
+                      displayText = source.title || (() => {
+                        try {
+                          const url = new URL(href);
+                          return url.hostname.replace('www.', '');
+                        } catch {
+                          return href;
+                        }
+                      })();
+                    }
 
-                  return (
-                    <motion.a
-                      key={index}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 + 0.5 }}
-                      className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm transition-all hover:bg-muted/50 hover:border-blue-500/30 hover:translate-x-1"
-                      title={displayText}
-                    >
-                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-blue-500/10 group-hover:text-blue-600 transition-colors">
-                        <Globe className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-semibold text-foreground/80 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate transition-colors">
-                          {displayText}
+                    return (
+                      <motion.a
+                        key={index}
+                        href={href}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          openExternalPreview(href, displayText)
+                        }}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 + 0.5 }}
+                        className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm transition-all hover:bg-muted/50 hover:border-blue-500/30 hover:translate-x-1"
+                        title={displayText}
+                      >
+                        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-blue-500/10 group-hover:text-blue-600 transition-colors">
+                          <Globe className="h-3.5 w-3.5" />
                         </div>
-                        <div className="text-[9px] text-muted-foreground truncate opacity-70">
-                          {href}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-semibold text-foreground/80 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate transition-colors">
+                            {displayText}
+                          </div>
+                          <div className="text-[9px] text-muted-foreground truncate opacity-70">
+                            {href}
+                          </div>
                         </div>
-                      </div>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                    </motion.a>
-                  );
-                } catch (e) {
-                  return null;
-                }
-              })}
-            </div>
-          </motion.div>
+                        <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                      </motion.a>
+                    );
+                  } catch (e) {
+                    return null;
+                  }
+                })}
+              </div>
+            </motion.div>
+          </div>
         )}
         {excalidrawData && excalidrawData.length > 0 && (
           <div className="mt-4">
