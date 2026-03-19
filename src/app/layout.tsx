@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Silkscreen } from 'next/font/google';
+import { Geist, Geist_Mono, Playfair_Display, Silkscreen } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { GradientBackdrop } from "@/components/ui/gradient-bg";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
+import { AnimationProvider } from "@/components/ui/animation-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +16,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-playfair',
 });
 
 const silkscreen = Silkscreen({
@@ -36,8 +42,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
-      <body 
-        className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} antialiased h-full`}
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} ${playfair.variable} antialiased h-full`}
         suppressHydrationWarning
       >
         {/* <GridPattern />  */}
@@ -46,16 +52,18 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          <div className="relative min-h-full">
-            {/* <div className="fixed inset-0 -z-10">
-              <GradientBackdrop />
-            </div> */}
-            <AuthProvider>
-              {children}
-              <Toaster position="top-center" richColors />
-              <Analytics />
-            </AuthProvider>
-          </div>
+          <AnimationProvider>
+            <div className="relative min-h-full">
+              {/* <div className="fixed inset-0 -z-10">
+                <GradientBackdrop />
+              </div> */}
+              <AuthProvider>
+                {children}
+                <Toaster position="top-center" richColors />
+                <Analytics />
+              </AuthProvider>
+            </div>
+          </AnimationProvider>
         </ThemeProvider>
       </body>
     </html>

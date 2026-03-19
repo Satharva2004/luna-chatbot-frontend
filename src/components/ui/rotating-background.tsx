@@ -17,12 +17,21 @@ export function RotatingBackground({
   alt = "Background",
   className,
 }: RotatingBackgroundProps) {
-  const [index, setIndex] = useState(() =>
-    images.length > 0 ? Math.floor(Math.random() * images.length) : 0
-  )
+  // Start with 0 to avoid hydration mismatch (server and client will match)
+  const [index, setIndex] = useState(0)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Set mounted flag after client-side hydration
+  useEffect(() => {
+    setIsMounted(true)
+    // Set random initial image only on client side
+    if (images.length > 0) {
+      setIndex(Math.floor(Math.random() * images.length))
+    }
+  }, [images.length])
 
   useEffect(() => {
-    if (images.length <= 1) return
+    if (!isMounted || images.length <= 1) return
 
     const id = window.setInterval(() => {
       setIndex((prev) => {
@@ -40,16 +49,7 @@ export function RotatingBackground({
     }, interval)
 
     return () => window.clearInterval(id)
-  }, [images, interval])
-
-  useEffect(() => {
-    if (!images.length) {
-      setIndex(0)
-      return
-    }
-
-    setIndex(Math.floor(Math.random() * images.length))
-  }, [images])
+  }, [images, interval, isMounted])
 
   if (!images.length) {
     return null

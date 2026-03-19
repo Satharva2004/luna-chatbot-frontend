@@ -4,18 +4,12 @@ import {
   type ChatMessageProps,
   type Message,
 } from "@/components/ui/chat-message"
-import {
-  TypingIndicator,
-  type AssistantStatusMap,
-} from "@/components/ui/typing-indicator"
 
 type AdditionalMessageOptions = Omit<ChatMessageProps, keyof Message>
 
 interface MessageListProps {
   messages: Message[]
   showTimeStamps?: boolean
-  isTyping?: boolean
-  typingStatuses?: AssistantStatusMap
   messageOptions?:
     | AdditionalMessageOptions
     | ((message: Message) => AdditionalMessageOptions)
@@ -24,8 +18,6 @@ interface MessageListProps {
 export function MessageList({
   messages,
   showTimeStamps = true,
-  isTyping = false,
-  typingStatuses,
   messageOptions,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -63,7 +55,6 @@ export function MessageList({
           />
         )
       })}
-      {isTyping && <TypingIndicator statuses={typingStatuses} />}
       <div ref={messagesEndRef} />
     </div>
   )

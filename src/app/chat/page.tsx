@@ -9,18 +9,13 @@ import { Input } from "@/components/ui/input"
 import { MessageInput } from "@/components/ui/message-input"
 import { MessageList } from "@/components/ui/message-list"
 import {
-  createInitialAssistantStatuses,
-  type AssistantStatusMap,
-} from "@/components/ui/typing-indicator"
-import {
-  ThumbsUp, 
-  ThumbsDown, 
-  Sparkles, 
-  Search, 
-  History, 
-  Plus, 
-  Trash2, 
-  LogOut, 
+  ThumbsUp,
+  ThumbsDown,
+  Search,
+  History,
+  Plus,
+  Trash2,
+  LogOut,
   RotateCcw,
   ChevronDown,
   X,
@@ -34,7 +29,10 @@ import { fuzzySearch } from "@/services/suggestions/fuzzy"
 import { Playfair_Display } from "next/font/google"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { FeedbackDialog } from "@/components/ui/feedback-dialog"
+import { LinkPreviewPane } from "@/components/ui/link-preview-pane"
 import { toast } from "sonner"
+import { TTSButton } from "@/components/ui/tts-button"
+import { LunaIcon } from "@/components/ui/luna-icon"
 
 function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
   if (!Array.isArray(raw)) return undefined
@@ -83,6 +81,104 @@ type ConversationSummary = {
   created_at: string | null
 }
 
+type ConversationSummaryRaw = {
+  id: string | number
+  title?: unknown
+  name?: unknown
+  updated_at?: unknown
+  updatedAt?: unknown
+  created_at?: unknown
+  createdAt?: unknown
+}
+
+type HistoryMessageRaw = {
+  id?: unknown
+  role?: unknown
+  content?: unknown
+  created_at?: unknown
+  createdAt?: unknown
+  sources?: unknown
+  charts?: unknown
+  excalidraw?: unknown
+  excalidraw_data?: unknown
+  excalidrawData?: unknown
+  images?: unknown
+  videos?: unknown
+}
+
+type VideoResult = NonNullable<Message["videos"]>[number]
+
+function asIsoStringOrNull(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+  return null
+}
+
+function asDate(value: unknown): Date | undefined {
+  if (value instanceof Date) return value
+  if (typeof value === "string" || typeof value === "number") {
+    const d = new Date(value)
+    return Number.isNaN(d.getTime()) ? undefined : d
+  }
+  return undefined
+}
+
+function asString(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  return fallback
+}
+
+function normalizeSources(value: unknown): Message["sources"] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const normalized = value
+    .map((entry): string | { url: string; title?: string } | null => {
+      if (typeof entry === "string") return entry
+      if (entry && typeof entry === "object") {
+        const obj = entry as Record<string, unknown>
+        const url = typeof obj.url === "string" ? obj.url : ""
+        if (!url) return null
+        const title = typeof obj.title === "string" ? obj.title : undefined
+        return title ? { url, title } : { url }
+      }
+      return null
+    })
+    .filter((x): x is string | { url: string; title?: string } => x !== null)
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function normalizeVideos(value: unknown): Message["videos"] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const normalized = value
+    .map((entry): VideoResult | null => {
+      if (!entry || typeof entry !== "object") return null
+      const obj = entry as Record<string, unknown>
+      const url = typeof obj.url === "string" ? obj.url : undefined
+      const videoId = typeof obj.videoId === "string" ? obj.videoId : undefined
+      const title = typeof obj.title === "string" ? obj.title : undefined
+      const description = typeof obj.description === "string" ? obj.description : undefined
+      const channelTitle =
+        typeof obj.channelTitle === "string" ? obj.channelTitle : undefined
+      const thumbnails = (obj.thumbnails && typeof obj.thumbnails === "object"
+        ? (obj.thumbnails as VideoResult["thumbnails"])
+        : undefined)
+
+      if (!url && !videoId) return null
+      return { url, videoId, title, description, channelTitle, thumbnails }
+    })
+    .filter((x): x is VideoResult => x !== null)
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function normalizeExcalidraw(value: unknown): Message["excalidrawData"] | undefined {
+  if (!Array.isArray(value)) return undefined
+  return value as Message["excalidrawData"]
+}
+
 export default function ChatPage() {
   const { logout, token, user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
@@ -100,14 +196,18 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null)
-  const [assistantStatuses, setAssistantStatuses] = useState<AssistantStatusMap>(
-    createInitialAssistantStatuses()
-  )
   const [includeYouTube, setIncludeYouTube] = useState(false)
   const [includeImageSearch, setIncludeImageSearch] = useState(false)
   const [viewportHeight, setViewportHeight] = useState('100dvh')
   const [historyQuery, setHistoryQuery] = useState("")
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewTitle, setPreviewTitle] = useState<string | null>(null)
+  const [isLinkPreviewOpen, setIsLinkPreviewOpen] = useState(false)
+  const [canDockPreview, setCanDockPreview] = useState(false)
+  const [canDockHistory, setCanDockHistory] = useState(false)
+  const historySidebarWidth = 340
+  const previewPaneWidth = 460
 
   const displayName = user?.username || user?.name || 'User'
   const displayEmail = user?.email ?? ''
@@ -129,9 +229,9 @@ export default function ChatPage() {
   }, [displayName])
 
   const desktopActionClasses =
-    "group/nav relative inline-flex h-8 items-center overflow-hidden rounded-full border border-white/70 bg-white/80 px-5 text-sm font-medium text-slate-700 shadow-[0_12px_30px_rgba(15,17,26,0.14)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_16px_38px_rgba(15,17,26,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_22px_60px_rgba(0,0,0,0.6)] dark:focus-visible:ring-[#82aaff]/30"
+    "group/nav relative inline-flex h-9 items-center overflow-hidden rounded-full border border-border/50 bg-background/70 px-5 text-sm font-medium text-foreground/80 shadow-sm backdrop-blur-xl transition-colors hover:bg-background/85 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
   const desktopProfileButtonClasses =
-    "group/profile relative flex min-h-10 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/70 bg-white/85 px-2 pr-5 text-left text-slate-900 shadow-[0_12px_34px_rgba(15,17,26,0.16)] transition-colors hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] hover:shadow-[0_18px_48px_rgba(15,17,26,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-[0_20px_55px_rgba(0,0,0,0.6)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff] dark:hover:shadow-[0_26px_70px_rgba(0,0,0,0.68)] dark:focus-visible:ring-[#82aaff]/30"
+    "group/profile relative flex min-h-10 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-border/50 bg-background/70 px-2 pr-5 text-left text-foreground shadow-sm backdrop-blur-xl transition-colors hover:bg-background/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
 
   // Layout heights state
   const [layoutHeights, setLayoutHeights] = useState({
@@ -160,6 +260,8 @@ export default function ChatPage() {
       const viewport = window.visualViewport
       const height = viewport?.height ?? window.innerHeight
       setViewportHeight(`${height}px`)
+      setCanDockHistory(window.innerWidth >= 768)
+      setCanDockPreview(window.innerWidth >= 1280)
     }
 
     updateViewport()
@@ -190,20 +292,24 @@ export default function ChatPage() {
     }).format(date)
   }, [])
 
-  const normalizeConversationSummary = useCallback((conversation: any): ConversationSummary | null => {
+  const normalizeConversationSummary = useCallback((conversation: ConversationSummaryRaw): ConversationSummary | null => {
     if (!conversation || typeof conversation !== "object" || !conversation.id) return null
 
     const id = String(conversation.id)
     const rawTitle = conversation.title ?? conversation.name ?? ""
     const title = String(rawTitle).trim() || `Chat ${id.slice(0, 6) || id}`
-    const updatedAt = conversation.updated_at ?? conversation.updatedAt ?? conversation.created_at ?? conversation.createdAt ?? null
-    const createdAt = conversation.created_at ?? conversation.createdAt ?? conversation.updated_at ?? conversation.updatedAt ?? null
+    const updatedAt = asIsoStringOrNull(
+      conversation.updated_at ?? conversation.updatedAt ?? conversation.created_at ?? conversation.createdAt
+    )
+    const createdAt = asIsoStringOrNull(
+      conversation.created_at ?? conversation.createdAt ?? conversation.updated_at ?? conversation.updatedAt
+    )
 
     return {
       id,
       title,
-      updated_at: updatedAt ?? null,
-      created_at: createdAt ?? null,
+      updated_at: updatedAt,
+      created_at: createdAt,
     }
   }, [])
 
@@ -254,13 +360,15 @@ export default function ChatPage() {
     loadConversations()
   }, [currentConversationId, loadConversations])
 
-  // Close history dropdown when clicking outside
+  useEffect(() => {
+    if (!canDockHistory && isHistoryOpen) {
+      setIsHistoryOpen(false)
+    }
+  }, [canDockHistory, isHistoryOpen])
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element | null
-      if (isHistoryOpen && !target?.closest('.history-dropdown')) {
-        setIsHistoryOpen(false)
-      }
       if (isProfileOpen && !target?.closest('.profile-dropdown')) {
         setIsProfileOpen(false)
       }
@@ -268,7 +376,7 @@ export default function ChatPage() {
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isHistoryOpen, isProfileOpen])
+  }, [isProfileOpen])
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -276,7 +384,6 @@ export default function ChatPage() {
       abortControllerRef.current = null
     }
     setIsGenerating(false)
-    setAssistantStatuses(createInitialAssistantStatuses())
   }, [])
 
   const startNewChat = useCallback(() => {
@@ -286,29 +393,34 @@ export default function ChatPage() {
     setInput("")
     setShowSuggestions(false)
     setLoadingConversationId(null)
-    setAssistantStatuses(createInitialAssistantStatuses())
     setIsMobileMenuOpen(false)
     setIsProfileOpen(false)
   }, [stop])
 
-  const normalizeMessageFromHistory = useCallback((message: any): Message => {
+  const normalizeMessageFromHistory = useCallback((message: HistoryMessageRaw): Message => {
+    // DEBUG: Check what excalidraw data is coming from backend
+    if (message?.excalidraw || message?.excalidraw_data) {
+      console.log('🔄 Data from DB:', { id: message.id, excalidraw: message.excalidraw, old_data: message.excalidraw_data })
+    }
+
     const role = message?.role === 'model' ? 'assistant' : message?.role ?? 'assistant'
     const createdAtIso = message?.created_at ?? message?.createdAt
-    const normalizedVideos = Array.isArray(message?.videos)
-      ? message.videos
-      : undefined
+    const normalizedVideos = normalizeVideos(message?.videos)
     return {
       id: message?.id ? String(message.id) : crypto.randomUUID(),
       role: role === 'assistant' || role === 'user' || role === 'system' ? role : 'assistant',
-      content: message?.content ?? '',
-      createdAt: createdAtIso ? new Date(createdAtIso) : undefined,
-      sources: Array.isArray(message?.sources) ? message.sources : undefined,
+      content: asString(message?.content, ''),
+      createdAt: asDate(createdAtIso),
+      sources: normalizeSources(message?.sources),
       chartUrl: typeof message?.charts === 'string' ? message.charts : Array.isArray(message?.charts) ? message.charts[0] : undefined,
       chartUrls: Array.isArray(message?.charts)
         ? message.charts.filter((url: unknown): url is string => typeof url === 'string' && url.trim().length > 0)
         : (typeof message?.charts === 'string' && message.charts.trim().length > 0)
           ? [message.charts]
           : undefined,
+      excalidrawData: normalizeExcalidraw(
+        message.excalidraw ?? message.excalidraw_data ?? message.excalidrawData
+      ),
       images: normalizeImageResults(message?.images),
       videos: normalizedVideos,
     }
@@ -337,7 +449,6 @@ export default function ChatPage() {
   const handleConversationSelect = useCallback(async (conversationId: string) => {
     stop()
     setLoadingConversationId(conversationId)
-    setIsHistoryOpen(false)
     setIsMobileMenuOpen(false)
     setIsProfileOpen(false)
     try {
@@ -355,15 +466,15 @@ export default function ChatPage() {
       const data = await resp.json()
       const historyMessages = Array.isArray(data?.messages)
         ? [...data.messages]
-            .sort((a, b) => {
-              const aTime = new Date(a?.created_at ?? a?.createdAt ?? 0).getTime()
-              const bTime = new Date(b?.created_at ?? b?.createdAt ?? 0).getTime()
-              if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0
-              if (Number.isNaN(aTime)) return -1
-              if (Number.isNaN(bTime)) return 1
-              return aTime - bTime
-            })
-            .map(normalizeMessageFromHistory)
+          .sort((a, b) => {
+            const aTime = new Date(a?.created_at ?? a?.createdAt ?? 0).getTime()
+            const bTime = new Date(b?.created_at ?? b?.createdAt ?? 0).getTime()
+            if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0
+            if (Number.isNaN(aTime)) return -1
+            if (Number.isNaN(bTime)) return 1
+            return aTime - bTime
+          })
+          .map(normalizeMessageFromHistory)
         : []
 
       const historyWithTitles = attachPromptTitlesToHistory(historyMessages)
@@ -373,7 +484,6 @@ export default function ChatPage() {
       setInput("")
       setShowSuggestions(false)
       setIsGenerating(false)
-      setAssistantStatuses(createInitialAssistantStatuses())
     } catch (error) {
       console.error('Failed to load conversation history', error)
     } finally {
@@ -439,13 +549,13 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }
 
-  const simulateAssistant = async (userContent: string, attachments?: FileList) => {
+  const simulateAssistant = async (assistantMessageId: string, userContent: string, attachments?: FileList) => {
     try {
       console.log('Starting streaming request with prompt:', userContent)
-      
+
       const conversationId = currentConversationId
       abortControllerRef.current = new AbortController()
-      
+
       let response: Response
       if (attachments && attachments.length > 0) {
         const formData = new FormData()
@@ -489,28 +599,6 @@ export default function ChatPage() {
         throw new Error(errorText || 'Failed to get response from the API')
       }
 
-      setAssistantStatuses((prev: AssistantStatusMap) => ({
-        ...prev,
-        searching: "complete",
-        responding: "active",
-      }))
-
-      const assistantMessageId = crypto.randomUUID()
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: "assistant",
-        content: "",
-        createdAt: new Date(),
-        sources: [],
-        chartUrl: null,
-        chartUrls: [],
-        images: [],
-        promptTitle: userContent,
-        isComplete: false,
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
-
       let resolvedConversationId: string | null = conversationId || null
 
       const reader = response.body?.getReader()
@@ -518,9 +606,8 @@ export default function ChatPage() {
       let buffer = ''
       let streamedContent = ''
       let streamedSources: string[] = []
-      let streamedSourceObjs: Array<{ url?: string; title?: string }> = []
       let streamedImages: ImageResult[] = []
-      let streamedVideos: any[] = []
+      let streamedVideos: NonNullable<Message["videos"]> = []
       let streamedCodeSnippets: Message["codeSnippets"] = []
       let streamedExecutionOutputs: Message["executionOutputs"] = []
       let streamedMermaidBlocks: MermaidBlockUpdate[] | undefined
@@ -593,13 +680,12 @@ export default function ChatPage() {
             }
           }
           else if (currentEvent === 'sources' && parsed.sources && Array.isArray(parsed.sources)) {
-            streamedSourceObjs = parsed.sources
             streamedSources = parsed.sources
             console.log('📚 Received sources:', streamedSources.length)
-            setMessages((prev) => 
-              prev.map((msg) => 
-                msg.id === assistantMessageId 
-                  ? { ...msg, sources: streamedSources as any }
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, sources: streamedSources }
                   : msg
               )
             )
@@ -642,38 +728,44 @@ export default function ChatPage() {
               prev.map((msg) =>
                 msg.id === assistantMessageId
                   ? {
-                      ...msg,
-                      content: streamedContent,
-                      mermaidBlocks: streamedMermaidBlocks,
-                      isComplete: false,
-                    }
+                    ...msg,
+                    content: streamedContent,
+                    mermaidBlocks: streamedMermaidBlocks,
+                    isComplete: false,
+                  }
                   : msg
               )
             )
           }
           else if (currentEvent === 'youtubeResults' && parsed.videos && Array.isArray(parsed.videos)) {
-            streamedVideos = parsed.videos
+            streamedVideos = (normalizeVideos(parsed.videos) ?? []) as NonNullable<Message["videos"]>
             console.log('🎥 Received YouTube videos:', streamedVideos.length)
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === assistantMessageId
-                  ? { ...msg, videos: parsed.videos as any }
+                  ? { ...msg, videos: streamedVideos }
+                  : msg
+              )
+            )
+          }
+          else if (currentEvent === 'excalidraw' && parsed.excalidrawData && Array.isArray(parsed.excalidrawData)) {
+            console.log('🎨 Received Excalidraw data:', parsed.excalidrawData.length)
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, excalidrawData: parsed.excalidrawData }
                   : msg
               )
             )
           }
           else if (currentEvent === 'finish' && parsed.finishReason) {
             console.log('✅ Stream finished with reason:', parsed.finishReason)
-            setAssistantStatuses((prev: AssistantStatusMap) => ({
-              ...prev,
-              responding: "complete",
-            }))
           }
           else if (currentEvent === 'error' && parsed.error) {
             console.error('❌ Stream error:', parsed.error)
             throw new Error(parsed.error)
           }
-          
+
         } catch (parseError) {
           if (data !== '[DONE]') {
             console.warn('Failed to parse SSE data:', data, parseError)
@@ -730,19 +822,19 @@ export default function ChatPage() {
         prev.map((msg) =>
           msg.id === assistantMessageId
             ? {
-                ...msg,
-                content: finalContent,
-                sources: streamedSources,
-                chartUrl: msg.chartUrl,
-                chartUrls: msg.chartUrls ?? [],
-                images: streamedImages.length > 0 ? streamedImages : msg.images,
-                videos: streamedVideos.length > 0 ? streamedVideos : (msg as any).videos,
-                codeSnippets: streamedCodeSnippets,
-                executionOutputs: streamedExecutionOutputs,
-                mermaidBlocks: streamedMermaidBlocks,
-                createdAt: new Date(),
-                isComplete: true,
-              }
+              ...msg,
+              content: finalContent,
+              sources: streamedSources,
+              chartUrl: msg.chartUrl,
+              chartUrls: msg.chartUrls ?? [],
+              images: streamedImages.length > 0 ? streamedImages : msg.images,
+              videos: streamedVideos.length > 0 ? streamedVideos : msg.videos,
+              codeSnippets: streamedCodeSnippets,
+              executionOutputs: streamedExecutionOutputs,
+              mermaidBlocks: streamedMermaidBlocks,
+              createdAt: new Date(),
+              isComplete: true,
+            }
             : msg
         )
       )
@@ -750,11 +842,6 @@ export default function ChatPage() {
       const chartsConversationId = resolvedConversationId ?? currentConversationId
 
       if (!abortControllerRef.current?.signal.aborted && chartsConversationId) {
-        setAssistantStatuses((prev: AssistantStatusMap) => ({
-          ...prev,
-          charting: "active",
-        }))
-
         try {
           const chartsResponse = await fetch('/api/proxy/charts', {
             method: 'POST',
@@ -778,46 +865,44 @@ export default function ChatPage() {
                 prev.map((msg) =>
                   msg.id === assistantMessageId
                     ? {
-                        ...msg,
-                        chartUrl: chartUrlFromResponse,
-                        chartUrls: Array.from(new Set([...(msg.chartUrls ?? []), chartUrlFromResponse])),
-                      }
+                      ...msg,
+                      chartUrl: chartUrlFromResponse,
+                      chartUrls: Array.from(new Set([...(msg.chartUrls ?? []), chartUrlFromResponse])),
+                    }
                     : msg
                 )
               )
             }
-
-            setAssistantStatuses((prev: AssistantStatusMap) => ({
-              ...prev,
-              charting: "complete",
-            }))
           } else {
             throw new Error(await chartsResponse.text())
           }
         } catch (chartErr) {
           console.error('Chart fetch after chat failed:', chartErr)
-          setAssistantStatuses((prev: AssistantStatusMap) => ({
-            ...prev,
-            charting: "pending",
-          }))
         }
       }
-      
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+
+    } catch (error: unknown) {
+      const abortName = (typeof error === "object" && error !== null && "name" in error)
+        ? String((error as { name?: unknown }).name)
+        : ""
+      if (abortName === 'AbortError') {
         console.log('Stream was aborted by user')
         return
       }
-      
+
       console.error('Error in streaming:', error)
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "Sorry, I encountered an error while processing your request. Please try again.",
-        createdAt: new Date(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
-      setAssistantStatuses(createInitialAssistantStatuses())
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+              ...msg,
+              content: "Sorry, I encountered an error while processing your request. Please try again.",
+              createdAt: new Date(),
+              isComplete: true,
+            }
+            : msg
+        )
+      )
     }
   }
 
@@ -835,21 +920,39 @@ export default function ChatPage() {
       createdAt: new Date(),
       experimental_attachments: options?.experimental_attachments
         ? Array.from(options.experimental_attachments).map((f) => ({
-            name: f.name,
-            contentType: f.type,
-            url: "data:;base64,",
-          }))
+          name: f.name,
+          contentType: f.type,
+          url: "data:;base64,",
+        }))
         : undefined,
     }
 
-    setMessages((prev) => [...prev, newMessage])
+    const assistantMessageId = crypto.randomUUID()
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: "assistant",
+      content: "",
+      createdAt: new Date(),
+      sources: [],
+      chartUrl: null,
+      chartUrls: [],
+      images: [],
+      promptTitle: newMessage.content,
+      isComplete: false,
+    }
+
+    setMessages((prev) => [...prev, newMessage, assistantMessage])
     setInput("")
     setIsGenerating(true)
 
-    simulateAssistant(newMessage.content, options?.experimental_attachments)
+    simulateAssistant(assistantMessageId, newMessage.content, options?.experimental_attachments)
       .finally(() => {
         setIsGenerating(false)
         abortControllerRef.current = null
+        void loadConversations()
+        window.setTimeout(() => {
+          void loadConversations()
+        }, 1400)
       })
   }
 
@@ -864,11 +967,20 @@ export default function ChatPage() {
     )
   }
 
+  const handleOpenExternalPreview = useCallback((url: string, title?: string) => {
+    setPreviewUrl(url)
+    setPreviewTitle(title ?? null)
+    setIsLinkPreviewOpen(true)
+  }, [])
+
+  const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
+  const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
+
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.wav')
-      
+
       const response = await fetch('/api/speech/transcribe', {
         method: 'POST',
         body: formData,
@@ -893,41 +1005,38 @@ export default function ChatPage() {
 
   return (
     <div
-      className="relative flex flex-col overflow-hidden bg-gradient-to-br from-[#f5f5f7] via-[#f0f0f5] to-[#e5e5ed] text-slate-900 dark:bg-gradient-to-br dark:from-[#020203] dark:via-[#050509] dark:to-[#0b0b13] dark:text-slate-100"
+      className="relative flex flex-col overflow-hidden bg-background text-foreground"
       style={{ minHeight: viewportHeight }}
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 opacity-90"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-80"
         style={{
           background:
-            'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), transparent 55%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.65), transparent 50%), radial-gradient(circle at 50% 110%, rgba(0,102,204,0.08), transparent 70%)',
+            'radial-gradient(circle at 20% 10%, rgba(99,102,241,0.10), transparent 45%), radial-gradient(circle at 80% 0%, rgba(14,165,233,0.08), transparent 40%), radial-gradient(circle at 50% 110%, rgba(99,102,241,0.06), transparent 55%)',
         }}
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 hidden dark:block opacity-80"
-        style={{
-          background:
-            'radial-gradient(circle at 20% 20%, rgba(79,82,128,0.5), transparent 60%), radial-gradient(circle at 80% 0%, rgba(36,40,78,0.45), transparent 55%), radial-gradient(circle at 50% 120%, rgba(16,98,255,0.22), transparent 70%)',
-        }}
-      />
-      
+
       {/* Header */}
       <header
         ref={headerRef}
         className="fixed inset-x-0 top-0 z-20 flex justify-center px-3 sm:px-6 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-3"
+        style={{
+          left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
+          right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
+        }}
       >
-        <div className="flex w-full max-w-7xl items-center justify-between rounded-[35px] border border-white/40 bg-white/70 px-4 shadow-[0_20px_45px_rgba(15,17,26,0.16)] backdrop-blur-3xl transition-all duration-300 supports-[backdrop-filter]:bg-white/55 dark:border-white/10 dark:bg-[#0d0d12]/70 dark:shadow-[0_24px_70px_rgba(0,0,0,0.7)] sm:px-8">
+        <div className="flex w-full max-w-7xl items-center justify-between rounded-[28px] border border-border/60 bg-background/70 px-4 shadow-sm backdrop-blur-xl transition-all duration-300 sm:px-8">
           <div className="flex h-[60px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0f0f13] to-[#1d1f24] shadow-[0_6px_18px_rgba(15,17,26,0.35)] dark:from-white/90 dark:to-white/65 dark:shadow-[0_10px_28px_rgba(0,0,0,0.55)]">
-                <Search className="h-4 w-4 text-white dark:text-[#0c0c12]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <LunaIcon className="h-5 w-5" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-sm leading-snug tracking-tight text-slate-100 sm:flex-nowrap sm:text-[1rem] dark:text-white`}>
-                  Luna AI
+                <h1 className={`${playfair.className} text-[15px] font-semibold leading-snug tracking-tight`}>
+                  Luna
+                  <span className="text-muted-foreground">AI</span>
                 </h1>
               </div>
             </div>
@@ -935,7 +1044,7 @@ export default function ChatPage() {
             {/* Mobile Menu Toggle */}
             <button
               type="button"
-              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/70 text-slate-600 shadow-[0_10px_26px_rgba(15,17,26,0.14)] transition-colors duration-200 md:hidden dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/70 text-foreground/70 shadow-sm backdrop-blur-md transition-colors duration-200 hover:bg-background/85 hover:text-foreground md:hidden"
               onClick={() => {
                 setIsHistoryOpen(false)
                 setIsProfileOpen(false)
@@ -955,7 +1064,7 @@ export default function ChatPage() {
                 onClick={startNewChat}
               >
                 <span className="relative z-10 inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" /> 
+                  <Plus className="h-4 w-4" />
                   New chat
                   {/* <span className="ml-1 text-[12px] text-muted-foreground ">⌘ + N</span> */}
                 </span>
@@ -987,24 +1096,20 @@ export default function ChatPage() {
                     <Search className="h-4 w-4" />
                     <span>History</span>
                   </span>
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
-                  />
                 </button>
 
-                {isHistoryOpen && (
-                  <div className="absolute left-1/2 top-full z-50 mt-3 w-[420px] -translate-x-1/2 origin-top rounded-3xl border border-white/70 bg-white/85 p-1 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl transition-all dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
-                    <div className="space-y-3 rounded-2xl border border-white/60 bg-white/75 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                {false && (
+                  <div className="absolute left-1/2 top-full z-50 mt-3 w-[460px] -translate-x-1/2 origin-top rounded-[30px] border border-border/60 bg-background/90 p-2 shadow-[0_30px_100px_rgba(15,23,42,0.18)] backdrop-blur-2xl transition-all">
+                    <div className="space-y-4 rounded-[24px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] px-4 py-4 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(10,15,28,0.92))]">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">Search chats</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Browse and reopen conversations</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Recent chats</p>
+                          <p className="text-xs text-muted-foreground">Search, reopen, and manage saved threads</p>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-2 text-xs text-[#0071e3] hover:text-[#0081ff] dark:text-[#4aa8ff]"
+                          className="h-8 rounded-full border border-primary/15 px-3 text-xs text-primary"
                           onClick={startNewChat}
                           type="button"
                         >
@@ -1013,27 +1118,27 @@ export default function ChatPage() {
                         </Button>
                       </div>
                       <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           value={historyQuery}
                           onChange={(event) => setHistoryQuery(event.target.value)}
                           placeholder="Search conversations"
-                          className="h-10 rounded-2xl border border-white/60 bg-white/90 pl-9 pr-3 text-sm text-slate-700 shadow-sm transition focus-visible:border-[#0f62fe]/40 focus-visible:ring-2 focus-visible:ring-[#0f62fe]/30 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+                          className="h-11 rounded-[18px] border border-border/60 bg-background/90 pl-9 pr-3 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/25"
                         />
                       </div>
                     </div>
 
-                    <div className="max-h-80 overflow-y-auto overflow-x-hidden rounded-2xl border border-white/60 bg-white/65 p-2 dark:border-white/10 dark:bg-white/5">
+                    <div className="max-h-[24rem] overflow-y-auto overflow-x-hidden rounded-[24px] border border-border/60 bg-background/65 p-2">
                       {isHistoryLoading ? (
-                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                           Loading conversations...
                         </div>
                       ) : conversations.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                           No conversations yet
                         </div>
                       ) : filteredHistory.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                           No chats found for “{historyQuery}”
                         </div>
                       ) : (
@@ -1041,31 +1146,34 @@ export default function ChatPage() {
                           {filteredHistory.map((conversation) => {
                             const isActive = currentConversationId === conversation.id
                             const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+                            const initial = (conversation.title || "C").slice(0, 1).toUpperCase()
 
                             return (
                               <li key={conversation.id}>
-                                <div className={`flex items-center gap-2 rounded-xl px-2 py-1 ${isActive ? 'bg-[#f0f2f8] dark:bg-white/10' : ''}`}>
+                                <div className={`group flex items-center gap-3 rounded-[20px] px-2 py-1.5 ${isActive ? 'bg-primary/8' : ''}`}>
                                   <button
-                                    className="flex-1 min-w-0 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-white/80 dark:text-slate-200 dark:hover:bg-white/10"
+                                    className={`flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border px-3 py-3 text-left shadow-sm ${isActive ? 'border-primary/25 bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.88))] dark:bg-[linear-gradient(180deg,rgba(37,99,235,0.18),rgba(15,23,42,0.88))]' : 'border-border/50 bg-background/70 hover:bg-background/90'}`}
                                     onClick={() => handleConversationSelect(conversation.id)}
                                     type="button"
                                   >
-                                    <div className="flex min-w-0 items-center justify-between gap-3">
-                                      <span className="truncate font-medium text-slate-800 dark:text-slate-100">
+                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200'}`}>
+                                      {initial}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="truncate text-sm font-semibold text-foreground">
                                         {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
-                                      </span>
-                                      {timestamp && (
-                                        <span className="shrink-0 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
-                                          {timestamp}
-                                        </span>
-                                      )}
+                                      </div>
+                                      <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                                        <span className="truncate">{isActive ? 'Current thread' : 'Saved conversation'}</span>
+                                        {timestamp && <span className="shrink-0">{timestamp}</span>}
+                                      </div>
                                     </div>
                                     {loadingConversationId === conversation.id && (
-                                      <span className="mt-1 block text-xs text-[#0071e3] dark:text-[#4aa8ff]">Loading...</span>
+                                      <span className="shrink-0 text-xs text-primary">Loading...</span>
                                     )}
                                   </button>
                                   <button
-                                    className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-red-300"
+                                    className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                     onClick={(event) => handleDeleteConversation(conversation.id, event)}
                                     title="Delete conversation"
                                     type="button"
@@ -1136,7 +1244,7 @@ export default function ChatPage() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-sm font-semibold text-white">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                         {userInitial}
                       </div>
                     )}
@@ -1152,24 +1260,24 @@ export default function ChatPage() {
                 </button>
 
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_18px_40px_rgba(15,17,26,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#111119]/90 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white/75 px-3 py-3 dark:border-white/10 dark:bg-white/10">
+                  <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-3xl border border-border/60 bg-background/80 p-4 shadow-lg backdrop-blur-xl">
+                    <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/60 px-3 py-3">
                       {userAvatar ? (
                         <img
                           src={userAvatar}
                           alt={displayName || "User avatar"}
-                          className="h-12 w-12 rounded-full border border-white/50 object-cover"
+                          className="h-12 w-12 rounded-full border border-border/60 object-cover"
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-lg font-semibold text-white">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
                           {userInitial}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{displayName}</div>
+                        <div className="truncate text-sm font-semibold">{displayName}</div>
                         {displayEmail ? (
-                          <div className="truncate text-xs text-slate-500 dark:text-slate-300">{displayEmail}</div>
+                          <div className="truncate text-xs text-muted-foreground">{displayEmail}</div>
                         ) : null}
                       </div>
                     </div>
@@ -1181,12 +1289,12 @@ export default function ChatPage() {
                           logout()
                         }}
                         variant="ghost"
-                        className="w-full justify-between rounded-2xl border border-white/60 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-white/90 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+                        className="w-full justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium transition-colors hover:bg-background/80"
                       >
                         Logout
                         <LogOut className="h-4 w-4" />
                       </Button>
-                      <div className="flex items-center justify-between rounded-2xl border border-white/60 bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
+                      <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium">
                         <span>Theme</span>
                         <ThemeToggle />
                       </div>
@@ -1198,7 +1306,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        
+
 
         {isMobileMenuOpen && (
           <>
@@ -1293,7 +1401,7 @@ export default function ChatPage() {
                     </Button>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto rounded-2xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                  <div className="max-h-60 overflow-y-auto rounded-[24px] border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                     {isHistoryLoading ? (
                       <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                         Loading conversations...
@@ -1308,17 +1416,21 @@ export default function ChatPage() {
                           const isActive = currentConversationId === conversation.id
                           const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
 
+                          const initial = (conversation.title || "C").slice(0, 1).toUpperCase()
+
                           return (
-                            <li key={conversation.id} className="transition-transform duration-200 ease-out hover:translate-x-1">
+                            <li key={conversation.id}>
                               <button
-                                className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${
-                                  isActive
-                                    ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
-                                    : 'hover:bg-white/80 dark:hover:bg-white/10'
-                                }`}
+                                className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isActive
+                                  ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
+                                  : 'hover:bg-white/80 dark:hover:bg-white/10'
+                                  }`}
                                 onClick={() => handleConversationSelect(conversation.id)}
                                 type="button"
                               >
+                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${isActive ? 'bg-[#0b84ff] text-white' : 'bg-white/70 text-slate-700 dark:bg-white/10 dark:text-slate-200'}`}>
+                                  {initial}
+                                </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="truncate font-semibold">
                                     {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
@@ -1358,6 +1470,122 @@ export default function ChatPage() {
         )}
       </header>
 
+      {isHistoryOpen && canDockHistory && (
+        <aside
+          className="fixed bottom-0 left-0 z-40 hidden border-r border-border/60 bg-background/90 backdrop-blur-2xl md:block"
+          style={{
+            top: 0,
+            width: historySidebarWidth,
+          }}
+        >
+          <div className="flex h-full flex-col">
+            <div className="border-b border-border/60 px-4 pb-4 pt-[calc(1.25rem+env(safe-area-inset-top,0px))]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Recent chats</p>
+                  <p className="text-xs text-muted-foreground">Open and manage your saved conversations</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-full border border-border/60"
+                  onClick={() => {
+                    setIsHistoryOpen(false)
+                    setHistoryQuery("")
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  className="flex-1 justify-center gap-2"
+                  onClick={startNewChat}
+                  type="button"
+                >
+                  <Plus className="h-4 w-4" />
+                  New chat
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full border border-border/60"
+                  onClick={() => loadConversations()}
+                  type="button"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="relative mt-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={historyQuery}
+                  onChange={(event) => setHistoryQuery(event.target.value)}
+                  placeholder="Search chats"
+                  className="h-11 rounded-2xl border border-border/60 bg-background pl-9 pr-3 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {isHistoryLoading ? (
+                <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                  Loading conversations...
+                </div>
+              ) : conversations.length === 0 ? (
+                <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                  No conversations yet
+                </div>
+              ) : filteredHistory.length === 0 ? (
+                <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                  No chats found for "{historyQuery}"
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {filteredHistory.map((conversation) => {
+                    const isActive = currentConversationId === conversation.id
+                    const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+
+                    return (
+                      <li key={conversation.id}>
+                        <div className="group flex items-center gap-2 rounded-2xl px-2 py-1">
+                          <button
+                            className={`min-w-0 flex-1 rounded-[18px] px-3 py-3 text-left transition-colors ${isActive ? 'bg-primary/10 text-foreground ring-1 ring-primary/20' : 'hover:bg-muted/60'}`}
+                            onClick={() => handleConversationSelect(conversation.id)}
+                            type="button"
+                          >
+                            <div className="truncate text-sm font-medium">
+                              {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <span className="truncate">{isActive ? 'Current chat' : 'Saved chat'}</span>
+                              {timestamp ? <span className="shrink-0">{timestamp}</span> : null}
+                              {loadingConversationId === conversation.id ? <span className="shrink-0 text-primary">Loading...</span> : null}
+                            </div>
+                          </button>
+                          <button
+                            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                            title="Delete conversation"
+                            type="button"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </aside>
+      )}
+
       {/* Main Content */}
       <div
         className="flex-1 overflow-hidden"
@@ -1365,6 +1593,8 @@ export default function ChatPage() {
           minHeight: viewportHeight,
           paddingTop: messages.length > 0 ? `${layoutHeights.header}px` : 0,
           paddingBottom: messages.length > 0 ? `${layoutHeights.footer}px` : 0,
+          paddingLeft: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
+          paddingRight: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
         <div className={`h-full ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
@@ -1376,14 +1606,13 @@ export default function ChatPage() {
                   style={{
                     top: layoutHeights.header,
                     bottom: layoutHeights.footer,
+                    left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
+                    right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
                   }}
                 >
                   <div className="relative mx-auto max-w-2xl space-y-10 px-6 pb-16 pt-20 text-center text-slate-800 dark:text-slate-200">
                     <div className="flex flex-col items-center gap-5">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.4em] text-slate-500 backdrop-blur-sm transition-colors dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
-                        Welcome back
-                        <span className="inline-flex h-1 w-1 rounded-full bg-[#0f62fe] dark:bg-[#82aaff]" />
-                      </span>
+                    
                       <div className="relative">
                         <div className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(15,98,254,0.22),transparent_65%)] blur-2xl opacity-60 transition-opacity duration-700 dark:bg-[radial-gradient(circle_at_center,rgba(130,170,255,0.24),transparent_65%)]" />
                         <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(15,98,254,0.18),rgba(255,255,255,0),rgba(82,112,255,0.28),rgba(255,255,255,0))] blur-3xl opacity-30 animate-[spin_18s_linear_infinite] dark:bg-[conic-gradient(from_0deg,rgba(130,170,255,0.25),rgba(255,255,255,0),rgba(66,152,255,0.32),rgba(255,255,255,0))]" />
@@ -1414,28 +1643,13 @@ export default function ChatPage() {
                       ))}
                     </div> */}
 
-                    <div className="flex flex-row flex-wrap items-center justify-center gap-4 pt-2 text-xs text-slate-400 dark:text-slate-500">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/60 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5">
-                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#0f62fe] dark:bg-[#82aaff]" />
-                        Ultra-fast insights & sources
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/60 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5">
-                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#1f6feb] dark:bg-[#4e8cff]" />
-                        Charts & visualizations
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/60 px-4 py-2 shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5">
-                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#1f6feb] dark:bg-[#4e8cff]" />
-                        Image & video recommendations engine
-                      </div>
-                    </div>
+                    
                   </div>
                 </div>
               ) : (
                 <div className="relative w-full space-y-6">
                   <MessageList
                     messages={messages}
-                    isTyping={isGenerating}
-                    typingStatuses={assistantStatuses}
                     messageOptions={(message) => {
                       if (message.role === "user") {
                         return {}
@@ -1444,7 +1658,8 @@ export default function ChatPage() {
                       return {
                         actions: onRateResponse ? (
                           <>
-                            <div className="border-r pr-1">
+                            <div className="border-r pr-1 flex items-center gap-1">
+                              <TTSButton content={message.content} />
                               <CopyButton
                                 content={message.content}
                                 copyMessage="Copied response to clipboard!"
@@ -1454,7 +1669,11 @@ export default function ChatPage() {
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
-                              onClick={() => onRateResponse(message.id, "thumbs-up")}
+                              onClick={() => {
+                                if (onRateResponse) {
+                                  onRateResponse(message.id, "thumbs-up")
+                                }
+                              }}
                             >
                               <ThumbsUp className="h-4 w-4" />
                             </Button>
@@ -1462,18 +1681,26 @@ export default function ChatPage() {
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6"
-                              onClick={() => onRateResponse(message.id, "thumbs-down")}
+                              onClick={() => {
+                                if (onRateResponse) {
+                                  onRateResponse(message.id, "thumbs-down")
+                                }
+                              }}
                             >
                               <ThumbsDown className="h-4 w-4" />
                             </Button>
                           </>
                         ) : (
-                          <CopyButton
-                            content={message.content}
-                            copyMessage="Copied response to clipboard!"
-                          />
+                          <div className="flex items-center gap-1">
+                            <TTSButton content={message.content} />
+                            <CopyButton
+                              content={message.content}
+                              copyMessage="Copied response to clipboard!"
+                            />
+                          </div>
                         ),
                         isComplete: message.isComplete,
+                        onOpenExternalPreview: handleOpenExternalPreview,
                       }
                     }}
                   />
@@ -1483,11 +1710,15 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Input Area */}
       <div
         ref={footerRef}
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-transparent bg-white/75 shadow-[0_-18px_45px_rgba(15,17,26,0.1)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/65 dark:border-white/10 dark:bg-[#0d0d12]/85 dark:shadow-[0_-18px_60px_rgba(0,0,0,0.65)]"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background/75 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+        style={{
+          left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
+          right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
+        }}
       >
         <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6">
           <ChatForm
@@ -1535,6 +1766,15 @@ export default function ChatPage() {
         conversationId={currentConversationId}
         userEmail={displayEmail}
         userId={user ? user.email : null}
+      />
+      <LinkPreviewPane
+        open={isLinkPreviewOpen}
+        url={previewUrl}
+        title={previewTitle}
+        topOffset={layoutHeights.header}
+        bottomOffset={layoutHeights.footer}
+        width={previewPaneWidth}
+        onClose={() => setIsLinkPreviewOpen(false)}
       />
     </div>
   )

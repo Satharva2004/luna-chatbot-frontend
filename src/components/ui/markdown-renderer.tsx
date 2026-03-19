@@ -109,7 +109,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
             "Mermaid render error",
             err,
             `\n--- Mermaid code begin ---\n${normalizedCode}\n--- Mermaid code end ---` +
-              (details ? `\nDetails: ${details}` : "")
+            (details ? `\nDetails: ${details}` : "")
           )
           if (canvasRef.current) {
             canvasRef.current.innerHTML = ""
@@ -323,12 +323,13 @@ const ToolbarButton = ({
 
 interface MarkdownRendererProps {
   children: string
+  onLinkClick?: (url: string) => void
 }
 
-export function MarkdownRenderer({ children }: MarkdownRendererProps) {
+export function MarkdownRenderer({ children, onLinkClick }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS as unknown as Components}>
+      <Markdown remarkPlugins={[remarkGfm]} components={getComponents(onLinkClick) as unknown as Components}>
         {children}
       </Markdown>
     </div>
@@ -564,18 +565,44 @@ function childrenTakeAllStringContents(element: unknown): string {
   return ''
 }
 
-const COMPONENTS = {
-  h1: withClass("h1", "text-2xl font-semibold"),
-  h2: withClass("h2", "font-semibold text-xl"),
-  h3: withClass("h3", "font-semibold text-lg"),
-  p: withClass("p", "leading-relaxed"),
-  a: withClass("a", "text-primary underline underline-offset-4 hover:text-primary/80"),
-  blockquote: withClass("blockquote", "border-l-4 border-muted-foreground/20 pl-4 text-muted-foreground"),
-  
+function getComponents(onLinkClick?: (url: string) => void) {
+  return {
+  h1: withClass("h1", "mb-6 mt-8 bg-gradient-to-r from-slate-950 via-primary to-sky-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-white dark:via-sky-200 dark:to-sky-400"),
+  h2: withClass("h2", "mb-4 mt-7 border-b border-primary/15 pb-2 text-2xl font-bold text-slate-900 dark:text-slate-100"),
+  h3: withClass("h3", "mb-3 mt-6 text-xl font-semibold text-slate-800 dark:text-slate-200"),
+  p: withClass("p", "mb-4 leading-8 text-[15px] text-slate-700 selection:bg-primary/10 dark:text-slate-300"),
+  a({
+    children,
+    className,
+    href,
+    onClick,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+    return (
+      <a
+        href={href}
+        className={cn("font-semibold text-primary underline decoration-primary/35 underline-offset-4 ring-offset-background transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}
+        onClick={(event) => {
+          onClick?.(event)
+          if (event.defaultPrevented) return
+          if (!href || !onLinkClick) return
+          event.preventDefault()
+          onLinkClick(href)
+        }}
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  },
+  blockquote: withClass("blockquote", "relative my-6 rounded-[22px] border border-primary/15 bg-gradient-to-br from-primary/8 via-sky-500/5 to-transparent px-6 py-5 text-[15px] leading-7 text-slate-700 shadow-sm dark:text-slate-300"),
+  strong: withClass("strong", "font-semibold text-slate-950 dark:text-white"),
+  em: withClass("em", "italic text-slate-600 dark:text-slate-300"),
+
   code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
     const match = /language-(\w+)/.exec(className || '')
     const language = match ? match[1] : ''
-    
+
     if (language) {
       return (
         <CodeBlock language={language} className={className} {...rest}>
@@ -585,30 +612,43 @@ const COMPONENTS = {
     }
 
     return (
-      <code className={cn("rounded bg-muted px-1.5 py-0.5 text-sm font-mono", className)} {...rest}>
+      <code className={cn("rounded-md border border-sky-500/15 bg-sky-500/8 px-1.5 py-0.5 font-mono text-[0.9em] text-sky-700 dark:text-sky-300", className)} {...rest}>
         {children}
       </code>
     )
   },
-  
+
   pre({ children }: { children: React.ReactNode }) {
-    return <>{children}</>
+    return <div className="my-6">{children}</div>
   },
-  
-  ol: withClass("ol", "list-decimal space-y-2 pl-6"),
-  ul: withClass("ul", "list-disc space-y-2 pl-6"),
-  li: withClass("li", "my-1.5"),
+
+  ol: withClass("ol", "list-decimal space-y-4 pl-8 mb-6 mt-4"),
+  ul: withClass("ul", "list-none space-y-4 pl-0 mb-6 mt-4"),
+  li({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
+    return (
+      <li className={cn(
+        "relative pl-7",
+        "before:absolute before:left-0 before:top-[0.65em] before:h-2 before:w-2 before:rounded-full before:bg-gradient-to-br before:from-primary before:to-sky-400",
+        className
+      )} {...props}>
+        <div className="leading-8 text-slate-700 dark:text-slate-300">
+          {children}
+        </div>
+      </li>
+    )
+  },
   table: withClass(
     "table",
-    "w-full border-collapse border border-border rounded-md overflow-hidden"
+    "my-8 w-full overflow-hidden rounded-[22px] border border-border/60 border-separate border-spacing-0 shadow-[0_16px_50px_rgba(15,23,42,0.06)]"
   ),
-  thead: withClass("thead", "bg-muted"),
-  tbody: withClass("tbody", "divide-y divide-border"),
-  tr: withClass("tr", "hover:bg-muted/50"),
-  th: withClass("th", "border border-border p-2 text-left font-medium"),
-  td: withClass("td", "border border-border p-2"),
-  hr: withClass("hr", "my-4 border-t border-border"),
-  img: withClass("img", "rounded-md border border-border"),
+  thead: withClass("thead", "bg-gradient-to-r from-slate-100 to-sky-50 dark:from-slate-900 dark:to-slate-800"),
+  tbody: withClass("tbody", "divide-y divide-border/40"),
+  tr: withClass("tr", "group odd:bg-background even:bg-slate-50/50 dark:even:bg-white/5"),
+  th: withClass("th", "border-b border-border/60 p-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300"),
+  td: withClass("td", "p-4 text-sm leading-7 text-slate-700 dark:text-slate-300"),
+  hr: withClass("hr", "my-10 border-t border-dashed border-border/60"),
+  img: withClass("img", "mx-auto my-8 rounded-[22px] border border-border/50 shadow-[0_20px_60px_rgba(15,23,42,0.10)]"),
+}
 }
 
 function withClass<TagName extends keyof HTMLElementTagNameMap>(

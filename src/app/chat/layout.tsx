@@ -1,4 +1,4 @@
-    import { Metadata } from 'next';
+import { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Navbar } from '@/components/ui/navbar';
