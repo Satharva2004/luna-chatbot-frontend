@@ -29,7 +29,7 @@ import { fuzzySearch } from "@/services/suggestions/fuzzy"
 import { Playfair_Display } from "next/font/google"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { FeedbackDialog } from "@/components/ui/feedback-dialog"
-import { LinkPreviewSheet } from "@/components/ui/link-preview-sheet"
+import { LinkPreviewPane } from "@/components/ui/link-preview-pane"
 import { toast } from "sonner"
 import { TTSButton } from "@/components/ui/tts-button"
 import { LunaIcon } from "@/components/ui/luna-icon"
@@ -204,6 +204,8 @@ export default function ChatPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTitle, setPreviewTitle] = useState<string | null>(null)
   const [isLinkPreviewOpen, setIsLinkPreviewOpen] = useState(false)
+  const [canDockPreview, setCanDockPreview] = useState(false)
+  const previewPaneWidth = 460
 
   const displayName = user?.username || user?.name || 'User'
   const displayEmail = user?.email ?? ''
@@ -256,6 +258,7 @@ export default function ChatPage() {
       const viewport = window.visualViewport
       const height = viewport?.height ?? window.innerHeight
       setViewportHeight(`${height}px`)
+      setCanDockPreview(window.innerWidth >= 1280)
     }
 
     updateViewport()
@@ -959,6 +962,8 @@ export default function ChatPage() {
     setIsLinkPreviewOpen(true)
   }, [])
 
+  const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
+
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
     try {
       const formData = new FormData()
@@ -1448,6 +1453,7 @@ export default function ChatPage() {
           minHeight: viewportHeight,
           paddingTop: messages.length > 0 ? `${layoutHeights.header}px` : 0,
           paddingBottom: messages.length > 0 ? `${layoutHeights.footer}px` : 0,
+          paddingRight: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
         <div className={`h-full ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
@@ -1566,6 +1572,9 @@ export default function ChatPage() {
       <div
         ref={footerRef}
         className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background/75 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+        style={{
+          right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
+        }}
       >
         <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6">
           <ChatForm
@@ -1614,11 +1623,14 @@ export default function ChatPage() {
         userEmail={displayEmail}
         userId={user ? user.email : null}
       />
-      <LinkPreviewSheet
+      <LinkPreviewPane
         open={isLinkPreviewOpen}
-        onOpenChange={setIsLinkPreviewOpen}
         url={previewUrl}
         title={previewTitle}
+        topOffset={layoutHeights.header}
+        bottomOffset={layoutHeights.footer}
+        width={previewPaneWidth}
+        onClose={() => setIsLinkPreviewOpen(false)}
       />
     </div>
   )

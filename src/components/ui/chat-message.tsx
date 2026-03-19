@@ -1096,7 +1096,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           >
             <div className={cn(chatBubbleVariants({ isUser, animation }))}>
               <div className="overflow-hidden">
-                <MarkdownRenderer>{part.text}</MarkdownRenderer>
+                <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{part.text}</MarkdownRenderer>
               </div>
             </div>
 
@@ -1150,9 +1150,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   return (
     <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
       <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-        <div className="overflow-hidden">
-          <MarkdownRenderer>{content}</MarkdownRenderer>
-        </div>
+          <div className="overflow-hidden">
+           <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{content}</MarkdownRenderer>
+          </div>
       </div>
 
       {showTimeStamp && createdAt && (
@@ -1231,7 +1231,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
             <div className="px-5 pb-5 pt-2">
               <div className="relative rounded-2xl bg-white/40 p-5 text-[14px] leading-relaxed text-slate-700 shadow-sm dark:bg-black/30 dark:text-slate-300">
                 <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-primary/30" />
-                <MarkdownRenderer>{part.reasoning}</MarkdownRenderer>
+                <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{part.reasoning}</MarkdownRenderer>
               </div>
             </div>
           </motion.div>
