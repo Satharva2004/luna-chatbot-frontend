@@ -25,24 +25,13 @@ import { ExcalidrawViewer } from "@/components/ui/excalidraw-viewer"
 import { CustomPDFViewer } from "@/components/ui/pdf-viewer"
 import { LunaIcon } from "@/components/ui/luna-icon"
 
-
-
-function toSentenceCase(text: string): string {
-  if (typeof text !== "string" || text.trim().length === 0) {
-    return text ?? ""
-  }
-  const trimmed = text.trim()
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
-}
-
-
 const chatBubbleVariants = cva(
-  "group/message relative break-words transition-all duration-300",
+  "group/message relative w-full break-words",
   {
     variants: {
       isUser: {
-        true: "max-w-[85%] sm:max-w-[70%] rounded-2xl px-5 py-3.5 text-slate-900 glass-morphism hover:bg-white/10 dark:text-slate-100 dark:hover:bg-white/5",
-        false: "w-full max-w-full px-0 py-0 text-slate-900 dark:text-slate-100",
+        true: "max-w-[88%] sm:max-w-[72%]",
+        false: "max-w-full",
       },
       animation: {
         none: "",
@@ -87,6 +76,17 @@ const BlinkingCursor = () => (
     }}
     className="inline-block h-4 w-1.5 translate-y-0.5 rounded-full bg-primary/60"
   />
+)
+
+const MinimalAssistantLoader = () => (
+  <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/90 px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm">
+    <span className="flex items-center gap-1">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/70 [animation-delay:0ms]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/50 [animation-delay:300ms]" />
+    </span>
+    Thinking
+  </div>
 )
 
 type Animation = VariantProps<typeof chatBubbleVariants>["animation"]
@@ -353,6 +353,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     minute: "2-digit",
   })
 
+  const messageShellClass = isUser
+    ? "overflow-hidden rounded-[24px] border border-border/50 bg-transparent px-5 py-4 text-foreground/90 shadow-none"
+    : "overflow-visible border-0 bg-transparent px-0 py-0 text-foreground shadow-none"
+
+  const shouldShowMinimalLoader =
+    !isUser &&
+    !isComplete &&
+    !String(content || "").trim() &&
+    !(parts && parts.length > 0) &&
+    !(Array.isArray(images) && images.length > 0) &&
+    !(Array.isArray(videos) && videos.length > 0) &&
+    !(Array.isArray(sources) && sources.length > 0)
+
   // Render message with files if present
   const renderMessageContent = (content: string, promptTitleOverride?: string) => (
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
@@ -372,6 +385,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         </div>
       ) : null}
       <div className={cn(chatBubbleVariants({ isUser, animation }), "relative")}>
+        <div className={messageShellClass}>
         {files && (
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => (
@@ -379,18 +393,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             ))}
           </div>
         )}
-        {/* commit */}
-        {!isUser && (promptTitleOverride || promptTitle) && (
-          <div className="flex flex-col gap-1">
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, ease: "circOut" }}
-              className="mb-8 text-4xl font-bold font-playfair tracking-tight text-foreground bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent"
-            >
-              {toSentenceCase(promptTitleOverride || promptTitle || "")}
-              <div className="mt-8 h-[2px] w-48 rounded-full bg-gradient-to-r from-primary/40 to-transparent" />
-            </motion.div>
+
+        {shouldShowMinimalLoader && (
+          <div className="py-2">
+            <MinimalAssistantLoader />
           </div>
         )}
 
@@ -1049,6 +1055,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {
@@ -1095,8 +1102,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             key={`text-${index}`}
           >
             <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-              <div className="overflow-hidden">
-                <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{part.text}</MarkdownRenderer>
+              <div className={messageShellClass}>
+                <div className="overflow-hidden">
+                  <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{part.text}</MarkdownRenderer>
+                </div>
               </div>
             </div>
 
@@ -1124,7 +1133,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )
       } else if (part.type === "reasoning") {
-        return <ReasoningBlock key={`reasoning-${index}`} part={part} />
+        return <ReasoningBlock key={`reasoning-${index}`} part={part} onLinkClick={openExternalPreview} />
       } else if (part.type === "tool-invocation") {
         return (
           <ToolCall
@@ -1141,6 +1150,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return <ToolCall toolInvocations={toolInvocations} />
   }
 
+  if (shouldShowMinimalLoader) {
+    return renderMessageContent(content)
+  }
+
   // For assistant messages with content but no parts
   if (content) {
     return renderMessageContent(content);
@@ -1150,9 +1163,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   return (
     <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
       <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+        <div className={messageShellClass}>
           <div className="overflow-hidden">
            <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{content}</MarkdownRenderer>
           </div>
+        </div>
       </div>
 
       {showTimeStamp && createdAt && (
@@ -1186,7 +1201,7 @@ function dataUrlToUint8Array(data: string) {
   return new Uint8Array(buf)
 }
 
-const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
+const ReasoningBlock = ({ part, onLinkClick }: { part: ReasoningPart; onLinkClick?: (url: string, title?: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -1231,7 +1246,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
             <div className="px-5 pb-5 pt-2">
               <div className="relative rounded-2xl bg-white/40 p-5 text-[14px] leading-relaxed text-slate-700 shadow-sm dark:bg-black/30 dark:text-slate-300">
                 <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-primary/30" />
-                <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{part.reasoning}</MarkdownRenderer>
+                <MarkdownRenderer onLinkClick={(url) => onLinkClick?.(url)}>{part.reasoning}</MarkdownRenderer>
               </div>
             </div>
           </motion.div>

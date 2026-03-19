@@ -205,6 +205,8 @@ export default function ChatPage() {
   const [previewTitle, setPreviewTitle] = useState<string | null>(null)
   const [isLinkPreviewOpen, setIsLinkPreviewOpen] = useState(false)
   const [canDockPreview, setCanDockPreview] = useState(false)
+  const [canDockHistory, setCanDockHistory] = useState(false)
+  const historySidebarWidth = 340
   const previewPaneWidth = 460
 
   const displayName = user?.username || user?.name || 'User'
@@ -258,6 +260,7 @@ export default function ChatPage() {
       const viewport = window.visualViewport
       const height = viewport?.height ?? window.innerHeight
       setViewportHeight(`${height}px`)
+      setCanDockHistory(window.innerWidth >= 768)
       setCanDockPreview(window.innerWidth >= 1280)
     }
 
@@ -357,13 +360,15 @@ export default function ChatPage() {
     loadConversations()
   }, [currentConversationId, loadConversations])
 
-  // Close history dropdown when clicking outside
+  useEffect(() => {
+    if (!canDockHistory && isHistoryOpen) {
+      setIsHistoryOpen(false)
+    }
+  }, [canDockHistory, isHistoryOpen])
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element | null
-      if (isHistoryOpen && !target?.closest('.history-dropdown')) {
-        setIsHistoryOpen(false)
-      }
       if (isProfileOpen && !target?.closest('.profile-dropdown')) {
         setIsProfileOpen(false)
       }
@@ -371,7 +376,7 @@ export default function ChatPage() {
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isHistoryOpen, isProfileOpen])
+  }, [isProfileOpen])
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -444,7 +449,6 @@ export default function ChatPage() {
   const handleConversationSelect = useCallback(async (conversationId: string) => {
     stop()
     setLoadingConversationId(conversationId)
-    setIsHistoryOpen(false)
     setIsMobileMenuOpen(false)
     setIsProfileOpen(false)
     try {
@@ -545,7 +549,7 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }
 
-  const simulateAssistant = async (userContent: string, attachments?: FileList) => {
+  const simulateAssistant = async (assistantMessageId: string, userContent: string, attachments?: FileList) => {
     try {
       console.log('Starting streaming request with prompt:', userContent)
 
@@ -594,22 +598,6 @@ export default function ChatPage() {
         console.error('API Error:', errorText)
         throw new Error(errorText || 'Failed to get response from the API')
       }
-
-      const assistantMessageId = crypto.randomUUID()
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: "assistant",
-        content: "",
-        createdAt: new Date(),
-        sources: [],
-        chartUrl: null,
-        chartUrls: [],
-        images: [],
-        promptTitle: userContent,
-        isComplete: false,
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
 
       let resolvedConversationId: string | null = conversationId || null
 
@@ -903,13 +891,18 @@ export default function ChatPage() {
       }
 
       console.error('Error in streaming:', error)
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "Sorry, I encountered an error while processing your request. Please try again.",
-        createdAt: new Date(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+              ...msg,
+              content: "Sorry, I encountered an error while processing your request. Please try again.",
+              createdAt: new Date(),
+              isComplete: true,
+            }
+            : msg
+        )
+      )
     }
   }
 
@@ -934,14 +927,32 @@ export default function ChatPage() {
         : undefined,
     }
 
-    setMessages((prev) => [...prev, newMessage])
+    const assistantMessageId = crypto.randomUUID()
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: "assistant",
+      content: "",
+      createdAt: new Date(),
+      sources: [],
+      chartUrl: null,
+      chartUrls: [],
+      images: [],
+      promptTitle: newMessage.content,
+      isComplete: false,
+    }
+
+    setMessages((prev) => [...prev, newMessage, assistantMessage])
     setInput("")
     setIsGenerating(true)
 
-    simulateAssistant(newMessage.content, options?.experimental_attachments)
+    simulateAssistant(assistantMessageId, newMessage.content, options?.experimental_attachments)
       .finally(() => {
         setIsGenerating(false)
         abortControllerRef.current = null
+        void loadConversations()
+        window.setTimeout(() => {
+          void loadConversations()
+        }, 1400)
       })
   }
 
@@ -962,6 +973,7 @@ export default function ChatPage() {
     setIsLinkPreviewOpen(true)
   }, [])
 
+  const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
   const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
 
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
@@ -1009,6 +1021,10 @@ export default function ChatPage() {
       <header
         ref={headerRef}
         className="fixed inset-x-0 top-0 z-20 flex justify-center px-3 sm:px-6 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-3"
+        style={{
+          left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
+          right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
+        }}
       >
         <div className="flex w-full max-w-7xl items-center justify-between rounded-[28px] border border-border/60 bg-background/70 px-4 shadow-sm backdrop-blur-xl transition-all duration-300 sm:px-8">
           <div className="flex h-[60px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
@@ -1082,18 +1098,18 @@ export default function ChatPage() {
                   </span>
                 </button>
 
-                {isHistoryOpen && (
-                  <div className="absolute left-1/2 top-full z-50 mt-3 w-[420px] -translate-x-1/2 origin-top rounded-3xl border border-border/60 bg-background/80 p-1 shadow-lg backdrop-blur-xl transition-all">
-                    <div className="space-y-3 rounded-2xl border border-border/60 bg-background/60 px-4 py-4">
+                {false && (
+                  <div className="absolute left-1/2 top-full z-50 mt-3 w-[460px] -translate-x-1/2 origin-top rounded-[30px] border border-border/60 bg-background/90 p-2 shadow-[0_30px_100px_rgba(15,23,42,0.18)] backdrop-blur-2xl transition-all">
+                    <div className="space-y-4 rounded-[24px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] px-4 py-4 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(10,15,28,0.92))]">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold">Search chats</p>
-                          <p className="text-xs text-muted-foreground">Browse and reopen conversations</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Recent chats</p>
+                          <p className="text-xs text-muted-foreground">Search, reopen, and manage saved threads</p>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-2 text-xs text-primary hover:text-primary/90"
+                          className="h-8 rounded-full border border-primary/15 px-3 text-xs text-primary"
                           onClick={startNewChat}
                           type="button"
                         >
@@ -1107,12 +1123,12 @@ export default function ChatPage() {
                           value={historyQuery}
                           onChange={(event) => setHistoryQuery(event.target.value)}
                           placeholder="Search conversations"
-                          className="h-10 rounded-2xl border border-border/60 bg-background pl-9 pr-3 text-sm shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/25"
+                          className="h-11 rounded-[18px] border border-border/60 bg-background/90 pl-9 pr-3 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/25"
                         />
                       </div>
                     </div>
 
-                    <div className="max-h-80 overflow-y-auto overflow-x-hidden rounded-2xl border border-border/60 bg-background/50 p-2">
+                    <div className="max-h-[24rem] overflow-y-auto overflow-x-hidden rounded-[24px] border border-border/60 bg-background/65 p-2">
                       {isHistoryLoading ? (
                         <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                           Loading conversations...
@@ -1130,31 +1146,34 @@ export default function ChatPage() {
                           {filteredHistory.map((conversation) => {
                             const isActive = currentConversationId === conversation.id
                             const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+                            const initial = (conversation.title || "C").slice(0, 1).toUpperCase()
 
                             return (
                               <li key={conversation.id}>
-                                <div className={`flex items-center gap-2 rounded-xl px-2 py-1 ${isActive ? 'bg-muted/60' : ''}`}>
+                                <div className={`group flex items-center gap-3 rounded-[20px] px-2 py-1.5 ${isActive ? 'bg-primary/8' : ''}`}>
                                   <button
-                                    className="flex-1 min-w-0 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-background/70"
+                                    className={`flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border px-3 py-3 text-left shadow-sm ${isActive ? 'border-primary/25 bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.88))] dark:bg-[linear-gradient(180deg,rgba(37,99,235,0.18),rgba(15,23,42,0.88))]' : 'border-border/50 bg-background/70 hover:bg-background/90'}`}
                                     onClick={() => handleConversationSelect(conversation.id)}
                                     type="button"
                                   >
-                                    <div className="flex min-w-0 items-center justify-between gap-3">
-                                      <span className="truncate font-medium">
+                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200'}`}>
+                                      {initial}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="truncate text-sm font-semibold text-foreground">
                                         {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
-                                      </span>
-                                      {timestamp && (
-                                        <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
-                                          {timestamp}
-                                        </span>
-                                      )}
+                                      </div>
+                                      <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                                        <span className="truncate">{isActive ? 'Current thread' : 'Saved conversation'}</span>
+                                        {timestamp && <span className="shrink-0">{timestamp}</span>}
+                                      </div>
                                     </div>
                                     {loadingConversationId === conversation.id && (
-                                      <span className="mt-1 block text-xs text-primary">Loading...</span>
+                                      <span className="shrink-0 text-xs text-primary">Loading...</span>
                                     )}
                                   </button>
                                   <button
-                                    className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                    className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                     onClick={(event) => handleDeleteConversation(conversation.id, event)}
                                     title="Delete conversation"
                                     type="button"
@@ -1382,7 +1401,7 @@ export default function ChatPage() {
                     </Button>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto rounded-2xl border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                  <div className="max-h-60 overflow-y-auto rounded-[24px] border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                     {isHistoryLoading ? (
                       <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                         Loading conversations...
@@ -1397,16 +1416,21 @@ export default function ChatPage() {
                           const isActive = currentConversationId === conversation.id
                           const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
 
+                          const initial = (conversation.title || "C").slice(0, 1).toUpperCase()
+
                           return (
-                            <li key={conversation.id} className="transition-transform duration-200 ease-out hover:translate-x-1">
+                            <li key={conversation.id}>
                               <button
-                                className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${isActive
+                                className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isActive
                                   ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
                                   : 'hover:bg-white/80 dark:hover:bg-white/10'
                                   }`}
                                 onClick={() => handleConversationSelect(conversation.id)}
                                 type="button"
                               >
+                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${isActive ? 'bg-[#0b84ff] text-white' : 'bg-white/70 text-slate-700 dark:bg-white/10 dark:text-slate-200'}`}>
+                                  {initial}
+                                </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="truncate font-semibold">
                                     {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
@@ -1446,6 +1470,122 @@ export default function ChatPage() {
         )}
       </header>
 
+      {isHistoryOpen && canDockHistory && (
+        <aside
+          className="fixed bottom-0 left-0 z-40 hidden border-r border-border/60 bg-background/90 backdrop-blur-2xl md:block"
+          style={{
+            top: 0,
+            width: historySidebarWidth,
+          }}
+        >
+          <div className="flex h-full flex-col">
+            <div className="border-b border-border/60 px-4 pb-4 pt-[calc(1.25rem+env(safe-area-inset-top,0px))]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Recent chats</p>
+                  <p className="text-xs text-muted-foreground">Open and manage your saved conversations</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-full border border-border/60"
+                  onClick={() => {
+                    setIsHistoryOpen(false)
+                    setHistoryQuery("")
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  className="flex-1 justify-center gap-2"
+                  onClick={startNewChat}
+                  type="button"
+                >
+                  <Plus className="h-4 w-4" />
+                  New chat
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full border border-border/60"
+                  onClick={() => loadConversations()}
+                  type="button"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="relative mt-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={historyQuery}
+                  onChange={(event) => setHistoryQuery(event.target.value)}
+                  placeholder="Search chats"
+                  className="h-11 rounded-2xl border border-border/60 bg-background pl-9 pr-3 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {isHistoryLoading ? (
+                <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                  Loading conversations...
+                </div>
+              ) : conversations.length === 0 ? (
+                <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                  No conversations yet
+                </div>
+              ) : filteredHistory.length === 0 ? (
+                <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                  No chats found for "{historyQuery}"
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {filteredHistory.map((conversation) => {
+                    const isActive = currentConversationId === conversation.id
+                    const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+
+                    return (
+                      <li key={conversation.id}>
+                        <div className="group flex items-center gap-2 rounded-2xl px-2 py-1">
+                          <button
+                            className={`min-w-0 flex-1 rounded-[18px] px-3 py-3 text-left transition-colors ${isActive ? 'bg-primary/10 text-foreground ring-1 ring-primary/20' : 'hover:bg-muted/60'}`}
+                            onClick={() => handleConversationSelect(conversation.id)}
+                            type="button"
+                          >
+                            <div className="truncate text-sm font-medium">
+                              {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <span className="truncate">{isActive ? 'Current chat' : 'Saved chat'}</span>
+                              {timestamp ? <span className="shrink-0">{timestamp}</span> : null}
+                              {loadingConversationId === conversation.id ? <span className="shrink-0 text-primary">Loading...</span> : null}
+                            </div>
+                          </button>
+                          <button
+                            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                            title="Delete conversation"
+                            type="button"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </aside>
+      )}
+
       {/* Main Content */}
       <div
         className="flex-1 overflow-hidden"
@@ -1453,6 +1593,7 @@ export default function ChatPage() {
           minHeight: viewportHeight,
           paddingTop: messages.length > 0 ? `${layoutHeights.header}px` : 0,
           paddingBottom: messages.length > 0 ? `${layoutHeights.footer}px` : 0,
+          paddingLeft: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
           paddingRight: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
@@ -1465,6 +1606,8 @@ export default function ChatPage() {
                   style={{
                     top: layoutHeights.header,
                     bottom: layoutHeights.footer,
+                    left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
+                    right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
                   }}
                 >
                   <div className="relative mx-auto max-w-2xl space-y-10 px-6 pb-16 pt-20 text-center text-slate-800 dark:text-slate-200">
@@ -1573,6 +1716,7 @@ export default function ChatPage() {
         ref={footerRef}
         className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background/75 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl"
         style={{
+          left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
           right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >

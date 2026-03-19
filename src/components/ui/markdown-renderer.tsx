@@ -567,10 +567,10 @@ function childrenTakeAllStringContents(element: unknown): string {
 
 function getComponents(onLinkClick?: (url: string) => void) {
   return {
-  h1: withClass("h1", "text-3xl font-bold font-playfair mb-6 mt-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent tracking-tight"),
-  h2: withClass("h2", "text-2xl font-bold font-playfair mb-4 mt-6 text-primary/90 border-b border-primary/10 pb-1"),
-  h3: withClass("h3", "text-xl font-semibold font-playfair mb-3 mt-5 text-primary/80"),
-  p: withClass("p", "leading-[1.8] text-foreground/90 mb-4 selection:bg-primary/10"),
+  h1: withClass("h1", "mb-6 mt-8 bg-gradient-to-r from-slate-950 via-primary to-sky-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-white dark:via-sky-200 dark:to-sky-400"),
+  h2: withClass("h2", "mb-4 mt-7 border-b border-primary/15 pb-2 text-2xl font-bold text-slate-900 dark:text-slate-100"),
+  h3: withClass("h3", "mb-3 mt-6 text-xl font-semibold text-slate-800 dark:text-slate-200"),
+  p: withClass("p", "mb-4 leading-8 text-[15px] text-slate-700 selection:bg-primary/10 dark:text-slate-300"),
   a({
     children,
     className,
@@ -581,7 +581,7 @@ function getComponents(onLinkClick?: (url: string) => void) {
     return (
       <a
         href={href}
-        className={cn("text-primary font-medium underline underline-offset-4 ring-offset-background transition-colors hover:text-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}
+        className={cn("font-semibold text-primary underline decoration-primary/35 underline-offset-4 ring-offset-background transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}
         onClick={(event) => {
           onClick?.(event)
           if (event.defaultPrevented) return
@@ -595,7 +595,9 @@ function getComponents(onLinkClick?: (url: string) => void) {
       </a>
     )
   },
-  blockquote: withClass("blockquote", "relative my-6 border-l-4 border-primary/30 pl-6 py-2 text-foreground/80 font-playfair bg-primary/5 rounded-r-lg shadow-sm before:content-['\"'] before:absolute before:left-2 before:top-0 before:text-4xl before:text-primary/20 before:font-serif"),
+  blockquote: withClass("blockquote", "relative my-6 rounded-[22px] border border-primary/15 bg-gradient-to-br from-primary/8 via-sky-500/5 to-transparent px-6 py-5 text-[15px] leading-7 text-slate-700 shadow-sm dark:text-slate-300"),
+  strong: withClass("strong", "font-semibold text-slate-950 dark:text-white"),
+  em: withClass("em", "italic text-slate-600 dark:text-slate-300"),
 
   code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
     const match = /language-(\w+)/.exec(className || '')
@@ -610,7 +612,7 @@ function getComponents(onLinkClick?: (url: string) => void) {
     }
 
     return (
-      <code className={cn("rounded-md bg-muted/80 border border-border/50 px-1.5 py-0.5 text-[0.9em] font-mono text-primary/90", className)} {...rest}>
+      <code className={cn("rounded-md border border-sky-500/15 bg-sky-500/8 px-1.5 py-0.5 font-mono text-[0.9em] text-sky-700 dark:text-sky-300", className)} {...rest}>
         {children}
       </code>
     )
@@ -626,10 +628,10 @@ function getComponents(onLinkClick?: (url: string) => void) {
     return (
       <li className={cn(
         "relative pl-7",
-        "before:absolute before:left-0 before:top-[0.6em] before:h-2 before:w-2 before:rounded-full before:bg-primary/40",
+        "before:absolute before:left-0 before:top-[0.65em] before:h-2 before:w-2 before:rounded-full before:bg-gradient-to-br before:from-primary before:to-sky-400",
         className
       )} {...props}>
-        <div className="text-foreground/90 leading-relaxed">
+        <div className="leading-8 text-slate-700 dark:text-slate-300">
           {children}
         </div>
       </li>
@@ -637,15 +639,15 @@ function getComponents(onLinkClick?: (url: string) => void) {
   },
   table: withClass(
     "table",
-    "w-full border-separate border-spacing-0 border border-border/60 rounded-xl overflow-hidden my-8 shadow-sm"
+    "my-8 w-full overflow-hidden rounded-[22px] border border-border/60 border-separate border-spacing-0 shadow-[0_16px_50px_rgba(15,23,42,0.06)]"
   ),
-  thead: withClass("thead", "bg-muted/50"),
+  thead: withClass("thead", "bg-gradient-to-r from-slate-100 to-sky-50 dark:from-slate-900 dark:to-slate-800"),
   tbody: withClass("tbody", "divide-y divide-border/40"),
-  tr: withClass("tr", "group hover:bg-primary/[0.02] transition-colors"),
-  th: withClass("th", "border-b border-border/60 p-4 text-left font-semibold text-primary/80 uppercase tracking-wider text-xs bg-muted/30"),
-  td: withClass("td", "p-4 text-sm text-foreground/80 transition-colors"),
-  hr: withClass("hr", "my-10 border-t-2 border-dashed border-border/50 opacity-60"),
-  img: withClass("img", "rounded-xl border border-border/40 shadow-lg mx-auto my-8 transition-transform hover:scale-[1.01] duration-500"),
+  tr: withClass("tr", "group odd:bg-background even:bg-slate-50/50 dark:even:bg-white/5"),
+  th: withClass("th", "border-b border-border/60 p-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300"),
+  td: withClass("td", "p-4 text-sm leading-7 text-slate-700 dark:text-slate-300"),
+  hr: withClass("hr", "my-10 border-t border-dashed border-border/60"),
+  img: withClass("img", "mx-auto my-8 rounded-[22px] border border-border/50 shadow-[0_20px_60px_rgba(15,23,42,0.10)]"),
 }
 }
 
