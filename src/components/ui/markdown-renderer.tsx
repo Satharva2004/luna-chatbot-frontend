@@ -7,8 +7,7 @@ import { Download, Maximize2, RefreshCcw, ZoomIn, ZoomOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/copy-button"
-
-const MERMAID_SYNTAX_ERROR = "MERMAID_SYNTAX_ERROR"
+import type { PanZoom } from "panzoom"
 
 type MermaidSyntaxError = Error & { details?: string }
 
@@ -25,8 +24,9 @@ function isMermaidErrorSvg(svg: string) {
 
 const MermaidDiagram = ({ code }: { code: string }) => {
   const canvasRef = React.useRef<HTMLDivElement | null>(null)
-  const panzoomRef = React.useRef<any>(null)
+  const panzoomRef = React.useRef<PanZoom | null>(null)
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading")
+  const [errorDetails, setErrorDetails] = React.useState<string | null>(null)
   const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null)
   const [isExpanded, setIsExpanded] = React.useState(false)
   const normalizedCode = React.useMemo(() => normalizeMermaidCode(code), [code])
@@ -38,6 +38,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
       if (!canvasRef.current) return
 
       setStatus("loading")
+      setErrorDetails(null)
       setSvgMarkup(null)
 
       canvasRef.current.innerHTML = ""
@@ -52,8 +53,11 @@ const MermaidDiagram = ({ code }: { code: string }) => {
 
         mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "loose" })
 
+        const repairedCode = await resolveMermaidCodeForRender(mermaid, normalizedCode)
+        if (cancelled || !canvasRef.current) return
+
         const renderId = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2)}`
-        const renderResult = await mermaid.render(renderId, normalizedCode)
+        const renderResult = await mermaid.render(renderId, repairedCode)
         const svg = typeof renderResult === "string" ? renderResult : renderResult?.svg
 
         if (!svg) {
@@ -68,6 +72,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
               canvasRef.current.innerHTML = ""
             }
             setStatus("error")
+            setErrorDetails("Mermaid generated an error diagram containing invalid syntax.")
           }
           return
         }
@@ -115,6 +120,8 @@ const MermaidDiagram = ({ code }: { code: string }) => {
             canvasRef.current.innerHTML = ""
           }
           setStatus("error")
+          const errDetails = err instanceof Error ? (err as MermaidSyntaxError).details || err.message : String(err)
+          setErrorDetails(errDetails)
         }
       }
     }
@@ -140,13 +147,13 @@ const MermaidDiagram = ({ code }: { code: string }) => {
     if (!panzoomRef.current) return
     const currentScale = panzoomRef.current.getTransform().scale
     const nextScale = Math.min(4, Math.max(0.4, currentScale + delta))
-    withCanvasCenter(({ x, y }) => panzoomRef.current.zoomAbs(x, y, nextScale))
+    withCanvasCenter(({ x, y }) => panzoomRef.current?.zoomAbs(x, y, nextScale))
   }
 
   const handleReset = () => {
     if (!panzoomRef.current) return
     panzoomRef.current.moveTo(0, 0)
-    withCanvasCenter(({ x, y }) => panzoomRef.current.zoomAbs(x, y, 1))
+    withCanvasCenter(({ x, y }) => panzoomRef.current?.zoomAbs(x, y, 1))
   }
 
   const handleDownload = async (format: "svg" | "png") => {
@@ -249,9 +256,16 @@ const MermaidDiagram = ({ code }: { code: string }) => {
 
       <div className="relative min-h-[220px] overflow-hidden rounded-b-xl bg-muted/30">
         {status === "error" ? (
-          <pre className="h-full w-full overflow-auto whitespace-pre-wrap p-4 font-mono text-xs text-muted-foreground">
-            {normalizedCode}
-          </pre>
+          <div className="flex min-h-[220px] w-full flex-col items-center justify-center p-6 text-center">
+            <div className="w-full max-w-2xl rounded-2xl border border-destructive/20 bg-destructive/5 px-5 py-4 shadow-sm backdrop-blur-sm">
+              <p className="text-sm font-semibold text-destructive">Diagram rendering failed</p>
+              {errorDetails && (
+                <div className="mt-3 overflow-auto rounded-md bg-destructive/10 p-3 text-left">
+                  <p className="font-mono text-[0.7rem] text-destructive whitespace-pre-wrap">{errorDetails}</p>
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <>
             <div ref={canvasRef} className="h-full w-full p-4" />
@@ -386,7 +400,7 @@ const HighlightedPre = React.memo(
               </code>
             </pre>
           )
-        } catch (error) {
+        } catch {
           if (!cancelled) {
             setHighlighted(<pre {...props}>{children}</pre>)
           }
@@ -483,6 +497,23 @@ async function validateMermaidCode(mermaidLib: MermaidModule, code: string) {
   }
 }
 
+async function resolveMermaidCodeForRender(mermaidLib: MermaidModule, code: string) {
+  const attempts = buildMermaidRepairCandidates(code)
+  let lastError: string | null = null
+
+  for (const candidate of attempts) {
+    const validationError = await validateMermaidCode(mermaidLib, candidate)
+    if (!validationError) {
+      return candidate
+    }
+    lastError = validationError
+  }
+
+  const finalError = new Error(lastError || "Unknown Mermaid syntax error") as MermaidSyntaxError
+  finalError.details = lastError || undefined
+  throw finalError
+}
+
 function normalizeMermaidCode(code: string) {
   return code
     .replace(/[“”]/g, '"')
@@ -493,6 +524,27 @@ function normalizeMermaidCode(code: string) {
     .trim()
     .replace(/^graph\s+TD\b/i, 'flowchart TD')
     .replace(/^graph\s+LR\b/i, 'flowchart LR')
+}
+
+function buildMermaidRepairCandidates(code: string) {
+  const candidates = new Set<string>()
+  const normalized = normalizeMermaidCode(code)
+  const variants = [
+    normalized,
+    stripMermaidFence(normalized),
+    sanitizeMermaidCode(normalized),
+    sanitizeMermaidCode(stripMermaidFence(normalized)),
+    repairMermaidStructure(sanitizeMermaidCode(stripMermaidFence(normalized))),
+  ]
+
+  for (const variant of variants) {
+    const cleaned = normalizeMermaidCode(variant)
+    if (cleaned) {
+      candidates.add(cleaned)
+    }
+  }
+
+  return [...candidates]
 }
 
 type NodeShapePattern = {
@@ -530,6 +582,24 @@ function sanitizeMermaidLine(line: string) {
     })
   }
   return sanitized
+}
+
+function repairMermaidStructure(code: string) {
+  return code
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line, index, lines) => !(index > 0 && line.length === 0 && lines[index - 1].length === 0))
+    .map((line) => line.replace(/\s+(-->|---|\.-\.->|==>|-.->|~~~>)\s+/g, " $1 "))
+    .join("\n")
+    .trim()
+}
+
+function stripMermaidFence(code: string) {
+  return code
+    .replace(/^```(?:mermaid)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .replace(/^mermaid\s*\n/i, "")
+    .trim()
 }
 
 function ensureQuotedLabel(label: string) {

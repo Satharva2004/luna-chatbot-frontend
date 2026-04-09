@@ -229,9 +229,9 @@ export default function ChatPage() {
   }, [displayName])
 
   const desktopActionClasses =
-    "group/nav relative inline-flex h-9 items-center overflow-hidden rounded-full border border-border/50 bg-background/70 px-5 text-sm font-medium text-foreground/80 shadow-sm backdrop-blur-xl transition-colors hover:bg-background/85 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+    "group/nav relative inline-flex h-9 items-center overflow-hidden rounded-full border border-white/10 bg-white/5 px-5 text-sm font-medium text-foreground/80 shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
   const desktopProfileButtonClasses =
-    "group/profile relative flex min-h-10 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-border/50 bg-background/70 px-2 pr-5 text-left text-foreground shadow-sm backdrop-blur-xl transition-colors hover:bg-background/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+    "group/profile relative flex min-h-10 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/5 px-2 pr-5 text-left text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
 
   // Layout heights state
   const [layoutHeights, setLayoutHeights] = useState({
@@ -1013,7 +1013,7 @@ export default function ChatPage() {
         className="pointer-events-none absolute inset-0 -z-10 opacity-80"
         style={{
           background:
-            'radial-gradient(circle at 20% 10%, rgba(99,102,241,0.10), transparent 45%), radial-gradient(circle at 80% 0%, rgba(14,165,233,0.08), transparent 40%), radial-gradient(circle at 50% 110%, rgba(99,102,241,0.06), transparent 55%)',
+            'radial-gradient(circle at 18% 10%, rgba(114,119,125,0.14), transparent 38%), radial-gradient(circle at 82% 0%, rgba(64,66,68,0.12), transparent 30%), radial-gradient(circle at 52% 110%, rgba(39,41,45,0.18), transparent 48%)',
         }}
       />
 
@@ -1026,11 +1026,11 @@ export default function ChatPage() {
           right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
-        <div className="flex w-full max-w-7xl items-center justify-between rounded-[28px] border border-border/60 bg-background/70 px-4 shadow-sm backdrop-blur-xl transition-all duration-300 sm:px-8">
+        <div className="flex w-full max-w-7xl items-center justify-between rounded-[28px] border border-border/60 bg-background/80 px-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 sm:px-8">
           <div className="flex h-[60px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/60 bg-secondary text-foreground">
                 <LunaIcon className="h-5 w-5" />
               </div>
               <div className="flex flex-col justify-center">
@@ -1044,7 +1044,7 @@ export default function ChatPage() {
             {/* Mobile Menu Toggle */}
             <button
               type="button"
-              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/70 text-foreground/70 shadow-sm backdrop-blur-md transition-colors duration-200 hover:bg-background/85 hover:text-foreground md:hidden"
+              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-foreground/70 shadow-[0_8px_24px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors duration-200 hover:bg-white/10 hover:text-foreground md:hidden"
               onClick={() => {
                 setIsHistoryOpen(false)
                 setIsProfileOpen(false)
@@ -1070,7 +1070,7 @@ export default function ChatPage() {
                 </span>
                 <span
                   aria-hidden="true"
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/8 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100"
                 />
               </button>
 
@@ -1202,7 +1202,7 @@ export default function ChatPage() {
                 </span>
                 <span
                   aria-hidden="true"
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/8 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100"
                 />
               </button>
 
@@ -1217,7 +1217,7 @@ export default function ChatPage() {
                 </span>
                 <span
                   aria-hidden="true"
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100 dark:via-[#82aaff]/20"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/8 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100"
                 />
               </button>
             </div>
@@ -1255,7 +1255,7 @@ export default function ChatPage() {
                   </div>
                   <span
                     aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/profile:opacity-100 dark:via-[#82aaff]/20"
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/8 to-transparent opacity-0 transition-opacity duration-500 group-hover/profile:opacity-100"
                   />
                 </button>
 
@@ -1542,7 +1542,7 @@ export default function ChatPage() {
                 </div>
               ) : filteredHistory.length === 0 ? (
                 <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
-                  No chats found for "{historyQuery}"
+                  No chats found for &quot;{historyQuery}&quot;
                 </div>
               ) : (
                 <ul className="space-y-1.5">
@@ -1610,23 +1610,23 @@ export default function ChatPage() {
                     right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
                   }}
                 >
-                  <div className="relative mx-auto max-w-2xl space-y-10 px-6 pb-16 pt-20 text-center text-slate-800 dark:text-slate-200">
+                  <div className="relative mx-auto max-w-2xl space-y-10 px-6 pb-16 pt-20 text-center text-foreground">
                     <div className="flex flex-col items-center gap-5">
                     
                       <div className="relative">
-                        <div className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(15,98,254,0.22),transparent_65%)] blur-2xl opacity-60 transition-opacity duration-700 dark:bg-[radial-gradient(circle_at_center,rgba(130,170,255,0.24),transparent_65%)]" />
-                        <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(15,98,254,0.18),rgba(255,255,255,0),rgba(82,112,255,0.28),rgba(255,255,255,0))] blur-3xl opacity-30 animate-[spin_18s_linear_infinite] dark:bg-[conic-gradient(from_0deg,rgba(130,170,255,0.25),rgba(255,255,255,0),rgba(66,152,255,0.32),rgba(255,255,255,0))]" />
+                        <div className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(114,119,125,0.22),transparent_65%)] blur-2xl opacity-60 transition-opacity duration-700 dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_65%)]" />
+                        <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(114,119,125,0.16),rgba(255,255,255,0),rgba(64,66,68,0.18),rgba(255,255,255,0))] blur-3xl opacity-30 animate-[spin_18s_linear_infinite]" />
                         <h2
-                          className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-4xl leading-snug tracking-tight text-slate-900 sm:flex-nowrap sm:text-[2.7rem] dark:text-white`}
+                          className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-4xl leading-snug tracking-tight text-foreground sm:flex-nowrap sm:text-[2.7rem]`}
                         >
-                          <span className="text-slate-900 dark:text-white">{salutation}</span>
-                          <span className="text-slate-800/60 dark:text-white/60">,</span>
-                          <span className="bg-gradient-to-r from-[#101320] via-[#0f62fe] to-[#101320] bg-clip-text text-4xl font-semibold italic text-transparent sm:text-[2.8rem] dark:from-white/60 dark:via-[#82aaff] dark:to-white/60 whitespace-nowrap">
+                          <span className="text-foreground">{salutation}</span>
+                          <span className="text-muted-foreground/50">,</span>
+                          <span className="bg-gradient-to-r from-slate-600 via-slate-800 to-slate-600 bg-clip-text text-4xl font-semibold italic text-transparent whitespace-nowrap sm:text-[2.8rem] dark:from-[#c8ccd1] dark:via-[#f8f9fa] dark:to-[#a2a9b1]">
                             {firstName}
                           </span>
                         </h2>
                       </div>
-                      <p className="max-w-xl text-base leading-relaxed text-slate-500 dark:text-slate-400">
+                      <p className="max-w-xl text-base leading-relaxed text-muted-foreground dark:text-slate-400">
                         I’m primed to craft strategy, decode insights, and surface opportunities tailored for you.
                       </p>
                     </div>
@@ -1714,7 +1714,7 @@ export default function ChatPage() {
       {/* Input Area */}
       <div
         ref={footerRef}
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background/75 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/90 shadow-[0_-14px_36px_rgba(0,0,0,0.18)] backdrop-blur-2xl"
         style={{
           left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
           right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,

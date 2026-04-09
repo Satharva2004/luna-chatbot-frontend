@@ -249,7 +249,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-[border] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "z-10 w-full grow resize-none rounded-[18px] border border-border/80 bg-background p-3 pr-24 text-sm text-foreground ring-offset-background shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-[border,background-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-border focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#404244] dark:bg-[#202122] dark:text-[#f8f9fa] dark:shadow-[0_10px_24px_rgba(0,0,0,0.22)] dark:placeholder:text-[#72777d] dark:focus-visible:border-[#72777d]",
               showFileList && "pb-16",
               className
             )}
@@ -295,7 +295,11 @@ export function MessageInput({
               type="button"
               size="sm"
               variant={includeYouTube ? "default" : "outline"}
-              className={cn("h-8 gap-1 px-2.5", includeYouTube ? "" : "opacity-70")}
+              className={cn(
+                "h-8 gap-1 rounded-lg border border-border/80 bg-muted/50 px-2.5 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:border-[#404244] dark:bg-[#27292d] dark:text-[#c8ccd1] dark:hover:bg-[#32363b] dark:hover:text-[#f8f9fa]",
+                includeYouTube && "bg-muted text-foreground dark:bg-[#404244] dark:text-[#f8f9fa]",
+                !includeYouTube && "opacity-90"
+              )}
               aria-label="Toggle tools menu"
               aria-haspopup="menu"
               aria-expanded={showYouTubeMenu}
@@ -309,7 +313,7 @@ export function MessageInput({
               <div
                 role="menu"
                 aria-label="Tools"
-                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-md border bg-popover p-2 text-popover-foreground shadow-md"
+                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-xl border border-border/80 bg-background p-2 text-popover-foreground shadow-[0_12px_32px_rgba(0,0,0,0.1)] dark:border-[#404244] dark:bg-[#202122] dark:shadow-[0_16px_32px_rgba(0,0,0,0.3)]"
               >
                 {onToggleYouTube && (
                   <div
@@ -394,7 +398,10 @@ export function MessageInput({
           <Button
             type="button"
             variant="outline"
-            className={cn("h-8 w-8", isListening && "text-primary")}
+            className={cn(
+              "h-8 w-8 rounded-lg border border-border/80 bg-muted/50 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:border-[#404244] dark:bg-[#27292d] dark:text-[#a2a9b1] dark:hover:bg-[#32363b] dark:hover:text-[#f8f9fa]",
+              isListening && "text-foreground dark:text-[#f8f9fa]"
+            )}
             aria-label="Voice input"
             size="icon"
             onClick={toggleListening}
@@ -406,7 +413,7 @@ export function MessageInput({
           <Button
             type="button"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 rounded-lg border border-border/80 bg-muted/50 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:border-[#404244] dark:bg-[#27292d] dark:text-[#f8f9fa] dark:hover:bg-[#32363b]"
             aria-label="Stop generating"
             onClick={stop}
           >
@@ -416,7 +423,7 @@ export function MessageInput({
           <Button
             type="submit"
             size="icon"
-            className="h-8 w-8 transition-opacity"
+            className="h-8 w-8 rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-none transition-all hover:bg-primary/20 disabled:border-muted disabled:bg-muted disabled:text-muted-foreground dark:border-[#54595d] dark:bg-[#404244] dark:text-[#f8f9fa] dark:hover:bg-[#54595d] dark:disabled:border-[#27292d] dark:disabled:bg-[#27292d] dark:disabled:text-[#72777d]"
             aria-label="Send message"
             disabled={props.value === "" || isGenerating}
           >

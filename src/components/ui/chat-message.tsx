@@ -79,14 +79,33 @@ const BlinkingCursor = () => (
 )
 
 const MinimalAssistantLoader = () => (
-  <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/90 px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm">
-    <span className="flex items-center gap-1">
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/70 [animation-delay:0ms]" />
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:150ms]" />
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/50 [animation-delay:300ms]" />
+  <motion.div
+    initial={{ opacity: 0, y: 4 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-background/90 px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm"
+  >
+    <span className="flex items-end gap-1">
+      {[0, 1, 2].map((index) => (
+        <motion.span
+          key={index}
+          className="w-1.5 rounded-full bg-primary/70"
+          animate={{ height: [6, 14, 6], opacity: [0.45, 1, 0.45] }}
+          transition={{
+            duration: 0.9,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 0.12,
+          }}
+        />
+      ))}
     </span>
-    Thinking
-  </div>
+    <motion.span
+      animate={{ opacity: [0.55, 1, 0.55] }}
+      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+    >
+      Thinking...
+    </motion.span>
+  </motion.div>
 )
 
 type Animation = VariantProps<typeof chatBubbleVariants>["animation"]
@@ -354,7 +373,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   })
 
   const messageShellClass = isUser
-    ? "overflow-hidden rounded-[24px] border border-border/50 bg-transparent px-5 py-4 text-foreground/90 shadow-none"
+    ? "overflow-hidden rounded-[24px] border border-border/50 bg-muted/80 px-5 py-4 text-foreground/90 shadow-[0_18px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl dark:border-[#404244] dark:bg-[linear-gradient(180deg,rgba(39,41,45,0.96),rgba(32,33,34,0.96))] dark:shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
     : "overflow-visible border-0 bg-transparent px-0 py-0 text-foreground shadow-none"
 
   const shouldShowMinimalLoader =
@@ -371,7 +390,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
       {!isUser ? (
         <div className="mb-2 flex w-full items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#404244] bg-[#27292d] text-[#f8f9fa] backdrop-blur-md">
             <LunaIcon className="h-4 w-4" />
           </span>
           <span className="text-xs font-semibold tracking-tight text-foreground/80">
@@ -430,7 +449,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   </svg>
                 </div>
                 <h3 className="text-xs font-semibold text-foreground">Google Image Search</h3>
-                <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-blue-500/10 px-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#27292d] px-1 text-[10px] font-bold text-[#f8f9fa]">
                   {images.length}
                 </span>
               </div>

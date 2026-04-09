@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display, Silkscreen } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { GradientBackdrop } from "@/components/ui/gradient-bg";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
@@ -41,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
+    <html lang="en" suppressHydrationWarning className="h-full dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} ${playfair.variable} antialiased h-full`}
         suppressHydrationWarning
@@ -49,8 +48,8 @@ export default function RootLayout({
         {/* <GridPattern />  */}
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
         >
           <AnimationProvider>
             <div className="relative min-h-full">
