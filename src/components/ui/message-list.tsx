@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { memo, useEffect, useRef } from "react"
 import {
   ChatMessage,
   type ChatMessageProps,
@@ -15,7 +15,7 @@ interface MessageListProps {
     | ((message: Message) => AdditionalMessageOptions)
 }
 
-export function MessageList({
+function MessageListComponent({
   messages,
   showTimeStamps = true,
   messageOptions,
@@ -59,3 +59,5 @@ export function MessageList({
     </div>
   )
 }
+
+export const MessageList = memo(MessageListComponent)

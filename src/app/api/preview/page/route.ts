@@ -36,8 +36,9 @@ function sanitizeHtmlDocument(html: string, resolvedUrl: string) {
   const headInjection = `
     <base href="${escapeHtml(resolvedUrl)}" />
     <style>
-      html, body { margin: 0; padding: 0; background: #fff; }
-      body { color: #111827; font-family: Inter, Arial, sans-serif; line-height: 1.6; padding: 24px; }
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff; }
+      body { color: #111827; font-family: Inter, Arial, sans-serif; line-height: 1.6; overflow-x: hidden; }
+      body > :first-child { margin-top: 0 !important; }
       img, video, iframe { max-width: 100%; height: auto; }
       pre { white-space: pre-wrap; overflow-wrap: anywhere; }
       a { color: #2563eb; }

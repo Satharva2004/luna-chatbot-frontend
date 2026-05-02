@@ -18,19 +18,9 @@ export function SuggestionDropdown({
   inputValue,
   className,
 }: SuggestionDropdownProps) {
-  const [filtered, setFiltered] = React.useState<string[]>([])
-
-  React.useEffect(() => {
-    if (inputValue.trim().length > 0) {
-      const filtered = suggestions
-        .filter(suggestion => 
-          suggestion.toLowerCase().includes(inputValue.toLowerCase())
-        )
-        .slice(0, 5)
-      setFiltered(filtered)
-    } else {
-      setFiltered([])
-    }
+  const filtered = React.useMemo(() => {
+    if (inputValue.trim().length === 0) return []
+    return suggestions.slice(0, 5)
   }, [inputValue, suggestions])
 
   if (filtered.length === 0) return null

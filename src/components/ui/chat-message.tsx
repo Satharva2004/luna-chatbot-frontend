@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { Ban, ChevronRight, Code2, Download, ExternalLink, Globe, Image as ImageIcon, Loader2, Sparkles, Terminal, Youtube } from "lucide-react"
+import { AlertTriangle, Ban, BarChart3, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Sparkles, Terminal, Youtube } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -108,7 +108,38 @@ const MinimalAssistantLoader = () => (
   </motion.div>
 )
 
+const OutputSectionHeader = ({
+  count,
+  icon,
+  title,
+}: {
+  count?: number
+  icon: React.ReactNode
+  title: string
+}) => (
+  <div className="mb-4 flex items-center gap-2.5">
+    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/50 bg-background text-foreground shadow-sm">
+      {icon}
+    </div>
+    <h3 className="text-xs font-semibold tracking-tight text-foreground">{title}</h3>
+    {typeof count === "number" ? (
+      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+        {count}
+      </span>
+    ) : null}
+  </div>
+)
+
 type Animation = VariantProps<typeof chatBubbleVariants>["animation"]
+
+type ResourceTab = "images" | "videos" | "charts" | "flowcharts" | "sources" | "files"
+
+type ResourceTabItem = {
+  count: number
+  icon: React.ReactNode
+  id: ResourceTab
+  label: string
+}
 
 interface Attachment {
   name?: string
@@ -300,6 +331,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const imageScrollRef = useRef<HTMLDivElement | null>(null)
   const [canScrollImagesLeft, setCanScrollImagesLeft] = useState(false)
   const [canScrollImagesRight, setCanScrollImagesRight] = useState(false)
+  const [activeResourceTab, setActiveResourceTab] = useState<ResourceTab | null>(null)
 
   const updateImageScrollButtons = useCallback(() => {
     if (!imageScrollRef.current) {
@@ -327,6 +359,38 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
     return Array.from(new Set(urls))
   }, [chartUrl, chartUrls])
+
+  const resourceTabs = useMemo<ResourceTabItem[]>(() => {
+    const tabs: ResourceTabItem[] = []
+    const imageCount = Array.isArray(images) ? images.filter((img) => img?.imageUrl).length : 0
+    const videoCount = Array.isArray(videos) ? videos.filter((video) => video?.url || video?.videoId).length : 0
+    const flowchartCount = Array.isArray(excalidrawData) ? excalidrawData.length : 0
+    const sourceCount = Array.isArray(sources) ? sources.length : 0
+    const fileCount = Array.isArray(files) ? files.length : 0
+
+    if (videoCount > 0) tabs.push({ count: videoCount, icon: <Youtube className="h-3.5 w-3.5 text-red-500" />, id: "videos", label: "Videos" })
+    if (imageCount > 0) tabs.push({ count: imageCount, icon: <ImageIcon className="h-3.5 w-3.5" />, id: "images", label: "Images" })
+    if (resolvedChartUrls.length > 0) tabs.push({ count: resolvedChartUrls.length, icon: <BarChart3 className="h-3.5 w-3.5" />, id: "charts", label: "Charts" })
+    if (flowchartCount > 0) tabs.push({ count: flowchartCount, icon: <Sparkles className="h-3.5 w-3.5" />, id: "flowcharts", label: "Flowcharts" })
+    if (sourceCount > 0) tabs.push({ count: sourceCount, icon: <Globe className="h-3.5 w-3.5" />, id: "sources", label: "Sources" })
+    if (!isUser && fileCount > 0) tabs.push({ count: fileCount, icon: <FileText className="h-3.5 w-3.5" />, id: "files", label: "Files" })
+
+    return tabs
+  }, [excalidrawData, files, images, isUser, resolvedChartUrls, sources, videos])
+
+  useEffect(() => {
+    if (resourceTabs.length === 0) {
+      setActiveResourceTab(null)
+      return
+    }
+
+    setActiveResourceTab((current) => {
+      if (current && resourceTabs.some((tab) => tab.id === current)) {
+        return current
+      }
+      return resourceTabs[0].id
+    })
+  }, [resourceTabs])
 
   const handleDownloadChart = async (url: string) => {
     if (!url) return
@@ -385,6 +449,651 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     !(Array.isArray(videos) && videos.length > 0) &&
     !(Array.isArray(sources) && sources.length > 0)
 
+  const extractVideoId = (url?: string) => {
+    if (!url) return undefined
+    try {
+      const parsed = new URL(url)
+      if (parsed.hostname.includes('youtu.be')) {
+        return parsed.pathname.replace('/', '').trim()
+      }
+      if (parsed.searchParams.has('v')) {
+        return parsed.searchParams.get('v')?.trim() || undefined
+      }
+      const match = parsed.pathname.split('/').filter(Boolean)
+      if ((match[0] === 'embed' || match[0] === 'shorts') && match[1]) {
+        return match[1]
+      }
+    } catch {
+      const regex = /(?:v=|\/)([0-9A-Za-z_-]{11})(?:[?&]|$)/
+      const result = regex.exec(url)
+      if (result && result[1]) {
+        return result[1]
+      }
+    }
+    return undefined
+  }
+
+  const renderResourcePanel = () => {
+    if (!activeResourceTab || resourceTabs.length === 0) return null
+
+    return (
+      <section className="luna-resource-panel" aria-label="Luna response resources">
+        <div className="luna-resource-panel-header">
+          <div>
+            <p className="luna-resource-eyebrow">Resources</p>
+            <h3 className="luna-resource-title">Explore supporting material</h3>
+          </div>
+          <div className="luna-resource-tabs" role="tablist" aria-label="Resource types">
+            {resourceTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeResourceTab === tab.id}
+                onClick={() => setActiveResourceTab(tab.id)}
+                className={cn("luna-resource-tab", activeResourceTab === tab.id && "is-active")}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+                <span className="luna-resource-tab-count">{tab.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="luna-resource-content">
+          {activeResourceTab === "images" && Array.isArray(images) && (
+            <div className="luna-resource-grid">
+              {images
+                .filter((img) => typeof img?.imageUrl === 'string' && img.imageUrl)
+                .map((img, index) => {
+                  const targetHref = typeof img?.pageUrl === 'string' && img.pageUrl.trim().length > 0 ? img.pageUrl : img.imageUrl
+                  const caption = typeof img?.title === 'string' && img.title.trim().length > 0 ? img.title : 'View image'
+                  const hostname = (() => {
+                    try {
+                      return new URL(targetHref || '').hostname.replace(/^www\./, '')
+                    } catch {
+                      return 'Image'
+                    }
+                  })()
+
+                  return (
+                    <button
+                      key={`${img.imageUrl}-${index}`}
+                      type="button"
+                      onClick={() => openExternalPreview(targetHref || undefined, caption)}
+                      className="luna-media-card text-left"
+                    >
+                      <span className="luna-media-thumb aspect-[4/3]">
+                        <img
+                          src={img.imageUrl || ''}
+                          alt={caption}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          onError={(event) => {
+                            const el = event.target as HTMLImageElement
+                            el.src = img.thumbnailUrl || ''
+                          }}
+                        />
+                      </span>
+                      <span className="luna-media-meta">{hostname}</span>
+                      <span className="luna-media-title">{caption}</span>
+                    </button>
+                  )
+                })}
+            </div>
+          )}
+
+          {activeResourceTab === "videos" && Array.isArray(videos) && (
+            <div className="luna-resource-grid luna-video-grid">
+              {videos
+                .filter((video) => typeof (video?.url || video?.videoId) === 'string')
+                .map((video, index) => {
+                  const derivedVideoId = typeof video?.videoId === 'string' && video.videoId.trim().length > 0
+                    ? video.videoId.trim()
+                    : extractVideoId(video?.url)
+                  const targetHref = typeof video?.url === 'string' && video.url.trim().length > 0
+                    ? video.url
+                    : derivedVideoId
+                      ? `https://www.youtube.com/watch?v=${derivedVideoId}`
+                      : undefined
+                  const thumbnailUrl = video?.thumbnails?.medium?.url
+                    || video?.thumbnails?.high?.url
+                    || video?.thumbnails?.default?.url
+                    || (derivedVideoId ? `https://img.youtube.com/vi/${derivedVideoId}/hqdefault.jpg` : undefined)
+                  const title = typeof video?.title === 'string' && video.title.trim().length > 0 ? video.title : 'Watch on YouTube'
+                  const channel = typeof video?.channelTitle === 'string' && video.channelTitle.trim().length > 0 ? video.channelTitle : 'YouTube'
+
+                  return (
+                    <button
+                      key={`${video?.videoId || video?.url || index}`}
+                      type="button"
+                      onClick={() => openExternalPreview(targetHref, title)}
+                      className="luna-media-card text-left"
+                    >
+                      <span className="luna-media-thumb aspect-video bg-black">
+                        {thumbnailUrl ? (
+                          <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-xs text-white/60">Video unavailable</span>
+                        )}
+                        <span className="luna-play-badge">
+                          <Youtube className="h-4 w-4" />
+                        </span>
+                      </span>
+                      <span className="luna-media-meta">{channel}</span>
+                      <span className="luna-media-title">{title}</span>
+                    </button>
+                  )
+                })}
+            </div>
+          )}
+
+          {activeResourceTab === "charts" && resolvedChartUrls.length > 0 && (
+            <div className="space-y-4">
+              {resolvedChartUrls.map((url, index) => {
+                const isDownloading = downloadingChartUrl === url
+                const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
+                return (
+                  <div key={`${url}-${index}`} className="luna-chart-card">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-sm font-semibold text-foreground">{chartLabel}</span>
+                      <Button
+                        type="button"
+                        onClick={() => handleDownloadChart(url)}
+                        variant="secondary"
+                        className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
+                        disabled={isDownloading}
+                      >
+                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {isDownloading ? "Preparing" : "Download"}
+                      </Button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedChartUrl(url)}
+                      className="mt-3 block w-full rounded-lg border border-border/60 bg-background p-3"
+                      aria-label={`Expand ${chartLabel}`}
+                    >
+                      <img
+                        src={url}
+                        alt={chartLabel}
+                        className="mx-auto max-h-[430px] w-full object-contain"
+                        onError={(event) => {
+                          const target = event.target as HTMLImageElement
+                          target.style.display = "none"
+                        }}
+                      />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {activeResourceTab === "flowcharts" && Array.isArray(excalidrawData) && (
+            <div className="space-y-4">
+              {excalidrawData.map((diagram, index) => (
+                <div key={index} className="luna-chart-card">
+                  <ExcalidrawViewer data={diagram} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeResourceTab === "sources" && Array.isArray(sources) && (
+            <div className="space-y-4">
+              {sources
+                .map((source) => typeof source === 'string' ? source : source.url)
+                .filter((url) => url.toLowerCase().endsWith('.pdf'))
+                .map((url, idx) => (
+                  <CustomPDFViewer key={`pdf-${idx}`} url={url} className="mt-2" />
+                ))}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {sources.map((source, index) => {
+                  if (!source) return null
+                  let href: string
+                  let displayText: string
+
+                  if (typeof source === 'string') {
+                    href = source
+                    try {
+                      displayText = new URL(href).hostname.replace('www.', '')
+                    } catch {
+                      displayText = source.substring(0, 56)
+                    }
+                  } else {
+                    href = source.url
+                    displayText = source.title || (() => {
+                      try {
+                        return new URL(href).hostname.replace('www.', '')
+                      } catch {
+                        return href
+                      }
+                    })()
+                  }
+
+                  return (
+                    <button
+                      key={`${href}-${index}`}
+                      type="button"
+                      onClick={() => openExternalPreview(href, displayText)}
+                      className="luna-source-card"
+                      title={displayText}
+                    >
+                      <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">{displayText}</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">{href}</span>
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeResourceTab === "files" && Array.isArray(files) && (
+            <div className="flex flex-wrap gap-2">
+              {files.map((file, index) => (
+                <FilePreview file={file} key={index} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Dialog
+          open={Boolean(expandedChartUrl)}
+          onOpenChange={(open) => {
+            if (!open) setExpandedChartUrl(null)
+          }}
+        >
+          <DialogContent size="fullscreen" className="w-full gap-4 p-0 sm:p-6">
+            <DialogHeader className="flex flex-row items-center justify-between gap-4">
+              <DialogTitle className="text-base sm:text-lg">Generated chart</DialogTitle>
+              <Button
+                type="button"
+                onClick={() => expandedChartUrl && handleDownloadChart(expandedChartUrl)}
+                variant="secondary"
+                className="hidden items-center gap-2 sm:inline-flex"
+                disabled={Boolean(expandedChartUrl && downloadingChartUrl === expandedChartUrl)}
+              >
+                {expandedChartUrl && downloadingChartUrl === expandedChartUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Download
+              </Button>
+            </DialogHeader>
+            <div className="flex h-full flex-col gap-4 px-4 pb-6 sm:px-0">
+              <div className="flex-1 overflow-auto">
+                {expandedChartUrl && (
+                  <img
+                    src={expandedChartUrl}
+                    alt="Expanded chart"
+                    className="mx-auto h-full max-h-[calc(100vh-12rem)] w-full max-w-[min(1400px,100%)] object-contain"
+                    onError={(event) => {
+                      const target = event.target as HTMLImageElement
+                      target.style.display = "none"
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </section>
+    )
+  }
+
+  const renderIntegratedResources = () => {
+    void renderResourcePanel
+    const hasImages = Array.isArray(images) && images.some((img) => img?.imageUrl)
+    const hasVideos = Array.isArray(videos) && videos.some((video) => video?.url || video?.videoId)
+    const hasCharts = resolvedChartUrls.length > 0
+    const hasFlowcharts = Array.isArray(excalidrawData) && excalidrawData.length > 0
+    const hasSources = Array.isArray(sources) && sources.length > 0
+
+    if (!hasImages && !hasVideos && !hasCharts && !hasFlowcharts && !hasSources) {
+      return null
+    }
+
+    return (
+      <div className="luna-integrated-resources">
+        {hasImages && (
+          <section className="luna-integrated-section">
+            <OutputSectionHeader count={images?.length} icon={<ImageIcon className="h-4 w-4" />} title="Visual references" />
+            <div className="luna-resource-grid">
+              {images
+                ?.filter((img) => typeof img?.imageUrl === 'string' && img.imageUrl)
+                .map((img, index) => {
+                  const targetHref = typeof img?.pageUrl === 'string' && img.pageUrl.trim().length > 0 ? img.pageUrl : img.imageUrl
+                  const caption = typeof img?.title === 'string' && img.title.trim().length > 0 ? img.title : 'View image'
+                  const hostname = (() => {
+                    try {
+                      return new URL(targetHref || '').hostname.replace(/^www\./, '')
+                    } catch {
+                      return 'Image'
+                    }
+                  })()
+
+                  return (
+                    <button
+                      key={`${img.imageUrl}-${index}`}
+                      type="button"
+                      onClick={() => openExternalPreview(targetHref || undefined, caption)}
+                      className="luna-media-card text-left"
+                    >
+                      <span className="luna-media-thumb aspect-[4/3]">
+                        <img
+                          src={img.imageUrl || ''}
+                          alt={caption}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          onError={(event) => {
+                            const el = event.target as HTMLImageElement
+                            el.src = img.thumbnailUrl || ''
+                          }}
+                        />
+                      </span>
+                      <span className="luna-media-meta">{hostname}</span>
+                      <span className="luna-media-title">{caption}</span>
+                    </button>
+                  )
+                })}
+            </div>
+          </section>
+        )}
+
+        {hasVideos && (
+          <section className="luna-integrated-section">
+            <OutputSectionHeader count={videos?.length} icon={<Youtube className="h-4 w-4 text-red-500" />} title="Recommended videos" />
+            <div className="luna-resource-grid luna-video-grid">
+              {videos
+                ?.filter((video) => typeof (video?.url || video?.videoId) === 'string')
+                .map((video, index) => {
+                  const derivedVideoId = typeof video?.videoId === 'string' && video.videoId.trim().length > 0
+                    ? video.videoId.trim()
+                    : extractVideoId(video?.url)
+                  const targetHref = typeof video?.url === 'string' && video.url.trim().length > 0
+                    ? video.url
+                    : derivedVideoId
+                      ? `https://www.youtube.com/watch?v=${derivedVideoId}`
+                      : undefined
+                  const thumbnailUrl = video?.thumbnails?.medium?.url
+                    || video?.thumbnails?.high?.url
+                    || video?.thumbnails?.default?.url
+                    || (derivedVideoId ? `https://img.youtube.com/vi/${derivedVideoId}/hqdefault.jpg` : undefined)
+                  const title = typeof video?.title === 'string' && video.title.trim().length > 0 ? video.title : 'Watch on YouTube'
+                  const channel = typeof video?.channelTitle === 'string' && video.channelTitle.trim().length > 0 ? video.channelTitle : 'YouTube'
+
+                  return (
+                    <button
+                      key={`${video?.videoId || video?.url || index}`}
+                      type="button"
+                      onClick={() => openExternalPreview(targetHref, title)}
+                      className="luna-media-card text-left"
+                    >
+                      <span className="luna-media-thumb aspect-video bg-black">
+                        {thumbnailUrl ? (
+                          <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-xs text-white/60">Video unavailable</span>
+                        )}
+                        <span className="luna-play-badge">
+                          <Youtube className="h-4 w-4" />
+                        </span>
+                      </span>
+                      <span className="luna-media-meta">{channel}</span>
+                      <span className="luna-media-title">{title}</span>
+                    </button>
+                  )
+                })}
+            </div>
+          </section>
+        )}
+
+        {hasCharts && (
+          <section className="luna-integrated-section">
+            <OutputSectionHeader count={resolvedChartUrls.length} icon={<BarChart3 className="h-4 w-4" />} title="Generated charts" />
+            <div className="space-y-4">
+              {resolvedChartUrls.map((url, index) => {
+                const isDownloading = downloadingChartUrl === url
+                const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
+                return (
+                  <div key={`${url}-${index}`} className="luna-chart-card">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-sm font-semibold text-foreground">{chartLabel}</span>
+                      <Button
+                        type="button"
+                        onClick={() => handleDownloadChart(url)}
+                        variant="secondary"
+                        className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
+                        disabled={isDownloading}
+                      >
+                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {isDownloading ? "Preparing" : "Download"}
+                      </Button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedChartUrl(url)}
+                      className="mt-3 block w-full rounded-lg border border-border/60 bg-background p-3"
+                      aria-label={`Expand ${chartLabel}`}
+                    >
+                      <img
+                        src={url}
+                        alt={chartLabel}
+                        className="mx-auto max-h-[430px] w-full object-contain"
+                        onError={(event) => {
+                          const target = event.target as HTMLImageElement
+                          target.style.display = "none"
+                        }}
+                      />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {hasFlowcharts && (
+          <section className="luna-integrated-section">
+            <OutputSectionHeader count={excalidrawData?.length} icon={<Sparkles className="h-4 w-4" />} title="Flowcharts" />
+            <div className="space-y-4">
+              {excalidrawData?.map((diagram, index) => (
+                <div key={index} className="luna-chart-card">
+                  <ExcalidrawViewer data={diagram} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {hasSources && (
+          <section className="luna-integrated-section">
+            <OutputSectionHeader count={sources?.length} icon={<Globe className="h-4 w-4" />} title="Sources" />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {sources?.map((source, index) => {
+                if (!source) return null
+                let href: string
+                let displayText: string
+
+                if (typeof source === 'string') {
+                  href = source
+                  try {
+                    displayText = new URL(href).hostname.replace('www.', '')
+                  } catch {
+                    displayText = source.substring(0, 56)
+                  }
+                } else {
+                  href = source.url
+                  displayText = source.title || (() => {
+                    try {
+                      return new URL(href).hostname.replace('www.', '')
+                    } catch {
+                      return href
+                    }
+                  })()
+                }
+
+                return (
+                  <button
+                    key={`${href}-${index}`}
+                    type="button"
+                    onClick={() => openExternalPreview(href, displayText)}
+                    className="luna-source-card"
+                    title={displayText}
+                  >
+                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-foreground">{displayText}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">{href}</span>
+                    </span>
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        <Dialog
+          open={Boolean(expandedChartUrl)}
+          onOpenChange={(open) => {
+            if (!open) setExpandedChartUrl(null)
+          }}
+        >
+          <DialogContent size="fullscreen" className="w-full gap-4 p-0 sm:p-6">
+            <DialogHeader className="flex flex-row items-center justify-between gap-4">
+              <DialogTitle className="text-base sm:text-lg">Generated chart</DialogTitle>
+              <Button
+                type="button"
+                onClick={() => expandedChartUrl && handleDownloadChart(expandedChartUrl)}
+                variant="secondary"
+                className="hidden items-center gap-2 sm:inline-flex"
+                disabled={Boolean(expandedChartUrl && downloadingChartUrl === expandedChartUrl)}
+              >
+                {expandedChartUrl && downloadingChartUrl === expandedChartUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Download
+              </Button>
+            </DialogHeader>
+            <div className="flex h-full flex-col gap-4 px-4 pb-6 sm:px-0">
+              <div className="flex-1 overflow-auto">
+                {expandedChartUrl && (
+                  <img
+                    src={expandedChartUrl}
+                    alt="Expanded chart"
+                    className="mx-auto h-full max-h-[calc(100vh-12rem)] w-full max-w-[min(1400px,100%)] object-contain"
+                    onError={(event) => {
+                      const target = event.target as HTMLImageElement
+                      target.style.display = "none"
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
+  }
+
+  const renderAssistantContent = (text: string, key?: string) => (
+    <div key={key} className="flex w-full flex-col items-start">
+      <div className={cn(chatBubbleVariants({ isUser: false, animation }), "relative")}>
+        <article className="luna-response-shell">
+          <header className="luna-response-header">
+            <span className="luna-response-avatar">
+              <LunaIcon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">Luna</span>
+                <span className="luna-response-pill">Answer</span>
+              </div>
+              {showTimeStamp && createdAt ? (
+                <span className="text-[11px] text-muted-foreground">{formattedTime}</span>
+              ) : null}
+            </div>
+          </header>
+
+          <div className="luna-answer-surface">
+            {shouldShowMinimalLoader ? (
+              <MinimalAssistantLoader />
+            ) : text?.trim() ? (
+              <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{text}</MarkdownRenderer>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="h-4 w-4" />
+                Luna did not return text for this response.
+              </div>
+            )}
+          </div>
+
+          {renderIntegratedResources()}
+
+          {!isUser && Array.isArray(codeSnippets) && codeSnippets.length > 0 && (
+            <div className="mt-5 space-y-4">
+              {codeSnippets.map((snippet, index) => (
+                <motion.div
+                  key={`${snippet.language || 'code'}-${index}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="overflow-hidden rounded-lg border border-border/60 bg-[#101214] shadow-sm"
+                >
+                  <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+                      {snippet.language ? snippet.language : 'Code snippet'}
+                    </span>
+                    <CopyButton content={snippet.code} />
+                  </div>
+                  <pre className="overflow-x-auto whitespace-pre-wrap p-4 text-[13px] font-mono leading-relaxed text-slate-300">
+                    {snippet.code}
+                  </pre>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {!isUser && Array.isArray(executionOutputs) && executionOutputs.length > 0 && (
+            <div className="mt-5 space-y-4">
+              {executionOutputs.map((result, index) => (
+                <motion.div
+                  key={`${result.outcome || 'output'}-${index}`}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="overflow-hidden rounded-lg border border-emerald-500/20 bg-slate-950"
+                >
+                  <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
+                        {result.outcome ? `Terminal - ${result.outcome}` : 'Execution Output'}
+                      </span>
+                    </div>
+                    {result.output && <CopyButton content={result.output} />}
+                  </div>
+                  {result.output && (
+                    <pre className="overflow-x-auto whitespace-pre-wrap p-4 text-[12px] font-mono leading-relaxed text-emerald-300">
+                      {result.output}
+                    </pre>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </article>
+      </div>
+
+      {actions && (isComplete === undefined || isComplete) && (
+        <div className="mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm">
+          {actions}
+        </div>
+      )}
+    </div>
+  )
+
   // Render message with files if present
   const renderMessageContent = (content: string, promptTitleOverride?: string) => (
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
@@ -426,33 +1135,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
             className="mt-2"
           >
-            <div className="relative -mx-3 mb-6">
-              <div className="flex items-center gap-2.5 mb-4 px-3">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white shadow-sm ring-1 ring-border/10">
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xs font-semibold text-foreground">Google Image Search</h3>
-                <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#27292d] px-1 text-[10px] font-bold text-[#f8f9fa]">
-                  {images.length}
-                </span>
-              </div>
+            <div className="relative mb-6 overflow-hidden rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur dark:bg-white/5 dark:shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
+              <OutputSectionHeader
+                count={images.length}
+                icon={<ImageIcon className="h-4 w-4" />}
+                title="Images"
+              />
 
               {images.length > 1 && (
                 <div className="absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-background to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -493,7 +1181,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               <div
                 ref={imageScrollRef}
                 onScroll={updateImageScrollButtons}
-                className="web-images-scroll flex min-w-[280px] gap-5 px-4 overflow-x-auto no-scrollbar py-4"
+                className="web-images-scroll -mx-1 flex min-w-[280px] gap-4 overflow-x-auto px-1 pb-1 pt-2"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                 }}
@@ -529,7 +1217,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="group relative flex w-[230px] flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border/40 bg-background/40 backdrop-blur-sm shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-white/5 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
+                        className="group relative flex w-[230px] flex-shrink-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-background shadow-sm transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(15,23,42,0.14)] dark:border-white/10 dark:bg-white/5"
                       >
                         <div className="relative aspect-[4/3] w-full overflow-hidden">
                           <img
@@ -592,29 +1280,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
-            className="mt-8 pt-6 border-t border-border/40"
+            className="mt-6 overflow-hidden rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur dark:bg-white/5 dark:shadow-[0_18px_50px_rgba(0,0,0,0.24)]"
           >
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border/10 overflow-hidden">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5">
-                    <path
-                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
-                      fill="#FF0000"
-                    />
-                    <path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FFFFFF" />
-                  </svg>
-                </div>
-                <div>
-
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-foreground">Video Recommendations</span>
-                    <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-bold text-primary">
-                      {videos.length}
-                    </span>
-                  </div>
-                </div>
-              </div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <OutputSectionHeader
+                count={videos.length}
+                icon={<Youtube className="h-4 w-4 text-red-500" />}
+                title="Video Recommendations"
+              />
 
               <div className="flex items-center gap-1.5">
                 <Button
@@ -644,10 +1317,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </div>
             </div>
 
-            <div className="relative -mx-3 pb-4">
+            <div className="relative -mx-1 pb-1">
               <div
                 ref={videoScrollRef}
-                className="flex gap-4 px-4 overflow-x-auto no-scrollbar py-2"
+                className="flex gap-4 overflow-x-auto px-1 py-2 no-scrollbar"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                 }}
@@ -718,7 +1391,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.1 + 0.3 }}
-                        className="group/video relative flex w-[300px] flex-shrink-0 flex-col overflow-hidden rounded-[24px] border border-border/40 bg-background/40 backdrop-blur-md transition-all hover:-translate-y-2 hover:border-red-500/40 hover:shadow-[0_20px_60px_rgba(239,68,68,0.15)] dark:border-white/10 dark:bg-white/5"
+                        className="group/video relative flex w-[300px] flex-shrink-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-background shadow-sm transition-all hover:-translate-y-1 hover:border-red-500/40 hover:shadow-[0_18px_42px_rgba(239,68,68,0.16)] dark:border-white/10 dark:bg-white/5"
                       >
                         <div className="relative aspect-video w-full overflow-hidden bg-black/20">
                           {thumbnailUrl ? (
@@ -791,17 +1464,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="mt-8 pt-6 border-t border-border/40 relative z-10"
+              className="relative z-10 mt-6 overflow-hidden rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur dark:bg-white/5 dark:shadow-[0_18px_50px_rgba(0,0,0,0.24)]"
             >
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                  <Globe className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="text-xs font-semibold text-foreground">Sources & Citations</h3>
-                <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-blue-500/10 px-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                  {sources.length}
-                </span>
-              </div>
+              <OutputSectionHeader
+                count={sources.length}
+                icon={<Globe className="h-4 w-4" />}
+                title="Sources & Citations"
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto no-scrollbar pr-1">
                 {sources.map((source, index) => {
@@ -847,7 +1516,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 + 0.5 }}
-                        className="group flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm transition-all hover:bg-muted/50 hover:border-blue-500/30 hover:translate-x-1"
+                        className="group flex items-center gap-3 rounded-lg border border-border/50 bg-background p-2.5 shadow-sm transition-all hover:border-primary/30 hover:bg-muted/50"
                         title={displayText}
                       >
                         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-blue-500/10 group-hover:text-blue-600 transition-colors">
@@ -885,11 +1554,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-              className="mt-8 pt-6 border-t border-muted-foreground/20 relative z-10 space-y-3"
+              className="relative z-10 mt-6 overflow-hidden rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur dark:bg-white/5 dark:shadow-[0_18px_50px_rgba(0,0,0,0.24)]"
             >
-              <div className="flex items-center gap-2">
-
-              </div>
+              <OutputSectionHeader
+                count={resolvedChartUrls.length}
+                icon={<BarChart3 className="h-4 w-4" />}
+                title="Generated Charts"
+              />
               <div className="space-y-3">
                 {resolvedChartUrls.map((url, index) => {
                   const isDownloading = downloadingChartUrl === url
@@ -897,7 +1568,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   return (
                     <div
                       key={`${url}-${index}`}
-                      className="space-y-5 md:mx-auto md:max-w-2xl"
+                      className="space-y-4 md:mx-auto md:max-w-2xl"
                     >
                       <div className="flex flex-col gap-2 px-2 text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-3 md:px-0">
                         <span className="text-sm font-medium text-muted-foreground">{chartLabel}</span>
@@ -930,7 +1601,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <img
                           src={url}
                           alt={chartLabel}
-                          className="w-full h-auto cursor-zoom-in transition-transform duration-200 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] md:mx-auto md:max-h-[360px] md:w-auto"
+                          className="mx-auto h-auto max-h-[420px] w-full cursor-zoom-in rounded-lg border border-border/50 bg-background object-contain p-2 shadow-sm transition-transform duration-200 group-hover:scale-[1.01] group-focus-visible:scale-[1.01] md:w-auto"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement
                             target.style.display = "none"
@@ -1112,45 +1783,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (parts && parts.length > 0) {
     return parts.map((part, index) => {
       if (part.type === "text") {
-        return (
-          <div
-            className={cn(
-              "flex flex-col w-full",
-              isUser ? "items-end" : "items-start"
-            )}
-            key={`text-${index}`}
-          >
-            <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-              <div className={messageShellClass}>
-                <div className="overflow-hidden">
-                  <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{part.text}</MarkdownRenderer>
-                </div>
-              </div>
-            </div>
-
-            {showTimeStamp && createdAt ? (
-              <time
-                dateTime={createdAt.toISOString()}
-                className={cn(
-                  "mt-1 block px-1 text-xs opacity-50",
-                  animation !== "none" && "duration-500 animate-in fade-in-0"
-                )}
-              >
-                {formattedTime}
-              </time>
-            ) : null}
-            {actions ? (
-              <div
-                className={cn(
-                  "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
-                  isUser ? "self-end" : "self-start"
-                )}
-              >
-                {actions}
-              </div>
-            ) : null}
-          </div>
-        )
+        return renderAssistantContent(part.text, `text-${index}`)
       } else if (part.type === "reasoning") {
         return <ReasoningBlock key={`reasoning-${index}`} part={part} onLinkClick={openExternalPreview} />
       } else if (part.type === "tool-invocation") {
@@ -1170,48 +1803,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   if (shouldShowMinimalLoader) {
-    return renderMessageContent(content)
+    return renderAssistantContent(content)
   }
 
   // For assistant messages with content but no parts
   if (content) {
-    return renderMessageContent(content);
+    return renderAssistantContent(content);
   }
 
   // Fallback for any other case
-  return (
-    <div className={cn("flex flex-col w-full", isUser ? "items-end" : "items-start")}>
-      <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-        <div className={messageShellClass}>
-          <div className="overflow-hidden">
-           <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{content}</MarkdownRenderer>
-          </div>
-        </div>
-      </div>
-
-      {showTimeStamp && createdAt && (
-        <time
-          dateTime={createdAt.toISOString()}
-          className={cn(
-            "mt-1 block px-1 text-xs opacity-50",
-            animation !== "none" && "duration-500 animate-in fade-in-0"
-          )}
-        >
-          {formattedTime}
-        </time>
-      )}
-      {actions && (
-        <div
-          className={cn(
-            "mt-3 flex space-x-1 rounded-lg border bg-background/95 p-1 text-foreground shadow-sm",
-            isUser ? "self-end" : "self-start"
-          )}
-        >
-          {actions}
-        </div>
-      )}
-    </div>
-  )
+  return renderAssistantContent(content)
 }
 
 function dataUrlToUint8Array(data: string) {

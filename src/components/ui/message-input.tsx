@@ -58,6 +58,7 @@ export function MessageInput({
   onToggleYouTube,
   includeImageSearch = true,
   onToggleImageSearch,
+  inputRef,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -173,7 +174,18 @@ export function MessageInput({
   }
 
   const internalTextAreaRef = useRef<HTMLTextAreaElement>(null)
-  const textAreaRef = props.inputRef || internalTextAreaRef
+  const setTextAreaRefs = React.useCallback((node: HTMLTextAreaElement | null) => {
+    internalTextAreaRef.current = node
+
+    if (typeof inputRef === "function") {
+      inputRef(node)
+      return
+    }
+
+    if (inputRef && "current" in inputRef) {
+      inputRef.current = node
+    }
+  }, [inputRef])
   const [textAreaHeight, setTextAreaHeight] = useState<number>(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const youTubeMenuRef = useRef<HTMLDivElement>(null)
@@ -245,7 +257,7 @@ export function MessageInput({
           <textarea
             aria-label="Write your prompt here"
             placeholder={placeholder}
-            ref={textAreaRef}
+            ref={setTextAreaRefs}
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(

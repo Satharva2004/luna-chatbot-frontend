@@ -3,7 +3,7 @@
 import React from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Download, Maximize2, RefreshCcw, ZoomIn, ZoomOut } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Download, Lightbulb, ListChecks, Maximize2, RefreshCcw, ZoomIn, ZoomOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/copy-button"
@@ -342,7 +342,7 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ children, onLinkClick }: MarkdownRendererProps) {
   return (
-    <div className="space-y-3">
+    <div className="luna-editorial space-y-4">
       <Markdown remarkPlugins={[remarkGfm]} components={getComponents(onLinkClick) as unknown as Components}>
         {children}
       </Markdown>
@@ -637,10 +637,32 @@ function childrenTakeAllStringContents(element: unknown): string {
 
 function getComponents(onLinkClick?: (url: string) => void) {
   return {
-  h1: withClass("h1", "mb-6 mt-8 bg-gradient-to-r from-slate-950 via-primary to-sky-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-white dark:via-sky-200 dark:to-sky-400"),
-  h2: withClass("h2", "mb-4 mt-7 border-b border-primary/15 pb-2 text-2xl font-bold text-slate-900 dark:text-slate-100"),
-  h3: withClass("h3", "mb-3 mt-6 text-xl font-semibold text-slate-800 dark:text-slate-200"),
-  p: withClass("p", "mb-4 leading-8 text-[15px] text-slate-700 selection:bg-primary/10 dark:text-slate-300"),
+  h1: withClass("h1", "mb-5 mt-7 text-balance text-[1.7rem] font-semibold leading-tight tracking-tight text-slate-950 dark:text-white"),
+  h2: withClass("h2", "mb-3 mt-7 border-b border-border/60 pb-2 text-[1.3rem] font-semibold tracking-tight text-slate-900 dark:text-slate-100"),
+  h3: withClass("h3", "mb-2 mt-6 text-lg font-semibold text-slate-800 dark:text-slate-100"),
+  p({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLParagraphElement>) {
+    const specialBlock = getSpecialAnswerBlock(children)
+
+    if (specialBlock) {
+      const Icon = specialBlock.icon
+      return (
+        <div className={cn("luna-callout", specialBlock.className)} {...props}>
+          <span className="luna-callout-icon">
+            <Icon className="h-4 w-4" />
+          </span>
+          <p className="min-w-0 flex-1 text-[15px] leading-7">
+            {children}
+          </p>
+        </div>
+      )
+    }
+
+    return (
+      <p className={cn("mb-4 max-w-none text-[15.5px] leading-8 text-slate-700 selection:bg-primary/10 dark:text-slate-300", className)} {...props}>
+        {children}
+      </p>
+    )
+  },
   a({
     children,
     className,
@@ -651,7 +673,7 @@ function getComponents(onLinkClick?: (url: string) => void) {
     return (
       <a
         href={href}
-        className={cn("font-semibold text-primary underline decoration-primary/35 underline-offset-4 ring-offset-background transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}
+        className={cn("font-medium text-[#7a4b28] underline decoration-[#c89f73]/45 underline-offset-4 ring-offset-background transition-colors hover:text-[#5f351b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-[#e0b384] dark:hover:text-[#f2ca9c]", className)}
         onClick={(event) => {
           onClick?.(event)
           if (event.defaultPrevented) return
@@ -665,7 +687,7 @@ function getComponents(onLinkClick?: (url: string) => void) {
       </a>
     )
   },
-  blockquote: withClass("blockquote", "relative my-6 rounded-[22px] border border-primary/15 bg-gradient-to-br from-primary/8 via-sky-500/5 to-transparent px-6 py-5 text-[15px] leading-7 text-slate-700 shadow-sm dark:text-slate-300"),
+  blockquote: withClass("blockquote", "relative my-6 rounded-lg border-l-4 border-[#c89f73] bg-[#f7f1ea] px-5 py-4 text-[15px] leading-7 text-slate-700 dark:bg-white/5 dark:text-slate-300"),
   strong: withClass("strong", "font-semibold text-slate-950 dark:text-white"),
   em: withClass("em", "italic text-slate-600 dark:text-slate-300"),
 
@@ -692,33 +714,87 @@ function getComponents(onLinkClick?: (url: string) => void) {
     return <div className="my-6">{children}</div>
   },
 
-  ol: withClass("ol", "list-decimal space-y-4 pl-8 mb-6 mt-4"),
-  ul: withClass("ul", "list-none space-y-4 pl-0 mb-6 mt-4"),
+  ol: withClass("ol", "mb-6 mt-4 list-decimal space-y-3 pl-6"),
+  ul: withClass("ul", "mb-6 mt-4 list-none space-y-3 pl-0"),
   li({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
     return (
       <li className={cn(
-        "relative pl-7",
-        "before:absolute before:left-0 before:top-[0.65em] before:h-2 before:w-2 before:rounded-full before:bg-gradient-to-br before:from-primary before:to-sky-400",
+        "relative pl-6",
+        "before:absolute before:left-0 before:top-[0.75em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-[#b58354]",
         className
       )} {...props}>
-        <div className="leading-8 text-slate-700 dark:text-slate-300">
+        <div className="text-[15px] leading-7 text-slate-700 dark:text-slate-300">
           {children}
         </div>
       </li>
     )
   },
-  table: withClass(
-    "table",
-    "my-8 w-full overflow-hidden rounded-[22px] border border-border/60 border-separate border-spacing-0 shadow-[0_16px_50px_rgba(15,23,42,0.06)]"
-  ),
-  thead: withClass("thead", "bg-gradient-to-r from-slate-100 to-sky-50 dark:from-slate-900 dark:to-slate-800"),
+  table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
+    return (
+      <div className="my-8 overflow-x-auto rounded-xl border border-border/60 bg-card shadow-[0_16px_45px_rgba(15,23,42,0.08)]">
+        <table className={cn("w-full min-w-[560px] border-separate border-spacing-0", className)} {...props} />
+      </div>
+    )
+  },
+  thead: withClass("thead", "bg-muted/80"),
   tbody: withClass("tbody", "divide-y divide-border/40"),
   tr: withClass("tr", "group odd:bg-background even:bg-slate-50/50 dark:even:bg-white/5"),
   th: withClass("th", "border-b border-border/60 p-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300"),
   td: withClass("td", "p-4 text-sm leading-7 text-slate-700 dark:text-slate-300"),
   hr: withClass("hr", "my-10 border-t border-dashed border-border/60"),
-  img: withClass("img", "mx-auto my-8 rounded-[22px] border border-border/50 shadow-[0_20px_60px_rgba(15,23,42,0.10)]"),
+  img({ className, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+    return (
+      <figure className="my-8 overflow-hidden rounded-xl border border-border/60 bg-card shadow-[0_18px_50px_rgba(15,23,42,0.10)] dark:shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+        <img
+          alt={alt}
+          className={cn("mx-auto max-h-[520px] w-full object-contain bg-muted/30", className)}
+          loading="lazy"
+          {...props}
+        />
+        {alt ? (
+          <figcaption className="border-t border-border/50 px-4 py-2 text-xs text-muted-foreground">
+            {alt}
+          </figcaption>
+        ) : null}
+      </figure>
+    )
+  },
 }
+}
+
+function getSpecialAnswerBlock(children: React.ReactNode) {
+  const text = childrenTakeAllStringContents(children).trim()
+  const normalized = text.toLowerCase()
+
+  if (/^(status|स्थिति\s*\(status\)|स्थिति)\s*[:：]/i.test(text)) {
+    return {
+      className: "luna-callout-status",
+      icon: CheckCircle2,
+    }
+  }
+
+  if (/^(advice|सलाह\s*\(advice\)|सलाह)\s*[:：]/i.test(text)) {
+    return {
+      className: "luna-callout-advice",
+      icon: Lightbulb,
+    }
+  }
+
+  if (/^(next step|next steps|अगला कदम\s*\(next step\)|अगला कदम)\s*[:：]/i.test(text)) {
+    return {
+      className: "luna-callout-next",
+      icon: ListChecks,
+    }
+  }
+
+  if (/^(warning|caution|alert|चेतावनी)\s*[:：]/i.test(text) || normalized.includes("high risk")) {
+    return {
+      className: "luna-callout-warning",
+      icon: AlertTriangle,
+    }
+  }
+
+  return null
 }
 
 function withClass<TagName extends keyof HTMLElementTagNameMap>(

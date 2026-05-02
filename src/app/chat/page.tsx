@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useMemo, useState, useRef, useEffect } from "react"
+import React, { useCallback, useDeferredValue, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
 import { type ImageResult, type Message, type MermaidBlockUpdate } from "@/components/ui/chat-message"
@@ -517,10 +517,12 @@ export default function ChatPage() {
     }
   }, [currentConversationId, startNewChat, token])
 
+  const deferredInput = useDeferredValue(input)
+
   const filteredSuggestions = useMemo(() => {
-    if (!input || input.trim().length < 2) return []
-    return fuzzySearch(input).slice(0, 5)
-  }, [input])
+    if (!deferredInput || deferredInput.trim().length < 2) return []
+    return fuzzySearch(deferredInput).slice(0, 5)
+  }, [deferredInput])
 
   const filteredHistory = useMemo(() => {
     if (!historyQuery.trim()) {
@@ -956,7 +958,7 @@ export default function ChatPage() {
       })
   }
 
-  const onRateResponse = (messageId: string, rating: "thumbs-up" | "thumbs-down") => {
+  const onRateResponse = useCallback((messageId: string, rating: "thumbs-up" | "thumbs-down") => {
     console.log("Rated", messageId, rating)
 
     toast.success(
@@ -965,13 +967,51 @@ export default function ChatPage() {
         description: "Thanks for your feedback!",
       }
     )
-  }
+  }, [])
 
   const handleOpenExternalPreview = useCallback((url: string, title?: string) => {
     setPreviewUrl(url)
     setPreviewTitle(title ?? null)
     setIsLinkPreviewOpen(true)
   }, [])
+
+  const messageOptions = useCallback((message: Message) => {
+    if (message.role === "user") {
+      return {}
+    }
+
+    return {
+      actions: (
+        <>
+          <div className="flex items-center gap-1 border-r pr-1">
+            <TTSButton content={message.content} />
+            <CopyButton
+              content={message.content}
+              copyMessage="Copied response to clipboard!"
+            />
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={() => onRateResponse(message.id, "thumbs-up")}
+          >
+            <ThumbsUp className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={() => onRateResponse(message.id, "thumbs-down")}
+          >
+            <ThumbsDown className="h-4 w-4" />
+          </Button>
+        </>
+      ),
+      isComplete: message.isComplete,
+      onOpenExternalPreview: handleOpenExternalPreview,
+    }
+  }, [handleOpenExternalPreview, onRateResponse])
 
   const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
   const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
@@ -1650,59 +1690,7 @@ export default function ChatPage() {
                 <div className="relative w-full space-y-6">
                   <MessageList
                     messages={messages}
-                    messageOptions={(message) => {
-                      if (message.role === "user") {
-                        return {}
-                      }
-
-                      return {
-                        actions: onRateResponse ? (
-                          <>
-                            <div className="border-r pr-1 flex items-center gap-1">
-                              <TTSButton content={message.content} />
-                              <CopyButton
-                                content={message.content}
-                                copyMessage="Copied response to clipboard!"
-                              />
-                            </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                if (onRateResponse) {
-                                  onRateResponse(message.id, "thumbs-up")
-                                }
-                              }}
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                if (onRateResponse) {
-                                  onRateResponse(message.id, "thumbs-down")
-                                }
-                              }}
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <TTSButton content={message.content} />
-                            <CopyButton
-                              content={message.content}
-                              copyMessage="Copied response to clipboard!"
-                            />
-                          </div>
-                        ),
-                        isComplete: message.isComplete,
-                        onOpenExternalPreview: handleOpenExternalPreview,
-                      }
-                    }}
+                    messageOptions={messageOptions}
                   />
                 </div>
               )}
@@ -1771,8 +1759,7 @@ export default function ChatPage() {
         open={isLinkPreviewOpen}
         url={previewUrl}
         title={previewTitle}
-        topOffset={layoutHeights.header}
-        bottomOffset={layoutHeights.footer}
+        topOffset={0}
         width={previewPaneWidth}
         onClose={() => setIsLinkPreviewOpen(false)}
       />

@@ -10,7 +10,6 @@ interface LinkPreviewPaneProps {
   url: string | null
   title?: string | null
   topOffset: number
-  bottomOffset: number
   width?: number
   onClose: () => void
 }
@@ -20,7 +19,6 @@ export function LinkPreviewPane({
   url,
   title,
   topOffset,
-  bottomOffset,
   width = 460,
   onClose,
 }: LinkPreviewPaneProps) {
@@ -92,21 +90,21 @@ export function LinkPreviewPane({
 
   return (
     <aside
-      className="fixed right-0 z-20 hidden border-l border-border/60 bg-background/95 shadow-[-18px_0_40px_rgba(0,0,0,0.16)] backdrop-blur xl:block"
+      className="fixed right-0 z-40 hidden border-l border-border/60 bg-background shadow-[-18px_0_40px_rgba(0,0,0,0.16)] xl:block"
       style={{
         top: topOffset,
-        bottom: bottomOffset,
+        bottom: 0,
         width,
       }}
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div className="border-b border-border/60 bg-background/90 px-5 py-4">
-          <div className="flex items-start justify-between gap-3">
+        <div className="shrink-0 border-b border-border/60 bg-background/95 px-4 py-2.5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="truncate text-base font-semibold">
+              <div className="truncate text-sm font-semibold">
                 {title?.trim() || hostname || "Link preview"}
               </div>
-              <div className="mt-1 truncate text-xs text-muted-foreground">
+              <div className="mt-0.5 truncate text-xs text-muted-foreground">
                 {resolvedUrl || url}
               </div>
             </div>
@@ -132,7 +130,7 @@ export function LinkPreviewPane({
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-b border-border/50 bg-muted/20 px-5 py-2 text-xs text-muted-foreground">
+        <div className="flex shrink-0 items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
           <div className="flex min-w-0 items-center gap-2 truncate">
             <Globe className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{hostname || "Resolving preview..."}</span>
@@ -148,7 +146,7 @@ export function LinkPreviewPane({
           </Button>
         </div>
 
-        <div className="relative min-h-0 flex-1 bg-white">
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
           {(isResolving || resolveError) && (
             <div className="absolute inset-x-0 top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2 text-xs text-muted-foreground">
               {isResolving
@@ -160,15 +158,12 @@ export function LinkPreviewPane({
             key={frameKey}
             src={previewSrc || `/api/preview/page?url=${encodeURIComponent(resolvedUrl || url)}`}
             title={title?.trim() || hostname || "Link preview"}
-            className="h-full w-full bg-white"
+            className="block h-full w-full border-0 bg-white"
             sandbox="allow-same-origin allow-forms allow-popups allow-downloads"
             referrerPolicy="no-referrer"
           />
         </div>
 
-        <div className="border-t border-border/50 bg-muted/20 px-5 py-3 text-xs text-muted-foreground">
-          The chat resizes around this panel now. If a site still blocks embedding, use Open.
-        </div>
       </div>
     </aside>
   )
