@@ -637,111 +637,111 @@ function childrenTakeAllStringContents(element: unknown): string {
 
 function getComponents(onLinkClick?: (url: string) => void) {
   return {
-  h1: withClass("h1", "mb-5 mt-7 text-balance text-[1.7rem] font-semibold leading-tight tracking-tight text-slate-950 dark:text-white"),
-  h2: withClass("h2", "mb-3 mt-7 border-b border-border/60 pb-2 text-[1.3rem] font-semibold tracking-tight text-slate-900 dark:text-slate-100"),
-  h3: withClass("h3", "mb-2 mt-6 text-lg font-semibold text-slate-800 dark:text-slate-100"),
-  p({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLParagraphElement>) {
-    const specialBlock = getSpecialAnswerBlock(children)
+    h1: withClass("h1", "mb-4 mt-6 text-balance text-xl sm:text-2xl font-semibold leading-tight tracking-tight text-foreground"),
+    h2: withClass("h2", "mb-2.5 mt-5 border-b border-border/60 pb-1.5 text-lg sm:text-xl font-semibold tracking-tight text-foreground"),
+    h3: withClass("h3", "mb-2 mt-4 text-base font-semibold text-foreground"),
+    p({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLParagraphElement>) {
+      const specialBlock = getSpecialAnswerBlock(children)
 
-    if (specialBlock) {
-      const Icon = specialBlock.icon
+      if (specialBlock) {
+        const Icon = specialBlock.icon
+        return (
+          <div className={cn("luna-callout", specialBlock.className)} {...props}>
+            <span className="luna-callout-icon">
+              <Icon className="h-4 w-4" />
+            </span>
+            <p className="min-w-0 flex-1 text-[13px] sm:text-sm leading-relaxed">
+              {children}
+            </p>
+          </div>
+        )
+      }
+
       return (
-        <div className={cn("luna-callout", specialBlock.className)} {...props}>
-          <span className="luna-callout-icon">
-            <Icon className="h-4 w-4" />
-          </span>
-          <p className="min-w-0 flex-1 text-[15px] leading-7">
+        <p className={cn("mb-3 max-w-none text-[13px] sm:text-sm leading-relaxed text-foreground/90 selection:bg-primary/10", className)} {...props}>
+          {children}
+        </p>
+      )
+    },
+    a({
+      children,
+      className,
+      href,
+      onClick,
+      ...props
+    }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+      return (
+        <a
+          href={href}
+          className={cn("font-medium text-foreground underline decoration-foreground/35 underline-offset-4 ring-offset-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}
+          onClick={(event) => {
+            onClick?.(event)
+            if (event.defaultPrevented) return
+            if (!href || !onLinkClick) return
+            event.preventDefault()
+            onLinkClick(href)
+          }}
+          {...props}
+        >
+          {children}
+        </a>
+      )
+    },
+    blockquote: withClass("blockquote", "relative my-5 rounded-lg border-l-4 border-muted-foreground/60 bg-muted px-4 py-3 text-[13px] sm:text-sm leading-relaxed text-foreground/80"),
+    strong: withClass("strong", "font-semibold text-foreground"),
+    em: withClass("em", "italic text-foreground/90"),
+
+    code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
+      const match = /language-(\w+)/.exec(className || '')
+      const language = match ? match[1] : ''
+
+      if (language) {
+        return (
+          <CodeBlock language={language} className={className} {...rest}>
             {children}
-          </p>
-        </div>
-      )
-    }
+          </CodeBlock>
+        )
+      }
 
-    return (
-      <p className={cn("mb-4 max-w-none text-[15.5px] leading-8 text-slate-700 selection:bg-primary/10 dark:text-slate-300", className)} {...props}>
-        {children}
-      </p>
-    )
-  },
-  a({
-    children,
-    className,
-    href,
-    onClick,
-    ...props
-  }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-    return (
-      <a
-        href={href}
-        className={cn("font-medium text-[#7a4b28] underline decoration-[#c89f73]/45 underline-offset-4 ring-offset-background transition-colors hover:text-[#5f351b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-[#e0b384] dark:hover:text-[#f2ca9c]", className)}
-        onClick={(event) => {
-          onClick?.(event)
-          if (event.defaultPrevented) return
-          if (!href || !onLinkClick) return
-          event.preventDefault()
-          onLinkClick(href)
-        }}
-        {...props}
-      >
-        {children}
-      </a>
-    )
-  },
-  blockquote: withClass("blockquote", "relative my-6 rounded-lg border-l-4 border-[#c89f73] bg-[#f7f1ea] px-5 py-4 text-[15px] leading-7 text-slate-700 dark:bg-white/5 dark:text-slate-300"),
-  strong: withClass("strong", "font-semibold text-slate-950 dark:text-white"),
-  em: withClass("em", "italic text-slate-600 dark:text-slate-300"),
-
-  code({ children, className, ...rest }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
-    const match = /language-(\w+)/.exec(className || '')
-    const language = match ? match[1] : ''
-
-    if (language) {
       return (
-        <CodeBlock language={language} className={className} {...rest}>
+        <code className={cn("rounded-md border border-border/80 bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground", className)} {...rest}>
           {children}
-        </CodeBlock>
+        </code>
       )
-    }
+    },
 
-    return (
-      <code className={cn("rounded-md border border-sky-500/15 bg-sky-500/8 px-1.5 py-0.5 font-mono text-[0.9em] text-sky-700 dark:text-sky-300", className)} {...rest}>
-        {children}
-      </code>
-    )
-  },
+    pre({ children }: { children: React.ReactNode }) {
+      return <div className="my-5">{children}</div>
+    },
 
-  pre({ children }: { children: React.ReactNode }) {
-    return <div className="my-6">{children}</div>
-  },
-
-  ol: withClass("ol", "mb-6 mt-4 list-decimal space-y-3 pl-6"),
-  ul: withClass("ul", "mb-6 mt-4 list-none space-y-3 pl-0"),
-  li({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
-    return (
-      <li className={cn(
-        "relative pl-6",
-        "before:absolute before:left-0 before:top-[0.75em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-[#b58354]",
-        className
-      )} {...props}>
-        <div className="text-[15px] leading-7 text-slate-700 dark:text-slate-300">
-          {children}
+    ol: withClass("ol", "mb-5 mt-3 list-decimal space-y-2.5 pl-6"),
+    ul: withClass("ul", "mb-5 mt-3 list-none space-y-2.5 pl-0"),
+    li({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
+      return (
+        <li className={cn(
+          "relative pl-5",
+          "before:absolute before:left-0 before:top-[0.65em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-muted-foreground/50",
+          className
+        )} {...props}>
+          <div className="text-[13px] sm:text-sm leading-relaxed text-foreground/90">
+            {children}
+          </div>
+        </li>
+      )
+    },
+    table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
+      return (
+        <div className="my-6 overflow-x-auto rounded-xl border border-border/60 bg-card shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+          <table className={cn("w-full min-w-[560px] border-separate border-spacing-0", className)} {...props} />
         </div>
-      </li>
-    )
-  },
-  table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
-    return (
-      <div className="my-8 overflow-x-auto rounded-xl border border-border/60 bg-card shadow-[0_16px_45px_rgba(15,23,42,0.08)]">
-        <table className={cn("w-full min-w-[560px] border-separate border-spacing-0", className)} {...props} />
-      </div>
-    )
-  },
-  thead: withClass("thead", "bg-muted/80"),
-  tbody: withClass("tbody", "divide-y divide-border/40"),
-  tr: withClass("tr", "group odd:bg-background even:bg-slate-50/50 dark:even:bg-white/5"),
-  th: withClass("th", "border-b border-border/60 p-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300"),
-  td: withClass("td", "p-4 text-sm leading-7 text-slate-700 dark:text-slate-300"),
-  hr: withClass("hr", "my-10 border-t border-dashed border-border/60"),
+      )
+    },
+    thead: withClass("thead", "bg-muted/50"),
+    tbody: withClass("tbody", "divide-y divide-border/40"),
+    tr: withClass("tr", "group odd:bg-background even:bg-muted/20"),
+    th: withClass("th", "border-b border-border/60 p-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"),
+    td: withClass("td", "p-3 text-[13px] leading-relaxed text-foreground/90"),
+    hr: withClass("hr", "my-8 border-t border-dashed border-border/60"),
   img({ className, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
     return (
       <figure className="my-8 overflow-hidden rounded-xl border border-border/60 bg-card shadow-[0_18px_50px_rgba(15,23,42,0.10)] dark:shadow-[0_18px_50px_rgba(0,0,0,0.28)]">

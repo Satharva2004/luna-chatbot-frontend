@@ -3,5 +3,5 @@
 import { MotionConfig } from "framer-motion";
 
 export function AnimationProvider({ children }: { children: React.ReactNode }) {
-  return <MotionConfig reducedMotion="always">{children}</MotionConfig>;
+  return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
 }

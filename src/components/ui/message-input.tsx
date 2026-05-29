@@ -261,13 +261,13 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "z-10 w-full grow resize-none rounded-[18px] border border-border/80 bg-background p-3 pr-24 text-sm text-foreground ring-offset-background shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-[border,background-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-border focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#404244] dark:bg-[#202122] dark:text-[#f8f9fa] dark:shadow-[0_10px_24px_rgba(0,0,0,0.22)] dark:placeholder:text-[#72777d] dark:focus-visible:border-[#72777d]",
+              "z-10 w-full grow resize-none rounded-[20px] border border-border/60 bg-card/75 backdrop-blur-xl p-3 pr-24 text-sm text-foreground transition-all duration-150 placeholder:text-muted-foreground focus-visible:border-border/90 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-border/60 dark:bg-[#1c1c1e]/75 dark:text-[#f5f5f7] dark:placeholder:text-[#86868b] dark:focus-visible:border-border/80 shadow-none",
               showFileList && "pb-16",
               className
             )}
             {...(props.allowAttachments
-              ? omit(props, ["allowAttachments", "files", "setFiles", "inputRef"])
-              : omit(props, ["allowAttachments", "inputRef"]))}
+              ? omit(props, ["allowAttachments", "files", "setFiles"])
+              : omit(props, ["allowAttachments"]))}
           />
 
           {props.allowAttachments && (
@@ -308,8 +308,8 @@ export function MessageInput({
               size="sm"
               variant={includeYouTube ? "default" : "outline"}
               className={cn(
-                "h-8 gap-1 rounded-lg border border-border/80 bg-muted/50 px-2.5 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:border-[#404244] dark:bg-[#27292d] dark:text-[#c8ccd1] dark:hover:bg-[#32363b] dark:hover:text-[#f8f9fa]",
-                includeYouTube && "bg-muted text-foreground dark:bg-[#404244] dark:text-[#f8f9fa]",
+                "h-8 gap-1 rounded-lg border border-border/60 bg-secondary/80 px-2.5 text-muted-foreground shadow-none hover:bg-secondary hover:text-foreground dark:border-border/60 dark:bg-secondary/80 dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground",
+                includeYouTube && "bg-secondary text-foreground dark:bg-secondary dark:text-foreground",
                 !includeYouTube && "opacity-90"
               )}
               aria-label="Toggle tools menu"
@@ -411,8 +411,8 @@ export function MessageInput({
             type="button"
             variant="outline"
             className={cn(
-              "h-8 w-8 rounded-lg border border-border/80 bg-muted/50 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:border-[#404244] dark:bg-[#27292d] dark:text-[#a2a9b1] dark:hover:bg-[#32363b] dark:hover:text-[#f8f9fa]",
-              isListening && "text-foreground dark:text-[#f8f9fa]"
+              "h-8 w-8 rounded-lg border border-border/60 bg-secondary/80 text-muted-foreground shadow-none hover:bg-secondary hover:text-foreground dark:border-border/60 dark:bg-secondary/80 dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground",
+              isListening && "text-foreground dark:text-foreground"
             )}
             aria-label="Voice input"
             size="icon"
@@ -425,7 +425,7 @@ export function MessageInput({
           <Button
             type="button"
             size="icon"
-            className="h-8 w-8 rounded-lg border border-border/80 bg-muted/50 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:border-[#404244] dark:bg-[#27292d] dark:text-[#f8f9fa] dark:hover:bg-[#32363b]"
+            className="h-8 w-8 rounded-lg border border-border/60 bg-secondary/80 text-muted-foreground shadow-none hover:bg-secondary hover:text-foreground dark:border-border/60 dark:bg-secondary/80 dark:text-foreground dark:hover:bg-secondary"
             aria-label="Stop generating"
             onClick={stop}
           >
@@ -435,11 +435,11 @@ export function MessageInput({
           <Button
             type="submit"
             size="icon"
-            className="h-8 w-8 rounded-lg border border-primary/20 bg-primary/10 text-primary shadow-none transition-all hover:bg-primary/20 disabled:border-muted disabled:bg-muted disabled:text-muted-foreground dark:border-[#54595d] dark:bg-[#404244] dark:text-[#f8f9fa] dark:hover:bg-[#54595d] dark:disabled:border-[#27292d] dark:disabled:bg-[#27292d] dark:disabled:text-[#72777d]"
+            className="h-8 w-8 rounded-lg border-0 bg-primary text-primary-foreground shadow-none hover:opacity-90 disabled:bg-secondary disabled:text-muted-foreground"
             aria-label="Send message"
             disabled={props.value === "" || isGenerating}
           >
-            <ArrowUp className="h-5 w-5" />
+            <ArrowUp className="h-4 w-4" />
           </Button>
         )}
       </div>

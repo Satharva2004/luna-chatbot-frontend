@@ -4,8 +4,8 @@
 @import "tw-animate-css";
 
 :root {
-  --transition-duration: 0ms;
-  --transition-timing: linear;
+  --transition-duration: 150ms;
+  --transition-timing: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 *,
@@ -14,11 +14,6 @@
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: var(--transition-timing);
   transition-duration: var(--transition-duration);
-  transition-delay: 0ms !important;
-  animation-duration: 0ms !important;
-  animation-delay: 0ms !important;
-  animation-iteration-count: 1 !important;
-  scroll-behavior: auto !important;
 }
 
 @keyframes blink {
@@ -66,7 +61,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-silkscreen: var(--font-silkscreen);
   --font-playfair: var(--font-playfair);
@@ -106,73 +101,72 @@
 }
 
 :root {
-  --radius: 0.65rem;
-  --background: #f8f9fa;
-  --foreground: #202122;
+  --radius: 0.75rem;
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
   --card: #ffffff;
-  --card-foreground: #202122;
+  --card-foreground: #1d1d1f;
   --popover: #ffffff;
-  --popover-foreground: #202122;
-  --primary: #202122;
+  --popover-foreground: #1d1d1f;
+  --primary: #1d1d1f;
   --primary-foreground: #ffffff;
-  --secondary: #eaecf0;
-  --secondary-foreground: #202122;
-  --muted: #f8f9fa;
-  --muted-foreground: #72777d;
-  --accent: #eaecf0;
-  --accent-foreground: #202122;
-  --destructive: #b32424;
-  --border: #dadde3;
-  --input: #dadde3;
-  --ring: #72777d;
-  --chart-1: #202122;
-  --chart-2: #404244;
-  --chart-3: #54595d;
-  --chart-4: #72777d;
-  --chart-5: #a2a9b1;
-  --radius: 0.625rem;
+  --secondary: #e5e5ea;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f5f5f7;
+  --muted-foreground: #86868b;
+  --accent: #e5e5ea;
+  --accent-foreground: #1d1d1f;
+  --destructive: #ff3b30;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: #e5e5ea;
+  --ring: #86868b;
+  --chart-1: #1d1d1f;
+  --chart-2: #86868b;
+  --chart-3: #d2d2d7;
+  --chart-4: #e5e5ea;
+  --chart-5: #f5f5f7;
   --sidebar: #ffffff;
-  --sidebar-foreground: #202122;
-  --sidebar-primary: #202122;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #1d1d1f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eaecf0;
-  --sidebar-accent-foreground: #202122;
-  --sidebar-border: #dadde3;
-  --sidebar-ring: #72777d;
+  --sidebar-accent: #f5f5f7;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: #86868b;
 }
 
 .dark {
-  --background: #101418;
-  --foreground: #f8f9fa;
-  --card: #202122;
-  --card-foreground: #f8f9fa;
-  --popover: #202122;
-  --popover-foreground: #f8f9fa;
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #2c2c2e;
+  --card-foreground: #f5f5f7;
+  --popover: #2c2c2e;
+  --popover-foreground: #f5f5f7;
   --primary: #ffffff;
-  --primary-foreground: #101418;
-  --secondary: #27292d;
-  --secondary-foreground: #f8f9fa;
-  --muted: #202122;
-  --muted-foreground: #a2a9b1;
-  --accent: #27292d;
-  --accent-foreground: #f8f9fa;
-  --destructive: #ff6b6b;
-  --border: #404244;
-  --input: #27292d;
-  --ring: #72777d;
+  --primary-foreground: #000000;
+  --secondary: #1c1c1e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #1c1c1e;
+  --muted-foreground: #86868b;
+  --accent: #1c1c1e;
+  --accent-foreground: #f5f5f7;
+  --destructive: #ff453a;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: #1c1c1e;
+  --ring: #86868b;
   --chart-1: #ffffff;
-  --chart-2: #c8ccd1;
-  --chart-3: #a2a9b1;
-  --chart-4: #72777d;
-  --chart-5: #54595d;
-  --sidebar: #202122;
-  --sidebar-foreground: #f8f9fa;
+  --chart-2: #86868b;
+  --chart-3: #3a3a3c;
+  --chart-4: #2c2c2e;
+  --chart-5: #1c1c1e;
+  --sidebar: #161618;
+  --sidebar-foreground: #f5f5f7;
   --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #101418;
-  --sidebar-accent: #27292d;
-  --sidebar-accent-foreground: #f8f9fa;
-  --sidebar-border: #404244;
-  --sidebar-ring: #72777d;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #2c2c2e;
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #86868b;
 }
 
 
@@ -242,15 +236,15 @@
     justify-content: center;
     flex-shrink: 0;
     border-radius: 9999px;
-    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
-    background: #f4eee7;
-    color: #6f4427;
-    box-shadow: 0 8px 24px rgba(82, 54, 31, 0.08);
+    border: 1px solid var(--border);
+    background: var(--muted);
+    color: var(--foreground);
+    box-shadow: none;
   }
 
   .dark .luna-response-avatar {
-    background: #27231f;
-    color: #e3bb8d;
+    background: var(--muted);
+    color: var(--foreground);
     box-shadow: none;
   }
 
@@ -258,17 +252,17 @@
     display: inline-flex;
     align-items: center;
     border-radius: 9999px;
-    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
-    background: color-mix(in oklab, var(--background) 82%, #c89f73 18%);
+    border: 1px solid var(--border);
+    background: var(--secondary);
     padding: 0.125rem 0.5rem;
     font-size: 0.68rem;
     font-weight: 600;
-    color: #7a4b28;
+    color: var(--foreground);
   }
 
   .dark .luna-response-pill {
-    background: rgba(200, 159, 115, 0.12);
-    color: #e0b384;
+    background: var(--secondary);
+    color: var(--foreground);
   }
 
   .luna-answer-surface {
@@ -633,5 +627,34 @@
 
   .luna-pulse {
     animation: luna-pulse 2.6s ease-in-out infinite;
+  }
+
+  @keyframes apple-pulse {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.18) rotate(180deg);
+      opacity: 0.95;
+    }
+  }
+
+  .apple-glow-1 {
+    animation: apple-pulse 9s ease-in-out infinite;
+  }
+
+  .apple-glow-2 {
+    animation: apple-pulse 13s ease-in-out infinite reverse;
+  }
+
+  .dither-text {
+    background: 
+      conic-gradient(from 0deg, var(--background) 25%, transparent 25% 50%, var(--background) 50% 75%, transparent 75%) 0 0 / 4px 4px,
+      linear-gradient(to right, var(--foreground), var(--muted-foreground));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
   }
 }

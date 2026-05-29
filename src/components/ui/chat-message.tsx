@@ -437,7 +437,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   })
 
   const messageShellClass = isUser
-    ? "overflow-hidden rounded-[24px] border border-border/50 bg-muted/80 px-5 py-4 text-foreground/90 shadow-[0_18px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl dark:border-[#404244] dark:bg-[linear-gradient(180deg,rgba(39,41,45,0.96),rgba(32,33,34,0.96))] dark:shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
+    ? "overflow-hidden rounded-[18px] bg-neutral-200/70 px-4 py-2.5 text-slate-900 border-0 shadow-none dark:bg-[#2c2c2e] dark:text-[#f8f9fa] backdrop-blur-md"
     : "overflow-visible border-0 bg-transparent px-0 py-0 text-foreground shadow-none"
 
   const shouldShowMinimalLoader =
@@ -1003,8 +1003,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div className={cn(chatBubbleVariants({ isUser: false, animation }), "relative")}>
         <article className="luna-response-shell">
           <header className="luna-response-header">
-            <span className="luna-response-avatar">
-              <LunaIcon className="h-4 w-4" />
+            <span className="luna-response-avatar overflow-hidden">
+              <img
+                src="/main logo.jfif"
+                alt="Luna"
+                className="h-full w-full object-cover"
+              />
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -1099,8 +1103,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
       {!isUser ? (
         <div className="mb-2 flex w-full items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#404244] bg-[#27292d] text-[#f8f9fa] backdrop-blur-md">
-            <LunaIcon className="h-4 w-4" />
+          <span className="relative flex h-6 w-6 items-center justify-center rounded-full border border-border overflow-hidden flex-shrink-0">
+            <img
+              src="/main logo.jfif"
+              alt="Luna"
+              className="h-full w-full object-cover"
+            />
           </span>
           <span className="text-xs font-semibold tracking-tight text-foreground/80">
             Luna
@@ -1262,13 +1270,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-          className="relative min-h-[1.5em] overflow-hidden"
-          style={{
-            fontFamily: '"Inter", "Nunito", "Helvetica Neue", Arial, sans-serif',
-            fontWeight: 400,
-            lineHeight: 2,
-            fontSize: '0.9rem',
-          }}
+          className="relative min-h-[1.5em] overflow-hidden text-[13px] sm:text-sm leading-relaxed"
         >
           <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>
             {content}

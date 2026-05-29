@@ -22,6 +22,10 @@ import {
   Menu,
   BookOpen,
   MessageCircle,
+  Compass,
+  Sparkles,
+  TrendingUp,
+  FileText,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
@@ -229,9 +233,9 @@ export default function ChatPage() {
   }, [displayName])
 
   const desktopActionClasses =
-    "group/nav relative inline-flex h-9 items-center overflow-hidden rounded-full border border-white/10 bg-white/5 px-5 text-sm font-medium text-foreground/80 shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+    "group/nav relative inline-flex h-8 items-center overflow-hidden rounded-full border border-border/60 bg-secondary/80 px-4 text-xs font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border/50 shadow-none"
   const desktopProfileButtonClasses =
-    "group/profile relative flex min-h-10 min-w-0 items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/5 px-2 pr-5 text-left text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+    "group/profile relative flex h-8 min-w-0 items-center gap-2 overflow-hidden rounded-full border border-border/60 bg-secondary/80 px-2 pr-3.5 text-left text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border/50 shadow-none"
 
   // Layout heights state
   const [layoutHeights, setLayoutHeights] = useState({
@@ -1016,6 +1020,12 @@ export default function ChatPage() {
   const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
   const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
 
+
+  const handleStarterClick = useCallback((promptText: string) => {
+    setInput(promptText)
+    inputRef.current?.focus()
+  }, [])
+
   const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
     try {
       const formData = new FormData()
@@ -1066,12 +1076,21 @@ export default function ChatPage() {
           right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
-        <div className="flex w-full max-w-7xl items-center justify-between rounded-[28px] border border-border/60 bg-background/80 px-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 sm:px-8">
-          <div className="flex h-[60px] w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <div className="flex w-full max-w-7xl items-center justify-between rounded-2xl border border-border/60 bg-card/75 px-4 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 sm:px-6">
+          <div className="flex h-12 w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/60 bg-secondary text-foreground">
-                <LunaIcon className="h-5 w-5" />
+              <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border/60">
+                <img
+                  src="/main logo.jfif"
+                  alt="Luna Logo"
+                  className="block dark:hidden h-full w-full object-cover"
+                />
+                <img
+                  src="/main logo.jfif"
+                  alt="Luna Logo"
+                  className="hidden dark:block h-full w-full object-cover"
+                />
               </div>
               <div className="flex flex-col justify-center">
                 <h1 className={`${playfair.className} text-[15px] font-semibold leading-snug tracking-tight`}>
@@ -1280,7 +1299,7 @@ export default function ChatPage() {
                       <img
                         src={userAvatar}
                         alt={displayName || "User avatar"}
-                        className="h-7 w-7 rounded-full border border-white/40 object-cover"
+                        className="h-5 w-5 rounded-full border border-white/40 object-cover"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
@@ -1512,7 +1531,7 @@ export default function ChatPage() {
 
       {isHistoryOpen && canDockHistory && (
         <aside
-          className="fixed bottom-0 left-0 z-40 hidden border-r border-border/60 bg-background/90 backdrop-blur-2xl md:block"
+          className="fixed bottom-0 left-0 z-40 hidden border-r border-sidebar-border bg-sidebar/90 backdrop-blur-2xl md:block"
           style={{
             top: 0,
             width: historySidebarWidth,
@@ -1592,28 +1611,28 @@ export default function ChatPage() {
 
                     return (
                       <li key={conversation.id}>
-                        <div className="group flex items-center gap-2 rounded-2xl px-2 py-1">
+                        <div className="group flex items-center gap-1 rounded-lg px-2 py-0.5">
                           <button
-                            className={`min-w-0 flex-1 rounded-[18px] px-3 py-3 text-left transition-colors ${isActive ? 'bg-primary/10 text-foreground ring-1 ring-primary/20' : 'hover:bg-muted/60'}`}
+                            className={`min-w-0 flex-1 rounded-[10px] px-3 py-2 text-left transition-colors ${isActive ? 'bg-sidebar-accent text-foreground font-medium' : 'hover:bg-sidebar-accent/50'}`}
                             onClick={() => handleConversationSelect(conversation.id)}
                             type="button"
                           >
-                            <div className="truncate text-sm font-medium">
+                            <div className="truncate text-xs font-medium">
                               {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
                               <span className="truncate">{isActive ? 'Current chat' : 'Saved chat'}</span>
                               {timestamp ? <span className="shrink-0">{timestamp}</span> : null}
                               {loadingConversationId === conversation.id ? <span className="shrink-0 text-primary">Loading...</span> : null}
                             </div>
                           </button>
                           <button
-                            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                             onClick={(event) => handleDeleteConversation(conversation.id, event)}
                             title="Delete conversation"
                             type="button"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </li>
@@ -1650,40 +1669,28 @@ export default function ChatPage() {
                     right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
                   }}
                 >
-                  <div className="relative mx-auto max-w-2xl space-y-10 px-6 pb-16 pt-20 text-center text-foreground">
-                    <div className="flex flex-col items-center gap-5">
-                    
-                      <div className="relative">
-                        <div className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(114,119,125,0.22),transparent_65%)] blur-2xl opacity-60 transition-opacity duration-700 dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_65%)]" />
-                        <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(114,119,125,0.16),rgba(255,255,255,0),rgba(64,66,68,0.18),rgba(255,255,255,0))] blur-3xl opacity-30 animate-[spin_18s_linear_infinite]" />
-                        <h2
-                          className={`${playfair.className} relative flex flex-wrap items-baseline justify-center gap-2 text-4xl leading-snug tracking-tight text-foreground sm:flex-nowrap sm:text-[2.7rem]`}
-                        >
-                          <span className="text-foreground">{salutation}</span>
-                          <span className="text-muted-foreground/50">,</span>
-                          <span className="bg-gradient-to-r from-slate-600 via-slate-800 to-slate-600 bg-clip-text text-4xl font-semibold italic text-transparent whitespace-nowrap sm:text-[2.8rem] dark:from-[#c8ccd1] dark:via-[#f8f9fa] dark:to-[#a2a9b1]">
-                            {firstName}
-                          </span>
-                        </h2>
-                      </div>
-                      <p className="max-w-xl text-base leading-relaxed text-muted-foreground dark:text-slate-400">
-                        I’m primed to craft strategy, decode insights, and surface opportunities tailored for you.
-                      </p>
+                  <div className="relative mx-auto max-w-2xl space-y-12 px-6 pb-16 pt-20 text-center text-foreground">
+                    {/* Siri/Apple Intelligence Aura Glow */}
+                    <div className="pointer-events-none absolute left-1/2 top-[35%] -translate-x-1/2 -translate-y-1/2 h-80 w-80 sm:h-[400px] sm:w-[400px] select-none opacity-45 mix-blend-screen dark:opacity-40">
+                      <div className="apple-glow-1 absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(0,122,255,0.22),transparent_60%)] blur-3xl" />
+                      <div className="apple-glow-2 absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(255,45,85,0.18),transparent_55%)] blur-3xl" />
+                      <div className="apple-glow-1 absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(255,149,0,0.12),transparent_50%)] blur-2xl" />
                     </div>
 
-                    {/* <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-                      {["Generate immersive reports", "Track market shifts", "Ideate new strategies"].map((badge) => (
-                        <div
-                          key={badge}
-                          className="group/badge relative overflow-hidden rounded-full border border-white/70 bg-white/80 px-5 py-2 text-xs font-medium text-slate-600 shadow-[0_12px_30px_rgba(15,17,26,0.14)] transition-all hover:-translate-y-1 hover:border-[#0f62fe]/40 hover:bg-white hover:text-[#0f62fe] dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:shadow-[0_18px_45px_rgba(0,0,0,0.55)] dark:hover:border-[#82aaff]/40 dark:hover:text-[#82aaff]"
-                        >
-                          <span className="relative z-10">{badge}</span>
-                          <span className="absolute inset-0 -z-0 bg-gradient-to-r from-transparent via-[#0f62fe]/10 to-transparent opacity-0 transition-opacity duration-500 group-hover/badge:opacity-100 dark:via-[#82aaff]/20" />
-                        </div>
-                      ))}
-                    </div> */}
+                    <div className="relative flex flex-col items-center">
+                      <h2 className="relative flex flex-row items-center justify-center gap-3.5 text-2xl font-bold tracking-tight text-foreground sm:text-[2.6rem] leading-tight">
+                        <img
+                          src="/main logo.jfif"
+                          alt="Luna Logo"
+                          className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-cover flex-shrink-0"
+                        />
+                        <span className="text-foreground">
+                          What's up <span className="text-primary">{firstName?.toLowerCase()}</span>
+                        </span>
+                      </h2>
+                    </div>
 
-                    
+
                   </div>
                 </div>
               ) : (
@@ -1699,16 +1706,15 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input Area */}
       <div
         ref={footerRef}
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/90 shadow-[0_-14px_36px_rgba(0,0,0,0.18)] backdrop-blur-2xl"
+        className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-background via-background/95 to-transparent pb-6 pt-12 pointer-events-none"
         style={{
           left: reservedHistoryWidth ? `${reservedHistoryWidth}px` : 0,
           right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
-        <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6">
+        <div className="relative mx-auto max-w-4xl px-4 py-4 sm:px-6 pointer-events-auto">
           <ChatForm
             isPending={isGenerating}
             handleSubmit={handleSubmit}
