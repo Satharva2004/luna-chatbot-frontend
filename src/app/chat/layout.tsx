@@ -6,8 +6,9 @@ import { Navbar } from '@/components/ui/navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Chat | Luna AI',
+  title: 'Luna AI',
   description: 'Chat with Luna AI',
+  icons: '/main logo.jfif ',
 };
 
 export default function ChatLayout({
