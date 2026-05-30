@@ -1055,12 +1055,12 @@ export default function ChatPage() {
 
   return (
     <div
-      className="relative flex flex-col overflow-hidden bg-background text-foreground"
+      className="relative flex flex-col overflow-hidden bg-background text-foreground transition-[min-height] duration-300 ease-out"
       style={{ minHeight: viewportHeight }}
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 opacity-80"
+        className="pointer-events-none fixed inset-0 -z-10 opacity-80"
         style={{
           background:
             'radial-gradient(circle at 18% 10%, rgba(114,119,125,0.14), transparent 38%), radial-gradient(circle at 82% 0%, rgba(64,66,68,0.12), transparent 30%), radial-gradient(circle at 52% 110%, rgba(39,41,45,0.18), transparent 48%)',
