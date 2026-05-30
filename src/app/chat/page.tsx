@@ -1103,7 +1103,7 @@ export default function ChatPage() {
             {/* Mobile Menu Toggle */}
             <button
               type="button"
-              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-foreground/70 shadow-[0_8px_24px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors duration-200 hover:bg-white/10 hover:text-foreground md:hidden"
+              className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-secondary/80 text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border/50 md:hidden"
               onClick={() => {
                 setIsHistoryOpen(false)
                 setIsProfileOpen(false)
@@ -1112,7 +1112,7 @@ export default function ChatPage() {
               aria-label="Open navigation"
               aria-expanded={isMobileMenuOpen}
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4.5 w-4.5" />
             </button>
 
             {/* Desktop Primary Actions */}
@@ -1369,162 +1369,190 @@ export default function ChatPage() {
 
         {isMobileMenuOpen && (
           <>
+            {/* Backdrop overlay */}
             <div
-              className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity duration-300 md:hidden animate-fade-in"
               onClick={() => setIsMobileMenuOpen(false)}
             />
-            <div
-              className="fixed inset-x-0 z-40 px-4 md:hidden"
-              style={{ top: layoutHeights.header + 16 }}
+            
+            {/* Drawer */}
+            <aside
+              className="fixed inset-y-0 left-0 z-50 flex w-[300px] flex-col border-r border-border/60 bg-background/95 p-5 shadow-2xl backdrop-blur-2xl transition-transform duration-300 ease-out md:hidden animate-slide-in-left"
+              style={{ top: 0, bottom: 0 }}
             >
-              <div className="mx-auto mb-4 max-w-6xl rounded-3xl border border-white/70 bg-white/80 shadow-[0_18px_50px_rgba(15,17,26,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#111119]/85 dark:shadow-[0_22px_60px_rgba(0,0,0,0.7)]">
-                <div className="space-y-5 p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex flex-1 items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-                      {userAvatar ? (
-                        <img
-                          src={userAvatar}
-                          alt={displayName || "User avatar"}
-                          className="h-14 w-14 rounded-full border border-white/60 object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#0f66ff] to-[#4a8dff] text-xl font-semibold text-white">
-                          {userInitial}
-                        </div>
-                      )}
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                          {displayName}
-                        </span>
-                        {displayEmail ? (
-                          <span className="truncate text-xs text-slate-500 dark:text-slate-300">{displayEmail}</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/60 bg-white/80 text-slate-500 shadow-[0_10px_26px_rgba(15,17,26,0.18)] transition-colors hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f62fe]/40 dark:border-white/15 dark:bg-white/10 dark:text-slate-300 dark:hover:text-white dark:focus-visible:ring-[#82aaff]/40"
-                      aria-label="Close menu"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
+              {/* Header inside drawer */}
+              <div className="flex items-center justify-between pb-4 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src="/main logo.jfif"
+                    alt="Luna Logo"
+                    className="h-7 w-7 rounded-lg object-cover"
+                  />
+                  <span className={`${playfair.className} text-sm font-semibold tracking-tight`}>
+                    Luna<span className="text-muted-foreground">AI</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <X className="h-4.5 w-4.5" />
+                </button>
+              </div>
+
+              {/* Profile Card */}
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border/60 bg-secondary/40 px-3.5 py-3">
+                {userAvatar ? (
+                  <img
+                    src={userAvatar}
+                    alt={displayName || "User avatar"}
+                    className="h-10 w-10 rounded-full border border-border/60 object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                    {userInitial}
                   </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={startNewChat}
-                      variant="secondary"
-                      className="justify-start gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Start new chat
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false)
-                        setIsFeedbackOpen(true)
-                      }}
-                      variant="secondary"
-                      className="justify-start gap-2"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      Feedback
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false)
-                        logout()
-                      }}
-                      variant="outline"
-                      className="justify-start gap-2"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Logout
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
-                      <History className="h-4 w-4" />
-                      Recent conversations
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
-                      onClick={() => loadConversations()}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="max-h-60 overflow-y-auto rounded-[24px] border border-white/40 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-                    {isHistoryLoading ? (
-                      <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                        Loading conversations...
-                      </div>
-                    ) : conversations.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                        No conversations yet
-                      </div>
-                    ) : (
-                      <ul className="divide-y divide-gray-200 dark:divide-gray-800">
-                        {conversations.map((conversation) => {
-                          const isActive = currentConversationId === conversation.id
-                          const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
-
-                          const initial = (conversation.title || "C").slice(0, 1).toUpperCase()
-
-                          return (
-                            <li key={conversation.id}>
-                              <button
-                                className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isActive
-                                  ? 'bg-[#eaf2ff] text-[#0b84ff] shadow-inner dark:bg-[#0d1a2f] dark:text-[#73b3ff]'
-                                  : 'hover:bg-white/80 dark:hover:bg-white/10'
-                                  }`}
-                                onClick={() => handleConversationSelect(conversation.id)}
-                                type="button"
-                              >
-                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${isActive ? 'bg-[#0b84ff] text-white' : 'bg-white/70 text-slate-700 dark:bg-white/10 dark:text-slate-200'}`}>
-                                  {initial}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="truncate font-semibold">
-                                    {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
-                                  </div>
-                                  {timestamp && (
-                                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                      {timestamp}
-                                    </div>
-                                  )}
-                                </div>
-                                <button
-                                  className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-white/10 dark:hover:text-red-300"
-                                  onClick={(event) => handleDeleteConversation(conversation.id, event)}
-                                  title="Delete conversation"
-                                  type="button"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </button>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                      Theme
-                    </span>
-                    <ThemeToggle />
-                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-xs font-semibold">{displayName}</div>
+                  {displayEmail ? (
+                    <div className="truncate text-[10px] text-muted-foreground">{displayEmail}</div>
+                  ) : null}
                 </div>
               </div>
-            </div>
+
+              {/* Primary Actions inside Drawer */}
+              <div className="mt-4 flex gap-2">
+                <Button
+                  onClick={() => {
+                    startNewChat()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  variant="secondary"
+                  className="flex-1 justify-center gap-2 text-xs h-9 rounded-xl"
+                  type="button"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  New chat
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    setIsFeedbackOpen(true)
+                  }}
+                  variant="secondary"
+                  className="justify-center gap-2 text-xs h-9 w-9 rounded-xl p-0 border border-border/60"
+                  type="button"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {/* History Section inside Drawer */}
+              <div className="mt-6 flex flex-col flex-1 min-h-0">
+                <div className="flex items-center justify-between pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <History className="h-3.5 w-3.5" />
+                    <span>Recent Chats</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadConversations()}
+                    className="hover:text-foreground"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </button>
+                </div>
+
+                {/* History Search inside Drawer */}
+                <div className="relative mt-2">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={historyQuery}
+                    onChange={(event) => setHistoryQuery(event.target.value)}
+                    placeholder="Search chats..."
+                    className="h-8.5 rounded-xl border border-border/60 bg-background/50 pl-8 pr-3 text-xs focus-visible:ring-1 focus-visible:ring-border/50"
+                  />
+                </div>
+
+                {/* History List inside Drawer */}
+                <div className="flex-1 overflow-y-auto mt-3 pr-1">
+                  {isHistoryLoading ? (
+                    <div className="py-6 text-center text-xs text-muted-foreground">
+                      Loading conversations...
+                    </div>
+                  ) : conversations.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-muted-foreground">
+                      No conversations yet
+                    </div>
+                  ) : filteredHistory.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-muted-foreground">
+                      No chats found for &quot;{historyQuery}&quot;
+                    </div>
+                  ) : (
+                    <ul className="space-y-1">
+                      {filteredHistory.map((conversation) => {
+                        const isActive = currentConversationId === conversation.id
+                        const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+
+                        return (
+                          <li key={conversation.id}>
+                            <div className="group flex items-center gap-1 rounded-lg py-0.5">
+                              <button
+                                className={`min-w-0 flex-1 rounded-[10px] px-3 py-2 text-left transition-colors ${isActive ? 'bg-sidebar-accent text-foreground font-medium' : 'hover:bg-sidebar-accent/50'}`}
+                                onClick={() => {
+                                  handleConversationSelect(conversation.id)
+                                  setIsMobileMenuOpen(false)
+                                }}
+                                type="button"
+                              >
+                                <div className="truncate text-xs font-medium">
+                                  {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                                </div>
+                                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                                  {timestamp ? <span className="shrink-0">{timestamp}</span> : null}
+                                  {loadingConversationId === conversation.id ? <span className="shrink-0 text-primary">Loading...</span> : null}
+                                </div>
+                              </button>
+                              <button
+                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                                title="Delete conversation"
+                                type="button"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Settings Row inside Drawer */}
+              <div className="mt-auto pt-4 border-t border-border/60 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Theme</span>
+                  <ThemeToggle />
+                </div>
+                <Button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    logout()
+                  }}
+                  variant="ghost"
+                  className="h-8 rounded-xl px-3 text-xs text-muted-foreground hover:text-destructive flex items-center gap-1.5"
+                  type="button"
+                >
+                  Logout
+                  <LogOut className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </aside>
           </>
         )}
       </header>
