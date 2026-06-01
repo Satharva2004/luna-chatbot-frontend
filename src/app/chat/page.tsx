@@ -3,7 +3,7 @@
 import React, { useCallback, useDeferredValue, useMemo, useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChatForm } from "@/components/ui/chat"
-import { type ImageResult, type Message, type MermaidBlockUpdate } from "@/components/ui/chat-message"
+import { type AgentActivityStep, type ImageResult, type Message, type MermaidBlockUpdate } from "@/components/ui/chat-message"
 import { CopyButton } from "@/components/ui/copy-button"
 import { Input } from "@/components/ui/input"
 import { MessageInput } from "@/components/ui/message-input"
@@ -621,6 +621,28 @@ export default function ChatPage() {
       let updateTimer: NodeJS.Timeout | null = null
       let pendingUpdate = false
 
+      const upsertAgentStep = (step: AgentActivityStep) => {
+        const normalizedStep: AgentActivityStep = {
+          ...step,
+          updatedAt: step.updatedAt ?? Date.now(),
+        }
+
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id !== assistantMessageId) return msg
+
+            const existingSteps = Array.isArray(msg.agentSteps) ? msg.agentSteps : []
+            const existingIndex = existingSteps.findIndex((item) => item.id === normalizedStep.id)
+            const nextSteps =
+              existingIndex >= 0
+                ? existingSteps.map((item, index) => index === existingIndex ? { ...item, ...normalizedStep } : item)
+                : [...existingSteps, normalizedStep]
+
+            return { ...msg, agentSteps: nextSteps }
+          })
+        )
+      }
+
       const processSseLine = (line: string) => {
         if (!line.trim()) {
           currentEvent = ''
@@ -670,6 +692,16 @@ export default function ChatPage() {
                 pendingUpdate = false
               }, 50)
             }
+          }
+          else if (currentEvent === 'status' && parsed.id && parsed.label) {
+            upsertAgentStep({
+              id: String(parsed.id),
+              label: String(parsed.label),
+              state: parsed.state === 'queued' || parsed.state === 'complete' || parsed.state === 'error'
+                ? parsed.state
+                : 'running',
+              detail: typeof parsed.detail === 'string' ? parsed.detail : undefined,
+            })
           }
           else if (currentEvent === 'images' && parsed.images && Array.isArray(parsed.images)) {
             const normalized = normalizeImageResults(parsed.images)
@@ -849,6 +881,12 @@ export default function ChatPage() {
 
       if (!abortControllerRef.current?.signal.aborted && chartsConversationId) {
         try {
+          upsertAgentStep({
+            id: 'chart-generation',
+            label: 'Checking for charts',
+            state: 'running',
+          })
+
           const chartsResponse = await fetch('/api/proxy/charts', {
             method: 'POST',
             headers: {
@@ -878,12 +916,29 @@ export default function ChatPage() {
                     : msg
                 )
               )
+              upsertAgentStep({
+                id: 'chart-generation',
+                label: 'Chart ready',
+                state: 'complete',
+              })
+            } else {
+              upsertAgentStep({
+                id: 'chart-generation',
+                label: 'No chart needed',
+                state: 'complete',
+              })
             }
           } else {
             throw new Error(await chartsResponse.text())
           }
         } catch (chartErr) {
           console.error('Chart fetch after chat failed:', chartErr)
+          upsertAgentStep({
+            id: 'chart-generation',
+            label: 'Chart check failed',
+            state: 'error',
+            detail: chartErr instanceof Error ? chartErr.message : 'Unable to build chart',
+          })
         }
       }
 
@@ -945,6 +1000,14 @@ export default function ChatPage() {
       images: [],
       promptTitle: newMessage.content,
       isComplete: false,
+      agentSteps: [
+        {
+          id: "request-context",
+          label: "Preparing context",
+          state: "running",
+          updatedAt: Date.now(),
+        },
+      ],
     }
 
     setMessages((prev) => [...prev, newMessage, assistantMessage])
@@ -1713,7 +1776,7 @@ export default function ChatPage() {
                           className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-cover flex-shrink-0"
                         />
                         <span className="text-foreground">
-                          What's up <span className="text-primary">{firstName?.toLowerCase()}</span>
+                          What&apos;s up <span className="text-primary">{firstName?.toLowerCase()}</span>
                         </span>
                       </h2>
                     </div>

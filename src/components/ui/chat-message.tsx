@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { AlertTriangle, Ban, BarChart3, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Sparkles, Terminal, Youtube } from "lucide-react"
+import { AlertTriangle, Ban, BarChart3, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Sparkles, Terminal, Youtube } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -103,10 +103,60 @@ const MinimalAssistantLoader = () => (
       animate={{ opacity: [0.55, 1, 0.55] }}
       transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
     >
-      Thinking...
+      Generating...
     </motion.span>
   </motion.div>
 )
+
+export type AgentStepState = "queued" | "running" | "complete" | "error"
+
+export interface AgentActivityStep {
+  id: string
+  label: string
+  state: AgentStepState
+  detail?: string
+  updatedAt?: number
+}
+
+const agentStepIcon = (step: AgentActivityStep) => {
+  if (step.state === "complete") return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+  if (step.state === "error") return <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+  if (step.state === "running") return <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+
+  if (step.id.includes("image")) return <ImageIcon className="h-3.5 w-3.5" />
+  if (step.id.includes("youtube")) return <Youtube className="h-3.5 w-3.5" />
+  if (step.id.includes("source")) return <Globe className="h-3.5 w-3.5" />
+  if (step.id.includes("chart")) return <BarChart3 className="h-3.5 w-3.5" />
+  if (step.id.includes("flowchart") || step.id.includes("diagram")) return <Sparkles className="h-3.5 w-3.5" />
+  return <Sparkles className="h-3.5 w-3.5" />
+}
+
+const AgentActivity = ({ steps, isComplete, hasContent }: { steps?: AgentActivityStep[]; isComplete?: boolean; hasContent?: boolean }) => {
+  if (isComplete || hasContent) return null
+
+  const visibleSteps = Array.isArray(steps)
+    ? steps
+      .filter((step) => step?.id && step?.label)
+      .filter((step) => step.state === "running" || step.state === "queued")
+      .slice(-1)
+    : []
+
+  if (visibleSteps.length === 0) return null
+
+  const activeStep = visibleSteps[0]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="luna-process-panel"
+    >
+      <span className="luna-process-icon">{agentStepIcon(activeStep)}</span>
+      <span className="min-w-0 truncate">{activeStep.label}</span>
+      {activeStep.detail ? <span className="hidden truncate text-muted-foreground sm:inline">{activeStep.detail}</span> : null}
+    </motion.div>
+  )
+}
 
 const OutputSectionHeader = ({
   count,
@@ -254,6 +304,7 @@ export interface Message {
   codeSnippets?: CodeSnippet[]
   executionOutputs?: ExecutionOutput[]
   mermaidBlocks?: MermaidBlockUpdate[]
+  agentSteps?: AgentActivityStep[]
   excalidrawData?: Array<{
     type: 'excalidraw'
     version: number
@@ -301,6 +352,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   codeSnippets,
   executionOutputs,
   excalidrawData,
+  agentSteps,
   onOpenExternalPreview,
 }) => {
   const files = useMemo(() => {
@@ -447,7 +499,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     !(parts && parts.length > 0) &&
     !(Array.isArray(images) && images.length > 0) &&
     !(Array.isArray(videos) && videos.length > 0) &&
-    !(Array.isArray(sources) && sources.length > 0)
+    !(Array.isArray(sources) && sources.length > 0) &&
+    !(Array.isArray(agentSteps) && agentSteps.length > 0)
 
   const extractVideoId = (url?: string) => {
     if (!url) return undefined
@@ -760,8 +813,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div className="luna-integrated-resources">
         {hasImages && (
           <section className="luna-integrated-section">
-            <OutputSectionHeader count={images?.length} icon={<ImageIcon className="h-4 w-4" />} title="Visual references" />
-            <div className="luna-resource-grid">
+            <OutputSectionHeader count={images?.length} icon={<ImageIcon className="h-4 w-4" />} title="Images" />
+            <div className="luna-media-strip">
               {images
                 ?.filter((img) => typeof img?.imageUrl === 'string' && img.imageUrl)
                 .map((img, index) => {
@@ -780,9 +833,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       key={`${img.imageUrl}-${index}`}
                       type="button"
                       onClick={() => openExternalPreview(targetHref || undefined, caption)}
-                      className="luna-media-card text-left"
+                      className="luna-preview-card text-left"
                     >
-                      <span className="luna-media-thumb aspect-[4/3]">
+                      <span className="luna-preview-thumb aspect-[4/3]">
                         <img
                           src={img.imageUrl || ''}
                           alt={caption}
@@ -794,8 +847,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           }}
                         />
                       </span>
-                      <span className="luna-media-meta">{hostname}</span>
-                      <span className="luna-media-title">{caption}</span>
+                      <span className="luna-preview-title">{caption}</span>
+                      <span className="luna-preview-meta">{hostname}</span>
                     </button>
                   )
                 })}
@@ -806,7 +859,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         {hasVideos && (
           <section className="luna-integrated-section">
             <OutputSectionHeader count={videos?.length} icon={<Youtube className="h-4 w-4 text-red-500" />} title="Recommended videos" />
-            <div className="luna-resource-grid luna-video-grid">
+            <div className="luna-media-strip">
               {videos
                 ?.filter((video) => typeof (video?.url || video?.videoId) === 'string')
                 .map((video, index) => {
@@ -830,9 +883,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       key={`${video?.videoId || video?.url || index}`}
                       type="button"
                       onClick={() => openExternalPreview(targetHref, title)}
-                      className="luna-media-card text-left"
+                      className="luna-preview-card is-video text-left"
                     >
-                      <span className="luna-media-thumb aspect-video bg-black">
+                      <span className="luna-preview-thumb aspect-video bg-black">
                         {thumbnailUrl ? (
                           <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
@@ -842,8 +895,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           <Youtube className="h-4 w-4" />
                         </span>
                       </span>
-                      <span className="luna-media-meta">{channel}</span>
-                      <span className="luna-media-title">{title}</span>
+                      <span className="luna-preview-title">{title}</span>
+                      <span className="luna-preview-meta">{channel}</span>
                     </button>
                   )
                 })}
@@ -911,28 +964,40 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
         {hasSources && (
           <section className="luna-integrated-section">
-            <OutputSectionHeader count={sources?.length} icon={<Globe className="h-4 w-4" />} title="Sources" />
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="luna-source-header">
+              <div className="flex items-center gap-2">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Sources</span>
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {sources?.length}
+                </span>
+              </div>
+            </div>
+            <div className="luna-source-scroll" role="list" aria-label="Sources">
               {sources?.map((source, index) => {
                 if (!source) return null
                 let href: string
                 let displayText: string
+                let hostText: string
 
                 if (typeof source === 'string') {
                   href = source
                   try {
-                    displayText = new URL(href).hostname.replace('www.', '')
+                    hostText = new URL(href).hostname.replace('www.', '')
+                    displayText = hostText
                   } catch {
+                    hostText = 'Source'
                     displayText = source.substring(0, 56)
                   }
                 } else {
                   href = source.url
+                  try {
+                    hostText = new URL(href).hostname.replace('www.', '')
+                  } catch {
+                    hostText = 'Source'
+                  }
                   displayText = source.title || (() => {
-                    try {
-                      return new URL(href).hostname.replace('www.', '')
-                    } catch {
-                      return href
-                    }
+                    return hostText
                   })()
                 }
 
@@ -943,13 +1008,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     onClick={() => openExternalPreview(href, displayText)}
                     className="luna-source-card"
                     title={displayText}
+                    role="listitem"
                   >
-                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="luna-source-index">{index + 1}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-foreground">{displayText}</span>
-                      <span className="block truncate text-[11px] text-muted-foreground">{href}</span>
+                      <span className="block truncate text-xs font-semibold text-foreground">{displayText}</span>
+                      <span className="block truncate text-[10px] text-muted-foreground">{hostText}</span>
                     </span>
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   </button>
                 )
               })}
@@ -1021,12 +1086,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             </div>
           </header>
 
+          <AgentActivity steps={agentSteps} isComplete={isComplete} hasContent={Boolean(text?.trim())} />
+
           <div className="luna-answer-surface">
             {shouldShowMinimalLoader ? (
               <MinimalAssistantLoader />
             ) : text?.trim() ? (
               <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{text}</MarkdownRenderer>
-            ) : (
+            ) : !isComplete ? null : (
               <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-4 w-4" />
                 Luna did not return text for this response.
@@ -1129,6 +1196,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             ))}
           </div>
         )}
+
+        {!isUser && <AgentActivity steps={agentSteps} isComplete={isComplete} hasContent={Boolean(content?.trim())} />}
 
         {shouldShowMinimalLoader && (
           <div className="py-2">
