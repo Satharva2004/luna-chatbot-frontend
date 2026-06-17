@@ -78,6 +78,74 @@ const BlinkingCursor = () => (
   />
 )
 
+// Renders only the "active" (last) paragraph with word-by-word fade-in animation
+const StreamingParagraph = React.memo(({ text }: { text: string }) => {
+  const prevRef = React.useRef('')
+  const counterRef = React.useRef(0)
+  const [words, setWords] = React.useState<Array<{ id: number; t: string; isNew: boolean }>>([])
+
+  useEffect(() => {
+    if (text === prevRef.current) return
+    const delta = text.slice(prevRef.current.length)
+    prevRef.current = text
+    if (!delta) return
+    const tokens = delta.split(/(\s+)/).filter(Boolean)
+    setWords(prev => [
+      ...prev.map(w => ({ ...w, isNew: false })),
+      ...tokens.map(t => ({ id: counterRef.current++, t, isNew: true }))
+    ])
+  }, [text])
+
+  return (
+    <p className="mb-3 text-[13px] sm:text-sm leading-relaxed text-foreground/90">
+      {words.map(w => (
+        <span key={w.id} className={w.isNew ? 'luna-word-new' : undefined}>
+          {w.t}
+        </span>
+      ))}
+      <BlinkingCursor />
+    </p>
+  )
+})
+
+StreamingParagraph.displayName = 'StreamingParagraph'
+
+function splitAtLastParagraph(content: string): { stable: string; active: string } {
+  // Don't split inside a code block (odd number of ``` fences)
+  const fences = (content.match(/```/g) ?? []).length
+  if (fences % 2 !== 0) {
+    const openAt = content.lastIndexOf('```')
+    const breakBefore = content.lastIndexOf('\n\n', openAt)
+    if (breakBefore < 0) return { stable: '', active: content }
+    return { stable: content.slice(0, breakBefore + 2), active: content.slice(breakBefore + 2) }
+  }
+  const lastBreak = content.lastIndexOf('\n\n')
+  if (lastBreak < 0) return { stable: '', active: content }
+  return { stable: content.slice(0, lastBreak + 2), active: content.slice(lastBreak + 2) }
+}
+
+// Gemini-style streaming renderer: stable paragraphs as markdown + last paragraph animated word-by-word
+const StreamingContent = ({
+  content,
+  isComplete,
+  onLinkClick,
+}: {
+  content: string
+  isComplete?: boolean
+  onLinkClick?: (url: string) => void
+}) => {
+  if (isComplete || !content) {
+    return <MarkdownRenderer onLinkClick={onLinkClick}>{content}</MarkdownRenderer>
+  }
+  const { stable, active } = splitAtLastParagraph(content)
+  return (
+    <div>
+      {stable && <MarkdownRenderer onLinkClick={onLinkClick}>{stable}</MarkdownRenderer>}
+      <StreamingParagraph text={active} />
+    </div>
+  )
+}
+
 const MinimalAssistantLoader = () => (
   <motion.div
     initial={{ opacity: 0, y: 4 }}
@@ -1092,7 +1160,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             {shouldShowMinimalLoader ? (
               <MinimalAssistantLoader />
             ) : text?.trim() ? (
-              <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>{text}</MarkdownRenderer>
+              <StreamingContent content={text} isComplete={isComplete} onLinkClick={(url) => openExternalPreview(url)} />
             ) : !isComplete ? null : (
               <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-4 w-4" />
