@@ -342,7 +342,7 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ children, onLinkClick }: MarkdownRendererProps) {
   return (
-    <div className="luna-editorial space-y-4">
+    <div className="luna-editorial">
       <Markdown remarkPlugins={[remarkGfm]} components={getComponents(onLinkClick) as unknown as Components}>
         {children}
       </Markdown>
@@ -438,25 +438,35 @@ function CodeBlock({
     const normalizedCode = normalizeMermaidCode(code)
 
     return (
-      <div className="rounded-lg border border-border/60 bg-background/60 p-4">
-        <MermaidDiagram code={normalizedCode} />
-        <details className="mt-3 text-xs text-muted-foreground">
-          <summary className="cursor-pointer select-none">View Mermaid source</summary>
-          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-md bg-muted p-2 font-mono text-[0.75rem]">
-            {normalizedCode}
-          </pre>
-        </details>
+      <div className="my-4 overflow-hidden rounded-xl border border-border/60">
+        <div className="flex items-center gap-2 border-b border-border/40 bg-muted/60 px-4 py-2">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            diagram
+          </span>
+        </div>
+        <div className="p-4">
+          <MermaidDiagram code={normalizedCode} />
+          <details className="mt-3 text-xs text-muted-foreground">
+            <summary className="cursor-pointer select-none">View source</summary>
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-muted p-3 font-mono text-[0.72rem]">
+              {normalizedCode}
+            </pre>
+          </details>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="relative group">
-      <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="my-4 overflow-hidden rounded-xl border border-border/60">
+      <div className="flex items-center justify-between border-b border-border/40 bg-muted/60 px-4 py-2">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {language || 'code'}
+        </span>
         <CopyButton content={code} />
       </div>
       <HighlightedPre
-        className={cn('p-4 rounded-md bg-muted overflow-x-auto', className)}
+        className={cn('rounded-none rounded-b-xl p-4 bg-muted/30 overflow-x-auto text-[0.82rem] leading-relaxed', className)}
         language={language}
         {...restProps}
       >
@@ -637,9 +647,9 @@ function childrenTakeAllStringContents(element: unknown): string {
 
 function getComponents(onLinkClick?: (url: string) => void) {
   return {
-    h1: withClass("h1", "mb-4 mt-6 text-balance text-xl sm:text-2xl font-semibold leading-tight tracking-tight text-foreground"),
-    h2: withClass("h2", "mb-2.5 mt-5 border-b border-border/60 pb-1.5 text-lg sm:text-xl font-semibold tracking-tight text-foreground"),
-    h3: withClass("h3", "mb-2 mt-4 text-base font-semibold text-foreground"),
+    h1: withClass("h1", "mb-4 mt-7 text-balance text-xl sm:text-[1.35rem] font-semibold leading-tight tracking-tight text-foreground"),
+    h2: withClass("h2", "mb-3 mt-6 border-b border-border/50 pb-2 text-base sm:text-lg font-semibold tracking-tight text-foreground"),
+    h3: withClass("h3", "mb-2 mt-5 text-sm sm:text-base font-semibold text-foreground/90"),
     p({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLParagraphElement>) {
       const specialBlock = getSpecialAnswerBlock(children)
 
@@ -687,7 +697,7 @@ function getComponents(onLinkClick?: (url: string) => void) {
         </a>
       )
     },
-    blockquote: withClass("blockquote", "relative my-5 rounded-lg border-l-4 border-muted-foreground/60 bg-muted px-4 py-3 text-[13px] sm:text-sm leading-relaxed text-foreground/80"),
+    blockquote: withClass("blockquote", "relative my-5 border-l-[2px] border-foreground/15 pl-4 py-0.5 text-[13px] sm:text-sm leading-relaxed text-foreground/70 italic"),
     strong: withClass("strong", "font-semibold text-foreground"),
     em: withClass("em", "italic text-foreground/90"),
 
@@ -704,23 +714,23 @@ function getComponents(onLinkClick?: (url: string) => void) {
       }
 
       return (
-        <code className={cn("rounded-md border border-border/80 bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground", className)} {...rest}>
+        <code className={cn("rounded-[5px] border border-border/60 bg-muted px-1.5 py-[2px] font-mono text-[0.82em] text-foreground/90", className)} {...rest}>
           {children}
         </code>
       )
     },
 
     pre({ children }: { children: React.ReactNode }) {
-      return <div className="my-5">{children}</div>
+      return <>{children}</>
     },
 
-    ol: withClass("ol", "mb-5 mt-3 list-decimal space-y-2.5 pl-6"),
-    ul: withClass("ul", "mb-5 mt-3 list-none space-y-2.5 pl-0"),
+    ol: withClass("ol", "mb-5 mt-3 list-decimal space-y-2 pl-5 text-[13px] sm:text-sm leading-relaxed text-foreground/90"),
+    ul: withClass("ul", "mb-5 mt-3 list-none space-y-2 pl-0"),
     li({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
       return (
         <li className={cn(
           "relative pl-5",
-          "before:absolute before:left-0 before:top-[0.65em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-muted-foreground/50",
+          "before:absolute before:left-[3px] before:top-[0.56em] before:h-[5px] before:w-[5px] before:rounded-full before:bg-foreground/25",
           className
         )} {...props}>
           <div className="text-[13px] sm:text-sm leading-relaxed text-foreground/90">

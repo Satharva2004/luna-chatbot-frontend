@@ -343,13 +343,17 @@
 
   .luna-callout-icon {
     display: inline-flex;
-    height: 1.8rem;
-    width: 1.8rem;
+    height: 1.6rem;
+    width: 1.6rem;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .luna-callout-icon {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .luna-callout-status {

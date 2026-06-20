@@ -20,6 +20,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
 };
 
@@ -123,6 +124,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   }, [router]);
 
+  const updateUser = useCallback((updates: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, ...updates };
+      localStorage.setItem('user', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     // Check if user is logged in on initial load
     const checkAuth = () => {
@@ -151,8 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     loginWithGoogle,
     logout,
+    updateUser,
     isLoading
-  }), [user, token, isLoading, login, loginWithGoogle, logout]);
+  }), [user, token, isLoading, login, loginWithGoogle, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>
