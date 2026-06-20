@@ -38,9 +38,11 @@ export interface ExcalidrawData {
 interface ExcalidrawViewerProps {
     data: ExcalidrawData
     className?: string
+    messageId?: string
+    token?: string
 }
 
-export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps) {
+export function ExcalidrawViewer({ data, className = '', messageId, token }: ExcalidrawViewerProps) {
     // Safety guard
     if (!data) {
         console.warn('⚠️ ExcalidrawViewer: No data provided')
@@ -52,6 +54,20 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
     const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null)
     const excalidrawAPIRef = useRef<any>(null)
     const [key, setKey] = useState(0)
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const persistDiagram = useCallback((elements: any[], appState: any) => {
+        if (!messageId || !token) return
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = setTimeout(() => {
+            const payload = { type: 'excalidraw', version: 2, source: 'https://excalidraw.com', elements, appState: { viewBackgroundColor: appState.viewBackgroundColor, gridSize: appState.gridSize }, files: data.files || {} }
+            fetch(`/api/proxy/messages/${messageId}/excalidraw`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ excalidrawData: [payload] }),
+            }).catch(() => {})
+        }, 1500)
+    }, [messageId, token, data.files])
 
     // Memoize sanitized elements to prevent re-calculations
     const sanitizedElements = useMemo(() => sanitizeExcalidrawElements(data.elements), [data.elements])
@@ -188,6 +204,7 @@ export function ExcalidrawViewer({ data, className = '' }: ExcalidrawViewerProps
                 <Excalidraw
                     key={contentKey}
                     excalidrawAPI={onExcalidrawAPIChange}
+                    onChange={(elements, appState) => persistDiagram(elements as any[], appState)}
                     initialData={{
                         elements: sanitizedElements || [],
                         appState: {

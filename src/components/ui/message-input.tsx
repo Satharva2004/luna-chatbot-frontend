@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUp, ChevronDown, Image as ImageIcon, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
+import { ArrowUp, Check, ChevronDown, Image as ImageIcon, Info, Loader2, Mic, Paperclip, Square, Youtube } from "lucide-react"
 import { omit } from "remeda"
 
 import { cn } from "@/lib/utils"
@@ -27,6 +27,8 @@ interface MessageInputBaseProps
   onToggleYouTube?: (next: boolean) => void
   includeImageSearch?: boolean
   onToggleImageSearch?: (next: boolean) => void
+  selectedModel?: string
+  onModelChange?: (model: string) => void
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -45,6 +47,12 @@ type MessageInputProps =
   | MessageInputWithoutAttachmentProps
   | MessageInputWithAttachmentsProps
 
+const MODEL_OPTIONS = [
+  { value: 'gemini-2.5-flash-lite-preview-06-17', label: 'Fast' },
+  { value: 'gemini-2.5-flash', label: 'Smart' },
+  { value: 'gemini-2.5-pro', label: 'Best' },
+]
+
 export function MessageInput({
   placeholder = "Ask AI...",
   className,
@@ -58,6 +66,8 @@ export function MessageInput({
   onToggleYouTube,
   includeImageSearch = true,
   onToggleImageSearch,
+  selectedModel = 'gemini-2.5-flash-lite-preview-06-17',
+  onModelChange,
   inputRef,
   ...props
 }: MessageInputProps) {
@@ -272,7 +282,7 @@ export function MessageInput({
 
           {props.allowAttachments && (
             <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-scroll py-3">
-              <div className="flex space-x-3">
+              <div className="flex items-center space-x-3">
                 <AnimatePresence mode="popLayout">
                   {props.files?.map((file) => {
                     return (
@@ -294,6 +304,11 @@ export function MessageInput({
                     )
                   })}
                 </AnimatePresence>
+                {props.files && props.files.length > 1 && (
+                  <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    {props.files.length} files
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -386,6 +401,29 @@ export function MessageInput({
                     <Paperclip className="h-4 w-4" />
                     <span>Upload files</span>
                   </button>
+                )}
+                {onModelChange && (
+                  <div className="mt-1 border-t border-border/60 pt-1">
+                    <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Model</p>
+                    {MODEL_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="menuitem"
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                          selectedModel === opt.value && "bg-accent text-accent-foreground font-medium"
+                        )}
+                        onClick={() => {
+                          onModelChange(opt.value)
+                          setShowYouTubeMenu(false)
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                        {selectedModel === opt.value && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

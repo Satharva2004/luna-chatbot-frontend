@@ -26,6 +26,11 @@ import {
   Sparkles,
   TrendingUp,
   FileText,
+  Settings,
+  Loader2,
+  Download,
+  Check,
+  Pencil,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { SuggestionDropdown } from "@/components/ui/suggestion-dropdown"
@@ -37,6 +42,7 @@ import { LinkPreviewPane } from "@/components/ui/link-preview-pane"
 import { toast } from "sonner"
 import { TTSButton } from "@/components/ui/tts-button"
 import { LunaIcon } from "@/components/ui/luna-icon"
+import { OnboardingModal } from "@/components/ui/onboarding-modal"
 
 function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
   if (!Array.isArray(raw)) return undefined
@@ -184,7 +190,7 @@ function normalizeExcalidraw(value: unknown): Message["excalidrawData"] | undefi
 }
 
 export default function ChatPage() {
-  const { logout, token, user } = useAuth()
+  const { logout, token, user, updateUser } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -200,11 +206,32 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null)
-  const [includeYouTube, setIncludeYouTube] = useState(false)
-  const [includeImageSearch, setIncludeImageSearch] = useState(false)
+  const [includeYouTube, setIncludeYouTube] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('luna_yt') === '1'
+  })
+  const [includeImageSearch, setIncludeImageSearch] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('luna_img') === '1'
+  })
+  const [selectedModel, setSelectedModel] = useState(() => {
+    if (typeof window === 'undefined') return 'gemini-2.5-flash-lite-preview-06-17'
+    return localStorage.getItem('luna_model') || 'gemini-2.5-flash-lite-preview-06-17'
+  })
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [viewportHeight, setViewportHeight] = useState('100dvh')
   const [historyQuery, setHistoryQuery] = useState("")
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [settingsUsername, setSettingsUsername] = useState('')
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [keyHealth, setKeyHealth] = useState<{ total: number; available: number; nextRefreshMs?: number | null; totalRequests?: number } | null>(null)
+  const [refreshCountdown, setRefreshCountdown] = useState<number | null>(null)
+  const [searchResults, setSearchResults] = useState<ConversationSummary[] | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTitle, setPreviewTitle] = useState<string | null>(null)
   const [isLinkPreviewOpen, setIsLinkPreviewOpen] = useState(false)
@@ -284,6 +311,38 @@ export default function ChatPage() {
     }
   }, [])
 
+  useEffect(() => {
+    const fetchStatus = () => {
+      fetch('/api/proxy/status')
+        .then(r => r.json())
+        .then(data => {
+          if (typeof data.total === 'number') {
+            setKeyHealth({ total: data.total, available: data.available, nextRefreshMs: data.nextRefreshMs ?? null, totalRequests: data.totalRequests ?? 0 })
+            setRefreshCountdown(data.nextRefreshMs ? Math.ceil(data.nextRefreshMs / 1000) : null)
+          }
+        })
+        .catch(() => {})
+    }
+    fetchStatus()
+    const interval = setInterval(fetchStatus, 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (refreshCountdown === null || refreshCountdown <= 0) return
+    const timer = setTimeout(() => {
+      setRefreshCountdown(prev => (prev !== null && prev > 1 ? prev - 1 : null))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [refreshCountdown])
+
+  // Show onboarding for first-time users
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('luna_onboarded')) {
+      setShowOnboarding(true)
+    }
+  }, [])
+
   const formatConversationDate = useCallback((iso?: string | null) => {
     if (!iso) return ""
     const date = new Date(iso)
@@ -316,6 +375,38 @@ export default function ChatPage() {
       created_at: createdAt,
     }
   }, [])
+
+  // Full-text message search with debounce
+  useEffect(() => {
+    if (historyQuery.trim().length < 3) {
+      setSearchResults(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const resp = await fetch(`/api/proxy/chat/search?q=${encodeURIComponent(historyQuery)}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        })
+        if (resp.ok) {
+          const data = await resp.json()
+          if (Array.isArray(data)) {
+            const normalized = data
+              .map(normalizeConversationSummary)
+              .filter((c): c is ConversationSummary => c !== null)
+            setSearchResults(normalized)
+          }
+        } else {
+          setSearchResults(null)
+        }
+      } catch {
+        setSearchResults(null)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [historyQuery, token, normalizeConversationSummary])
 
   const loadConversations = useCallback(async () => {
     try {
@@ -521,6 +612,58 @@ export default function ChatPage() {
     }
   }, [currentConversationId, startNewChat, token])
 
+  const handleRenameConversation = useCallback(async (conversationId: string, newTitle: string) => {
+    if (!newTitle.trim()) return
+    try {
+      const resp = await fetch(`/api/proxy/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      })
+      if (resp.ok) {
+        setConversations((prev) =>
+          prev.map((c) => c.id === conversationId ? { ...c, title: newTitle.trim() } : c)
+        )
+      }
+    } catch {
+      toast.error('Failed to rename conversation')
+    } finally {
+      setEditingConversationId(null)
+    }
+  }, [token])
+
+  const exportConversation = useCallback(() => {
+    if (messages.length === 0) return
+    const title = conversations.find(c => c.id === currentConversationId)?.title || 'conversation'
+    const lines: string[] = [`# ${title}`, '']
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        lines.push(`**You:** ${msg.content}`, '')
+      } else if (msg.role === 'assistant') {
+        lines.push(`**Luna:** ${msg.content}`, '')
+        if (msg.sources && msg.sources.length > 0) {
+          lines.push('**Sources:**')
+          msg.sources.forEach((s: { url?: string; title?: string }) => {
+            lines.push(`- [${s.title || s.url}](${s.url})`)
+          })
+          lines.push('')
+        }
+      }
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [messages, conversations, currentConversationId])
+
   const deferredInput = useDeferredValue(input)
 
   const filteredSuggestions = useMemo(() => {
@@ -567,7 +710,7 @@ export default function ChatPage() {
         const formData = new FormData()
         formData.append('prompt', userContent)
         if (conversationId) formData.append('conversationId', conversationId)
-        formData.append('options', JSON.stringify({ includeYouTube, includeImageSearch }))
+        formData.append('options', JSON.stringify({ includeYouTube, includeImageSearch, model: selectedModel }))
         Array.from(attachments).forEach((file) => {
           formData.append('files', file, file.name)
         })
@@ -593,6 +736,7 @@ export default function ChatPage() {
             options: {
               includeYouTube,
               includeImageSearch,
+              model: selectedModel,
             },
           }),
           signal: abortControllerRef.current.signal,
@@ -952,12 +1096,15 @@ export default function ChatPage() {
       }
 
       console.error('Error in streaming:', error)
+      const errMsg = error instanceof Error ? error.message : String(error)
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
             ? {
               ...msg,
-              content: "Sorry, I encountered an error while processing your request. Please try again.",
+              content: errMsg && !errMsg.toLowerCase().includes('undefined')
+                ? `Sorry, something went wrong: ${errMsg}`
+                : "Sorry, I encountered an error while processing your request. Please try again.",
               createdAt: new Date(),
               isComplete: true,
             }
@@ -1014,7 +1161,25 @@ export default function ChatPage() {
     setInput("")
     setIsGenerating(true)
 
+    setSuggestions([])
     simulateAssistant(assistantMessageId, newMessage.content, options?.experimental_attachments)
+      .then(() => {
+        // Fetch follow-up suggestions after stream completes
+        setMessages((prev) => {
+          const lastAssistant = [...prev].reverse().find(m => m.role === 'assistant')
+          if (lastAssistant?.content) {
+            fetch('/api/proxy/suggestions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lastMessage: lastAssistant.content.slice(0, 1200) }),
+            })
+              .then(r => r.json())
+              .then(d => { if (Array.isArray(d.suggestions)) setSuggestions(d.suggestions) })
+              .catch(() => {})
+          }
+          return prev
+        })
+      })
       .finally(() => {
         setIsGenerating(false)
         abortControllerRef.current = null
@@ -1024,6 +1189,69 @@ export default function ChatPage() {
         }, 1400)
       })
   }
+
+  const handleEditMessage = useCallback((messageId: string, newContent: string) => {
+    if (!newContent.trim() || isGenerating) return
+
+    const assistantMessageId = crypto.randomUUID()
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      createdAt: new Date(),
+      sources: [],
+      chartUrl: null,
+      chartUrls: [],
+      images: [],
+      promptTitle: newContent,
+      isComplete: false,
+      agentSteps: [{ id: 'request-context', label: 'Preparing context', state: 'running', updatedAt: Date.now() }],
+    }
+
+    setMessages(prev => {
+      const idx = prev.findIndex(m => m.id === messageId)
+      if (idx === -1) return prev
+      const trimmed = prev.slice(0, idx + 1).map(m =>
+        m.id === messageId ? { ...m, content: newContent } : m
+      )
+      return [...trimmed, assistantMessage]
+    })
+
+    setIsGenerating(true)
+    simulateAssistant(assistantMessageId, newContent)
+      .finally(() => {
+        setIsGenerating(false)
+        abortControllerRef.current = null
+        void loadConversations()
+      })
+  }, [isGenerating, simulateAssistant, loadConversations])
+
+  const handleSaveSettings = useCallback(async () => {
+    if (!settingsUsername.trim()) return
+    setIsSavingSettings(true)
+    try {
+      const resp = await fetch('/api/proxy/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ username: settingsUsername.trim() }),
+      })
+      const data = await resp.json()
+      if (resp.ok && data.user) {
+        updateUser({ username: data.user.username })
+        toast.success('Profile updated')
+        setIsSettingsOpen(false)
+      } else {
+        toast.error(data.error || 'Failed to update profile')
+      }
+    } catch {
+      toast.error('Error updating profile')
+    } finally {
+      setIsSavingSettings(false)
+    }
+  }, [settingsUsername, token, updateUser])
 
   const onRateResponse = useCallback((messageId: string, rating: "thumbs-up" | "thumbs-down") => {
     console.log("Rated", messageId, rating)
@@ -1044,7 +1272,9 @@ export default function ChatPage() {
 
   const messageOptions = useCallback((message: Message) => {
     if (message.role === "user") {
-      return {}
+      return {
+        onEdit: (newContent: string) => handleEditMessage(message.id, newContent),
+      }
     }
 
     return {
@@ -1078,7 +1308,7 @@ export default function ChatPage() {
       isComplete: message.isComplete,
       onOpenExternalPreview: handleOpenExternalPreview,
     }
-  }, [handleOpenExternalPreview, onRateResponse])
+  }, [handleEditMessage, handleOpenExternalPreview, onRateResponse])
 
   const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
   const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
@@ -1161,6 +1391,27 @@ export default function ChatPage() {
                   <span className="text-muted-foreground">AI</span>
                 </h1>
               </div>
+              {keyHealth && keyHealth.total > 0 && (
+                <div
+                  title={`${keyHealth.available}/${keyHealth.total} models available${refreshCountdown ? ` · refreshes in ${refreshCountdown}s` : ''}`}
+                  className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium tabular-nums transition-colors ${
+                    keyHealth.available === 0
+                      ? 'border-red-500/20 bg-red-500/8 text-red-500 dark:text-red-400'
+                      : keyHealth.available < keyHealth.total
+                      ? 'border-yellow-500/20 bg-yellow-400/8 text-yellow-700 dark:text-yellow-400'
+                      : 'border-emerald-500/20 bg-emerald-500/8 text-emerald-700 dark:text-emerald-400'
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    keyHealth.available === 0 ? 'bg-red-500 animate-pulse' :
+                    keyHealth.available < keyHealth.total ? 'bg-yellow-400' :
+                    'bg-emerald-500'
+                  }`} />
+                  {keyHealth.available === 0
+                    ? (refreshCountdown ? `${refreshCountdown}s` : 'Limited')
+                    : `${keyHealth.available}/${keyHealth.total}`}
+                </div>
+              )}
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -1313,20 +1564,23 @@ export default function ChatPage() {
                 )}
               </div>
 
-              <button
-                type="button"
-                className={desktopActionClasses}
-                onClick={() => toast("Library is coming soon")}
-              >
-                <span className="relative z-10 inline-flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  <span>Library</span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/8 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100"
-                />
-              </button>
+              {messages.length > 0 && (
+                <button
+                  type="button"
+                  className={desktopActionClasses}
+                  onClick={exportConversation}
+                  title="Export conversation as Markdown"
+                >
+                  <span className="relative z-10 inline-flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    <span>Export</span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/8 to-transparent opacity-0 transition-opacity duration-500 group-hover/nav:opacity-100"
+                  />
+                </button>
+              )}
 
               <button
                 type="button"
@@ -1405,6 +1659,18 @@ export default function ChatPage() {
                     </div>
 
                     <div className="mt-4 space-y-3">
+                      <Button
+                        onClick={() => {
+                          setIsProfileOpen(false)
+                          setSettingsUsername(displayName)
+                          setIsSettingsOpen(true)
+                        }}
+                        variant="ghost"
+                        className="w-full justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium transition-colors hover:bg-background/80"
+                      >
+                        Settings
+                        <Settings className="h-4 w-4" />
+                      </Button>
                       <Button
                         onClick={() => {
                           setIsProfileOpen(false)
@@ -1542,21 +1808,21 @@ export default function ChatPage() {
 
                 {/* History List inside Drawer */}
                 <div className="flex-1 overflow-y-auto mt-3 pr-1">
-                  {isHistoryLoading ? (
+                  {isHistoryLoading || isSearching ? (
                     <div className="py-6 text-center text-xs text-muted-foreground">
-                      Loading conversations...
+                      {isSearching ? 'Searching...' : 'Loading conversations...'}
                     </div>
                   ) : conversations.length === 0 ? (
                     <div className="py-6 text-center text-xs text-muted-foreground">
                       No conversations yet
                     </div>
-                  ) : filteredHistory.length === 0 ? (
+                  ) : (searchResults ?? filteredHistory).length === 0 ? (
                     <div className="py-6 text-center text-xs text-muted-foreground">
-                      No chats found for &quot;{historyQuery}&quot;
+                      {searchResults ? `No results for "${historyQuery}"` : `No chats found for "${historyQuery}"`}
                     </div>
                   ) : (
                     <ul className="space-y-1">
-                      {filteredHistory.map((conversation) => {
+                      {(searchResults ?? filteredHistory).map((conversation) => {
                         const isActive = currentConversationId === conversation.id
                         const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
 
@@ -1620,6 +1886,54 @@ export default function ChatPage() {
         )}
       </header>
 
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsSettingsOpen(false)}
+        >
+          <div
+            className="w-80 rounded-3xl border border-border/60 bg-background/95 p-6 shadow-2xl backdrop-blur-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-base font-semibold">Settings</h2>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Display name</label>
+                <Input
+                  value={settingsUsername}
+                  onChange={(e) => setSettingsUsername(e.target.value)}
+                  placeholder="Your name"
+                  className="rounded-xl"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveSettings() }}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+                <Input value={displayEmail} disabled className="rounded-xl text-muted-foreground" />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveSettings} disabled={isSavingSettings}>
+                {isSavingSettings ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+                ) : 'Save changes'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isHistoryOpen && canDockHistory && (
         <aside
           className="fixed bottom-0 left-0 z-40 hidden border-r border-sidebar-border bg-sidebar/90 backdrop-blur-2xl md:block"
@@ -1643,6 +1957,7 @@ export default function ChatPage() {
                   onClick={() => {
                     setIsHistoryOpen(false)
                     setHistoryQuery("")
+                    setSearchResults(null)
                   }}
                 >
                   <X className="h-4 w-4" />
@@ -1682,49 +1997,93 @@ export default function ChatPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-3">
-              {isHistoryLoading ? (
+              {isHistoryLoading || isSearching ? (
                 <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
-                  Loading conversations...
+                  {isSearching ? 'Searching...' : 'Loading conversations...'}
                 </div>
               ) : conversations.length === 0 ? (
                 <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
                   No conversations yet
                 </div>
-              ) : filteredHistory.length === 0 ? (
+              ) : (searchResults ?? filteredHistory).length === 0 ? (
                 <div className="rounded-2xl border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
-                  No chats found for &quot;{historyQuery}&quot;
+                  {searchResults ? `No results for "${historyQuery}"` : `No chats found for "${historyQuery}"`}
                 </div>
               ) : (
                 <ul className="space-y-1.5">
-                  {filteredHistory.map((conversation) => {
+                  {(searchResults ?? filteredHistory).map((conversation) => {
                     const isActive = currentConversationId === conversation.id
                     const timestamp = formatConversationDate(conversation.updated_at ?? conversation.created_at)
+                    const isEditing = editingConversationId === conversation.id
 
                     return (
                       <li key={conversation.id}>
                         <div className="group flex items-center gap-1 rounded-lg px-2 py-0.5">
-                          <button
-                            className={`min-w-0 flex-1 rounded-[10px] px-3 py-2 text-left transition-colors ${isActive ? 'bg-sidebar-accent text-foreground font-medium' : 'hover:bg-sidebar-accent/50'}`}
-                            onClick={() => handleConversationSelect(conversation.id)}
-                            type="button"
-                          >
-                            <div className="truncate text-xs font-medium">
-                              {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                          {isEditing ? (
+                            <form
+                              className="min-w-0 flex-1 flex items-center gap-1 px-1"
+                              onSubmit={(e) => {
+                                e.preventDefault()
+                                void handleRenameConversation(conversation.id, editingTitle)
+                              }}
+                            >
+                              <input
+                                autoFocus
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onBlur={() => void handleRenameConversation(conversation.id, editingTitle)}
+                                onKeyDown={(e) => { if (e.key === 'Escape') setEditingConversationId(null) }}
+                                className="min-w-0 flex-1 rounded-md border border-primary/40 bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
+                              />
+                              <button type="submit" className="shrink-0 p-1 text-primary">
+                                <Check className="h-3 w-3" />
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              className={`min-w-0 flex-1 rounded-[10px] px-3 py-2 text-left transition-colors ${isActive ? 'bg-sidebar-accent text-foreground font-medium' : 'hover:bg-sidebar-accent/50'}`}
+                              onClick={() => handleConversationSelect(conversation.id)}
+                              onDoubleClick={() => {
+                                setEditingConversationId(conversation.id)
+                                setEditingTitle(conversation.title || '')
+                              }}
+                              type="button"
+                              title="Double-click to rename"
+                            >
+                              <div className="truncate text-xs font-medium">
+                                {conversation.title || `Chat ${conversation.id.slice(0, 6)}`}
+                              </div>
+                              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                                <span className="truncate">{isActive ? 'Current chat' : 'Saved chat'}</span>
+                                {timestamp ? <span className="shrink-0">{timestamp}</span> : null}
+                                {loadingConversationId === conversation.id ? <span className="shrink-0 text-primary">Loading...</span> : null}
+                              </div>
+                            </button>
+                          )}
+                          {!isEditing && (
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingConversationId(conversation.id)
+                                  setEditingTitle(conversation.title || '')
+                                }}
+                                title="Rename conversation"
+                                type="button"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                                title="Delete conversation"
+                                type="button"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <span className="truncate">{isActive ? 'Current chat' : 'Saved chat'}</span>
-                              {timestamp ? <span className="shrink-0">{timestamp}</span> : null}
-                              {loadingConversationId === conversation.id ? <span className="shrink-0 text-primary">Loading...</span> : null}
-                            </div>
-                          </button>
-                          <button
-                            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                            onClick={(event) => handleDeleteConversation(conversation.id, event)}
-                            title="Delete conversation"
-                            type="button"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          )}
                         </div>
                       </li>
                     )
@@ -1732,6 +2091,37 @@ export default function ChatPage() {
                 </ul>
               )}
             </div>
+
+            {keyHealth && keyHealth.total > 0 && (
+              <div className="shrink-0 border-t border-sidebar-border/60 px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    keyHealth.available === 0 ? 'bg-red-500 animate-pulse' :
+                    keyHealth.available < keyHealth.total ? 'bg-yellow-400' :
+                    'bg-emerald-500'
+                  }`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-medium leading-none text-foreground/80">
+                      {keyHealth.available === 0
+                        ? 'Rate limited'
+                        : keyHealth.available < keyHealth.total
+                        ? `${keyHealth.available} of ${keyHealth.total} models active`
+                        : 'All models ready'}
+                    </p>
+                    {(keyHealth.available < keyHealth.total || keyHealth.available === 0) && refreshCountdown && (
+                      <p className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
+                        Refreshes in {refreshCountdown}s
+                      </p>
+                    )}
+                    {typeof keyHealth.totalRequests === 'number' && keyHealth.totalRequests > 0 && (
+                      <p className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
+                        {keyHealth.totalRequests} prompt{keyHealth.totalRequests !== 1 ? 's' : ''} used this session
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </aside>
       )}
@@ -1790,6 +2180,24 @@ export default function ChatPage() {
                     messages={messages}
                     messageOptions={messageOptions}
                   />
+                  {suggestions.length > 0 && !isGenerating && (
+                    <div className="flex flex-wrap gap-2 pb-2">
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            setInput(s)
+                            setSuggestions([])
+                            setTimeout(() => inputRef.current?.focus(), 50)
+                          }}
+                          className="rounded-full border border-border/60 bg-secondary/80 px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1836,15 +2244,33 @@ export default function ChatPage() {
                   files={files}
                   setFiles={setFiles}
                   includeYouTube={includeYouTube}
-                  onToggleYouTube={(next: boolean) => setIncludeYouTube(next)}
+                  onToggleYouTube={(next: boolean) => {
+                    setIncludeYouTube(next)
+                    localStorage.setItem('luna_yt', next ? '1' : '0')
+                  }}
                   includeImageSearch={includeImageSearch}
-                  onToggleImageSearch={(next: boolean) => setIncludeImageSearch(next)}
+                  onToggleImageSearch={(next: boolean) => {
+                    setIncludeImageSearch(next)
+                    localStorage.setItem('luna_img', next ? '1' : '0')
+                  }}
+                  selectedModel={selectedModel}
+                  onModelChange={(model) => {
+                    setSelectedModel(model)
+                    localStorage.setItem('luna_model', model)
+                  }}
                 />
               </div>
             )}
           </ChatForm>
         </div>
       </div>
+      <OnboardingModal
+        open={showOnboarding}
+        onClose={() => {
+          setShowOnboarding(false)
+          localStorage.setItem('luna_onboarded', '1')
+        }}
+      />
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}

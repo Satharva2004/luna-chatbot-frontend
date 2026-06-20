@@ -3,11 +3,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { AlertTriangle, Ban, BarChart3, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Sparkles, Terminal, Youtube } from "lucide-react"
+import { AlertTriangle, Ban, BarChart3, Check, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Pencil, Sparkles, Terminal, X as XIcon, Youtube } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { CopyButton } from "@/components/ui/copy-button"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -398,9 +399,11 @@ export interface ChatMessageProps extends Message {
   animation?: Animation
   actions?: React.ReactNode
   onOpenExternalPreview?: (url: string, title?: string) => void
+  onEdit?: (newContent: string) => void
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
+  id,
   role,
   content,
   createdAt,
@@ -422,7 +425,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   excalidrawData,
   agentSteps,
   onOpenExternalPreview,
+  onEdit,
 }) => {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(content)
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
       const dataArray = dataUrlToUint8Array(attachment.url)
@@ -1403,17 +1409,62 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </motion.div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-          className="relative min-h-[1.5em] overflow-hidden text-[13px] sm:text-sm leading-relaxed"
-        >
-          <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>
-            {content}
-          </MarkdownRenderer>
-          {/* {!isComplete && !isUser && <BlinkingCursor />} */}
-        </motion.div>
+        {isUser && isEditing ? (
+          <div className="w-full">
+            <Textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="min-h-[60px] w-full resize-none rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if (editValue.trim()) { onEdit?.(editValue.trim()); setIsEditing(false) }
+                }
+                if (e.key === 'Escape') { setIsEditing(false); setEditValue(content) }
+              }}
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setIsEditing(false); setEditValue(content) }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <XIcon className="h-3 w-3" /> Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (editValue.trim()) { onEdit?.(editValue.trim()); setIsEditing(false) } }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Check className="h-3 w-3" /> Save & Regenerate
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+              className="relative min-h-[1.5em] overflow-hidden text-[13px] sm:text-sm leading-relaxed"
+            >
+              <MarkdownRenderer onLinkClick={(url) => openExternalPreview(url)}>
+                {content}
+              </MarkdownRenderer>
+            </motion.div>
+            {isUser && onEdit && (
+              <button
+                type="button"
+                onClick={() => { setEditValue(content); setIsEditing(true) }}
+                className="mt-1.5 ml-auto flex items-center gap-1 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100 hover:text-foreground"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </button>
+            )}
+          </>
+        )}
         {Array.isArray(videos) && videos.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
