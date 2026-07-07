@@ -1041,6 +1041,7 @@ export default function ChatPage() {
             body: JSON.stringify({
               prompt: userContent,
               conversationId: chartsConversationId,
+              messageId: assistantMessageId,
               options: { includeSearch: true, includeYouTube },
             }),
           })
@@ -1250,6 +1251,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           prompt: userMessage.content,
           conversationId: chartsConversationId,
+          messageId: assistantMessageId,
           options: { includeSearch: true, includeYouTube },
         }),
       })
@@ -1285,6 +1287,66 @@ export default function ChatPage() {
       return null
     }
   }, [messages, currentConversationId, includeYouTube, token])
+
+  const handleRegenerateFlowchart = useCallback(async (assistantMessageId: string, diagramIndex: number) => {
+    const assistantMessage = messages.find((m) => m.id === assistantMessageId)
+    const assistantIndex = messages.findIndex((m) => m.id === assistantMessageId)
+    if (!assistantMessage || assistantIndex === -1) return
+
+    const userMessage = messages.slice(0, assistantIndex).reverse().find((m) => m.role === 'user')
+    if (!userMessage?.content?.trim()) {
+      toast.error('Could not find the original prompt for this flowchart')
+      return
+    }
+
+    try {
+      const generateResponse = await fetch('/api/proxy/excalidraw/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ prompt: userMessage.content }),
+      })
+
+      if (!generateResponse.ok) {
+        throw new Error(await generateResponse.text())
+      }
+
+      const generated = await generateResponse.json()
+      const newDiagram = generated?.data
+      if (!newDiagram || !Array.isArray(newDiagram.elements)) {
+        toast.error('Could not regenerate this flowchart')
+        return
+      }
+
+      const nextExcalidrawData = (assistantMessage.excalidrawData ?? []).map((diagram, i) =>
+        i === diagramIndex ? newDiagram : diagram
+      )
+
+      const patchResponse = await fetch(`/api/proxy/messages/${assistantMessageId}/excalidraw`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ excalidrawData: nextExcalidrawData }),
+      })
+
+      if (!patchResponse.ok) {
+        throw new Error(await patchResponse.text())
+      }
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId ? { ...msg, excalidrawData: nextExcalidrawData } : msg
+        )
+      )
+    } catch (error) {
+      console.error('Flowchart regeneration failed:', error)
+      toast.error('Failed to regenerate flowchart')
+    }
+  }, [messages, token])
 
   const handleSaveSettings = useCallback(async () => {
     if (!settingsUsername.trim()) return
@@ -1368,8 +1430,10 @@ export default function ChatPage() {
       isComplete: message.isComplete,
       onOpenExternalPreview: handleOpenExternalPreview,
       onRegenerateChart: (previousUrl: string) => handleRegenerateChart(message.id, previousUrl),
+      onRegenerateFlowchart: (diagramIndex: number) => handleRegenerateFlowchart(message.id, diagramIndex),
+      authToken: token ?? undefined,
     }
-  }, [handleEditMessage, handleOpenExternalPreview, handleRegenerateChart, onRateResponse])
+  }, [handleEditMessage, handleOpenExternalPreview, handleRegenerateChart, handleRegenerateFlowchart, onRateResponse, token])
 
   const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
   const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0

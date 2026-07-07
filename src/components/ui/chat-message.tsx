@@ -401,6 +401,8 @@ export interface ChatMessageProps extends Message {
   onOpenExternalPreview?: (url: string, title?: string) => void
   onEdit?: (newContent: string) => void
   onRegenerateChart?: (previousUrl: string) => Promise<string | null | undefined> | void
+  onRegenerateFlowchart?: (index: number) => Promise<void> | void
+  authToken?: string
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -428,6 +430,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onOpenExternalPreview,
   onEdit,
   onRegenerateChart,
+  onRegenerateFlowchart,
+  authToken,
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(content)
@@ -1060,7 +1064,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="space-y-4">
               {excalidrawData?.map((diagram, index) => (
                 <div key={index} className="luna-chart-card">
-                  <ExcalidrawViewer data={diagram} />
+                  <ExcalidrawViewer
+                    data={diagram}
+                    messageId={id}
+                    token={authToken}
+                    onRegenerate={onRegenerateFlowchart ? () => onRegenerateFlowchart(index) : undefined}
+                  />
                 </div>
               ))}
             </div>
