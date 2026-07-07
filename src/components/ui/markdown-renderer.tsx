@@ -3,7 +3,7 @@
 import React from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { AlertTriangle, CheckCircle2, Download, Lightbulb, ListChecks, Maximize2, RefreshCcw, ZoomIn, ZoomOut } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Download, Lightbulb, ListChecks, Maximize2, Minus, RefreshCcw, TrendingDown, TrendingUp, ZoomIn, ZoomOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/copy-button"
@@ -434,6 +434,10 @@ function CodeBlock({
 }: CodeBlockProps) {
   const code = childrenTakeAllStringContents(children)
 
+  if (language === "stats") {
+    return <StatCardsBlock code={code} />
+  }
+
   if (language === "mermaid") {
     const normalizedCode = normalizeMermaidCode(code)
 
@@ -472,6 +476,104 @@ function CodeBlock({
       >
         {code}
       </HighlightedPre>
+    </div>
+  )
+}
+
+interface StatCard {
+  label: string
+  value: string
+  delta?: string
+  trend?: "up" | "down" | "neutral"
+  description?: string
+}
+
+interface StatCardsData {
+  title?: string
+  cards: StatCard[]
+}
+
+function parseStatCardsData(code: string): StatCardsData | null {
+  try {
+    const parsed = JSON.parse(code)
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.cards)) return null
+
+    const cards = parsed.cards
+      .filter((c: unknown): c is Record<string, unknown> => typeof c === "object" && c !== null)
+      .map((c: Record<string, unknown>) => ({
+        label: typeof c.label === "string" ? c.label : "",
+        value: typeof c.value === "string" ? c.value : typeof c.value === "number" ? String(c.value) : "",
+        delta: typeof c.delta === "string" ? c.delta : undefined,
+        trend: c.trend === "up" || c.trend === "down" || c.trend === "neutral" ? c.trend : undefined,
+        description: typeof c.description === "string" ? c.description : undefined,
+      }))
+      .filter((c: StatCard) => c.label && c.value)
+
+    if (cards.length === 0) return null
+
+    return {
+      title: typeof parsed.title === "string" ? parsed.title : undefined,
+      cards,
+    }
+  } catch {
+    return null
+  }
+}
+
+const TREND_STYLES: Record<"up" | "down" | "neutral", { icon: typeof TrendingUp; className: string }> = {
+  up: { icon: TrendingUp, className: "text-emerald-600 dark:text-emerald-400" },
+  down: { icon: TrendingDown, className: "text-red-600 dark:text-red-400" },
+  neutral: { icon: Minus, className: "text-muted-foreground" },
+}
+
+function StatCardsBlock({ code }: { code: string }) {
+  const data = React.useMemo(() => parseStatCardsData(code), [code])
+
+  if (!data) {
+    return (
+      <div className="my-4 overflow-hidden rounded-xl border border-border/60">
+        <div className="flex items-center gap-2 border-b border-border/40 bg-muted/60 px-4 py-2">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            stats
+          </span>
+        </div>
+        <pre className="overflow-x-auto whitespace-pre-wrap p-4 text-[0.72rem] text-muted-foreground">{code}</pre>
+      </div>
+    )
+  }
+
+  return (
+    <div className="my-5">
+      {data.title && (
+        <h4 className="mb-3 text-sm font-semibold text-foreground">{data.title}</h4>
+      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        {data.cards.map((card, index) => {
+          const trend = card.trend ? TREND_STYLES[card.trend] : null
+          const TrendIcon = trend?.icon
+
+          return (
+            <div
+              key={`${card.label}-${index}`}
+              className="rounded-xl border border-border/60 bg-card p-4 shadow-sm"
+            >
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {card.label}
+              </div>
+              <div className="mt-1.5 text-2xl font-semibold text-foreground">{card.value}</div>
+              {(card.delta || trend) && (
+                <div className={cn("mt-1.5 flex items-center gap-1 text-xs font-medium", trend?.className)}>
+                  {TrendIcon && <TrendIcon className="h-3.5 w-3.5" />}
+                  {card.delta && <span>{card.delta}</span>}
+                </div>
+              )}
+              {card.description && (
+                <div className="mt-1 text-xs text-muted-foreground">{card.description}</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
