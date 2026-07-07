@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { AlertTriangle, Ban, BarChart3, Check, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Pencil, Sparkles, Terminal, X as XIcon, Youtube } from "lucide-react"
+import { AlertTriangle, Ban, BarChart3, Check, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Pencil, RefreshCw, Sparkles, Terminal, X as XIcon, Youtube } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -400,6 +400,7 @@ export interface ChatMessageProps extends Message {
   actions?: React.ReactNode
   onOpenExternalPreview?: (url: string, title?: string) => void
   onEdit?: (newContent: string) => void
+  onRegenerateChart?: (previousUrl: string) => Promise<string | null | undefined> | void
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -426,6 +427,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   agentSteps,
   onOpenExternalPreview,
   onEdit,
+  onRegenerateChart,
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(content)
@@ -452,6 +454,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const isUser = role === "user"
   const [downloadingChartUrl, setDownloadingChartUrl] = useState<string | null>(null)
+  const [regeneratingChartUrl, setRegeneratingChartUrl] = useState<string | null>(null)
   const [expandedChartUrl, setExpandedChartUrl] = useState<string | null>(null)
   const videoScrollRef = useRef<HTMLDivElement | null>(null)
   const imageScrollRef = useRef<HTMLDivElement | null>(null)
@@ -542,6 +545,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       console.error("Unable to download chart", error)
     } finally {
       setDownloadingChartUrl(null)
+    }
+  }
+
+  const handleRegenerateChart = async (url: string) => {
+    if (!url || !onRegenerateChart) return
+
+    try {
+      setRegeneratingChartUrl(url)
+      await onRegenerateChart(url)
+    } catch (error) {
+      console.error("Unable to regenerate chart", error)
+    } finally {
+      setRegeneratingChartUrl(null)
     }
   }
 
@@ -984,21 +1000,36 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="space-y-4">
               {resolvedChartUrls.map((url, index) => {
                 const isDownloading = downloadingChartUrl === url
+                const isRegenerating = regeneratingChartUrl === url
                 const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
                 return (
                   <div key={`${url}-${index}`} className="luna-chart-card">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-sm font-semibold text-foreground">{chartLabel}</span>
-                      <Button
-                        type="button"
-                        onClick={() => handleDownloadChart(url)}
-                        variant="secondary"
-                        className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
-                        disabled={isDownloading}
-                      >
-                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        {isDownloading ? "Preparing" : "Download"}
-                      </Button>
+                      <div className="flex gap-2">
+                        {onRegenerateChart && (
+                          <Button
+                            type="button"
+                            onClick={() => handleRegenerateChart(url)}
+                            variant="secondary"
+                            className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
+                            disabled={isRegenerating}
+                          >
+                            {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                            {isRegenerating ? "Regenerating" : "Regenerate"}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          onClick={() => handleDownloadChart(url)}
+                          variant="secondary"
+                          className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
+                          disabled={isDownloading}
+                        >
+                          {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          {isDownloading ? "Preparing" : "Download"}
+                        </Button>
+                      </div>
                     </div>
                     <button
                       type="button"

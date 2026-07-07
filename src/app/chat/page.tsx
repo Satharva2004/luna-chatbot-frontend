@@ -1227,6 +1227,65 @@ export default function ChatPage() {
       })
   }, [isGenerating, simulateAssistant, loadConversations])
 
+  const handleRegenerateChart = useCallback(async (assistantMessageId: string, previousUrl: string) => {
+    const assistantIndex = messages.findIndex((m) => m.id === assistantMessageId)
+    if (assistantIndex === -1) return null
+
+    const userMessage = messages.slice(0, assistantIndex).reverse().find((m) => m.role === 'user')
+    if (!userMessage?.content?.trim()) {
+      toast.error('Could not find the original prompt for this chart')
+      return null
+    }
+
+    const chartsConversationId = currentConversationId
+    if (!chartsConversationId) return null
+
+    try {
+      const response = await fetch('/api/proxy/charts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          prompt: userMessage.content,
+          conversationId: chartsConversationId,
+          options: { includeSearch: true, includeYouTube },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await response.text())
+      }
+
+      const chartData = await response.json()
+      const newUrl = chartData?.chartUrl || chartData?.charts?.chartUrl
+
+      if (typeof newUrl !== 'string' || !newUrl.trim()) {
+        toast.error('Could not regenerate a chart for this message')
+        return null
+      }
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id !== assistantMessageId) return msg
+          const nextChartUrls = (msg.chartUrls ?? []).map((url) => (url === previousUrl ? newUrl : url))
+          return {
+            ...msg,
+            chartUrl: msg.chartUrl === previousUrl ? newUrl : msg.chartUrl,
+            chartUrls: nextChartUrls,
+          }
+        })
+      )
+
+      return newUrl
+    } catch (error) {
+      console.error('Chart regeneration failed:', error)
+      toast.error('Failed to regenerate chart')
+      return null
+    }
+  }, [messages, currentConversationId, includeYouTube, token])
+
   const handleSaveSettings = useCallback(async () => {
     if (!settingsUsername.trim()) return
     setIsSavingSettings(true)
@@ -1308,8 +1367,9 @@ export default function ChatPage() {
       ),
       isComplete: message.isComplete,
       onOpenExternalPreview: handleOpenExternalPreview,
+      onRegenerateChart: (previousUrl: string) => handleRegenerateChart(message.id, previousUrl),
     }
-  }, [handleEditMessage, handleOpenExternalPreview, onRateResponse])
+  }, [handleEditMessage, handleOpenExternalPreview, handleRegenerateChart, onRateResponse])
 
   const reservedHistoryWidth = isHistoryOpen && canDockHistory ? historySidebarWidth : 0
   const reservedPreviewWidth = isLinkPreviewOpen && canDockPreview ? previewPaneWidth : 0
