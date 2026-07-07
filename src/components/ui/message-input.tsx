@@ -48,7 +48,7 @@ type MessageInputProps =
   | MessageInputWithAttachmentsProps
 
 const MODEL_OPTIONS = [
-  { value: 'gemini-2.5-flash-lite-preview-06-17', label: 'Fast' },
+  { value: 'gemini-2.5-flash-lite', label: 'Fast' },
   { value: 'gemini-2.5-flash', label: 'Smart' },
   { value: 'gemini-2.5-pro', label: 'Best' },
 ]
@@ -66,7 +66,7 @@ export function MessageInput({
   onToggleYouTube,
   includeImageSearch = true,
   onToggleImageSearch,
-  selectedModel = 'gemini-2.5-flash-lite-preview-06-17',
+  selectedModel = 'gemini-2.5-flash-lite',
   onModelChange,
   inputRef,
   ...props

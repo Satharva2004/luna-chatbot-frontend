@@ -215,8 +215,9 @@ export default function ChatPage() {
     return localStorage.getItem('luna_img') === '1'
   })
   const [selectedModel, setSelectedModel] = useState(() => {
-    if (typeof window === 'undefined') return 'gemini-2.5-flash-lite-preview-06-17'
-    return localStorage.getItem('luna_model') || 'gemini-2.5-flash-lite-preview-06-17'
+    if (typeof window === 'undefined') return 'gemini-2.5-flash-lite'
+    const stored = localStorage.getItem('luna_model')
+    return stored && stored !== 'gemini-2.5-flash-lite-preview-06-17' ? stored : 'gemini-2.5-flash-lite'
   })
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
