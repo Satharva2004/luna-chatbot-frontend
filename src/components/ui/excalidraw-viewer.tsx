@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { Download, Maximize2, Minimize2, Loader2, FileJson } from 'lucide-react'
+import { Download, Maximize2, Minimize2, Loader2, FileJson, RefreshCw } from 'lucide-react'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogTitle } from './dialog'
 import { sanitizeExcalidrawElements } from '@/lib/excalidraw-sanitizer'
@@ -40,9 +40,10 @@ interface ExcalidrawViewerProps {
     className?: string
     messageId?: string
     token?: string
+    onRegenerate?: () => Promise<void> | void
 }
 
-export function ExcalidrawViewer({ data, className = '', messageId, token }: ExcalidrawViewerProps) {
+export function ExcalidrawViewer({ data, className = '', messageId, token, onRegenerate }: ExcalidrawViewerProps) {
     // Safety guard
     if (!data) {
         console.warn('⚠️ ExcalidrawViewer: No data provided')
@@ -51,6 +52,7 @@ export function ExcalidrawViewer({ data, className = '', messageId, token }: Exc
 
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [isDownloading, setIsDownloading] = useState(false)
+    const [isRegenerating, setIsRegenerating] = useState(false)
     const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null)
     const excalidrawAPIRef = useRef<any>(null)
     const [key, setKey] = useState(0)
@@ -195,6 +197,18 @@ export function ExcalidrawViewer({ data, className = '', messageId, token }: Exc
         }
     }
 
+    const handleRegenerate = async () => {
+        if (!onRegenerate || isRegenerating) return
+        try {
+            setIsRegenerating(true)
+            await onRegenerate()
+        } catch (error) {
+            console.error('Failed to regenerate flowchart:', error)
+        } finally {
+            setIsRegenerating(false)
+        }
+    }
+
     const renderExcalidraw = (height: string = '500px') => {
         // Generate a unique key based on content to force clean re-mounts
         const contentKey = `excalidraw-${sanitizedElements.length}-${sanitizedElements[0]?.id || 'empty'}`;
@@ -274,6 +288,18 @@ export function ExcalidrawViewer({ data, className = '', messageId, token }: Exc
                             <span className="text-[11px] font-medium">Fit</span>
                         </Button>
                         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+                        {onRegenerate && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRegenerate}
+                                disabled={isRegenerating}
+                                className="h-8 gap-2 rounded-lg px-2.5 text-slate-600 hover:bg-white hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-blue-400"
+                            >
+                                {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                                <span className="text-[11px] font-medium">{isRegenerating ? 'Regenerating' : 'Regenerate'}</span>
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             size="sm"
