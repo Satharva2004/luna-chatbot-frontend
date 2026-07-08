@@ -161,37 +161,37 @@
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #f5f5f7;
-  --card: #2c2c2e;
-  --card-foreground: #f5f5f7;
-  --popover: #2c2c2e;
-  --popover-foreground: #f5f5f7;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #1c1c1e;
-  --secondary-foreground: #f5f5f7;
-  --muted: #1c1c1e;
-  --muted-foreground: #86868b;
-  --accent: #1c1c1e;
-  --accent-foreground: #f5f5f7;
+  --background: #17171a;
+  --foreground: #f2f0ec;
+  --card: #201f23;
+  --card-foreground: #f2f0ec;
+  --popover: #201f23;
+  --popover-foreground: #f2f0ec;
+  --primary: #f2f0ec;
+  --primary-foreground: #17171a;
+  --secondary: #232226;
+  --secondary-foreground: #f2f0ec;
+  --muted: #232226;
+  --muted-foreground: #9a948b;
+  --accent: #29282c;
+  --accent-foreground: #f2f0ec;
   --destructive: #ff453a;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #1c1c1e;
-  --ring: #86868b;
-  --chart-1: #ffffff;
-  --chart-2: #86868b;
-  --chart-3: #3a3a3c;
-  --chart-4: #2c2c2e;
-  --chart-5: #1c1c1e;
-  --sidebar: #161618;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #2c2c2e;
-  --sidebar-accent-foreground: #f5f5f7;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: #86868b;
+  --border: rgba(244, 237, 225, 0.08);
+  --input: #232226;
+  --ring: #9a948b;
+  --chart-1: #f2f0ec;
+  --chart-2: #9a948b;
+  --chart-3: #3d3b3f;
+  --chart-4: #29282c;
+  --chart-5: #232226;
+  --sidebar: #1b1a1e;
+  --sidebar-foreground: #f2f0ec;
+  --sidebar-primary: #f2f0ec;
+  --sidebar-primary-foreground: #17171a;
+  --sidebar-accent: #29282c;
+  --sidebar-accent-foreground: #f2f0ec;
+  --sidebar-border: rgba(244, 237, 225, 0.06);
+  --sidebar-ring: #9a948b;
   --callout-status-tint: transparent;
   --callout-status-fg: #f2d5b5;
   --callout-advice-tint: transparent;
@@ -230,9 +230,9 @@
 
   .dark body {
     background-image:
-      radial-gradient(circle at top, rgba(114, 119, 125, 0.12), transparent 34%),
-      radial-gradient(circle at 82% 8%, rgba(64, 66, 68, 0.16), transparent 22%),
-      linear-gradient(180deg, rgba(16, 20, 24, 1) 0%, rgba(32, 33, 34, 1) 48%, rgba(16, 20, 24, 1) 100%);
+      radial-gradient(circle at top, rgba(154, 148, 139, 0.12), transparent 34%),
+      radial-gradient(circle at 82% 8%, rgba(120, 110, 96, 0.14), transparent 22%),
+      linear-gradient(180deg, rgba(19, 19, 22, 1) 0%, rgba(32, 31, 35, 1) 48%, rgba(19, 19, 22, 1) 100%);
     background-attachment: fixed;
   }
 }
@@ -261,15 +261,15 @@
   .luna-response-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    gap: 0.625rem;
+    margin-bottom: 0.5rem;
     padding-left: 0.125rem;
   }
 
   .luna-response-avatar {
     display: inline-flex;
-    height: 2rem;
-    width: 2rem;
+    height: 1.625rem;
+    width: 1.625rem;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;

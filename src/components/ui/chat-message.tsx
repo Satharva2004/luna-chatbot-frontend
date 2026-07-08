@@ -27,12 +27,12 @@ import { CustomPDFViewer } from "@/components/ui/pdf-viewer"
 import { LunaIcon } from "@/components/ui/luna-icon"
 
 const chatBubbleVariants = cva(
-  "group/message relative w-full break-words",
+  "group/message relative break-words",
   {
     variants: {
       isUser: {
         true: "max-w-[88%] sm:max-w-[72%]",
-        false: "max-w-full",
+        false: "w-full max-w-full",
       },
       animation: {
         none: "",
@@ -583,7 +583,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   })
 
   const messageShellClass = isUser
-    ? "overflow-hidden rounded-[18px] bg-neutral-200/70 px-4 py-2.5 text-slate-900 border-0 shadow-none dark:bg-[#2c2c2e] dark:text-[#f8f9fa] backdrop-blur-md"
+    ? "overflow-hidden rounded-2xl bg-neutral-200/70 px-3.5 py-2 text-[13.5px] text-slate-900 border-0 shadow-none dark:bg-[#29282c] dark:text-[#f2f0ec] backdrop-blur-md"
     : "overflow-visible border-0 bg-transparent px-0 py-0 text-foreground shadow-none"
 
   const shouldShowMinimalLoader =
@@ -1192,7 +1192,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-semibold text-foreground">Luna</span>
-                <span className="luna-response-pill">Answer</span>
               </div>
               {showTimeStamp && createdAt ? (
                 <span className="text-[11px] text-muted-foreground">{formattedTime}</span>

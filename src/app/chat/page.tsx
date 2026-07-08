@@ -1481,7 +1481,7 @@ export default function ChatPage() {
         className="pointer-events-none fixed inset-0 -z-10 opacity-80"
         style={{
           background:
-            'radial-gradient(circle at 18% 10%, rgba(114,119,125,0.14), transparent 38%), radial-gradient(circle at 82% 0%, rgba(64,66,68,0.12), transparent 30%), radial-gradient(circle at 52% 110%, rgba(39,41,45,0.18), transparent 48%)',
+            'radial-gradient(circle at 18% 10%, rgba(154,148,139,0.14), transparent 38%), radial-gradient(circle at 82% 0%, rgba(105,98,88,0.12), transparent 30%), radial-gradient(circle at 52% 110%, rgba(45,43,40,0.18), transparent 48%)',
         }}
       />
 
@@ -1494,11 +1494,11 @@ export default function ChatPage() {
           right: reservedPreviewWidth ? `${reservedPreviewWidth}px` : 0,
         }}
       >
-        <div className="flex w-full max-w-7xl items-center justify-between rounded-2xl border border-border/60 bg-card/75 px-4 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 sm:px-6">
-          <div className="flex h-12 w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <div className="flex w-full max-w-7xl items-center justify-between rounded-2xl border border-border/60 bg-card/75 px-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 sm:px-5">
+          <div className="flex h-11 w-full items-center justify-between gap-3 sm:gap-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto]">
             {/* Left Section - Logo */}
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border/60">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="relative h-7 w-7 overflow-hidden rounded-lg border border-border/60">
                 <img
                   src="/main logo.jfif"
                   alt="Luna Logo"
@@ -1511,32 +1511,11 @@ export default function ChatPage() {
                 />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className={`${playfair.className} text-[15px] font-semibold leading-snug tracking-tight`}>
+                <h1 className={`${playfair.className} text-[14px] font-semibold leading-snug tracking-tight`}>
                   Luna
                   <span className="text-muted-foreground">AI</span>
                 </h1>
               </div>
-              {keyHealth && keyHealth.total > 0 && (
-                <div
-                  title={`${keyHealth.available}/${keyHealth.total} models available${refreshCountdown ? ` · refreshes in ${refreshCountdown}s` : ''}`}
-                  className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium tabular-nums transition-colors ${
-                    keyHealth.available === 0
-                      ? 'border-red-500/20 bg-red-500/8 text-red-500 dark:text-red-400'
-                      : keyHealth.available < keyHealth.total
-                      ? 'border-yellow-500/20 bg-yellow-400/8 text-yellow-700 dark:text-yellow-400'
-                      : 'border-emerald-500/20 bg-emerald-500/8 text-emerald-700 dark:text-emerald-400'
-                  }`}
-                >
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                    keyHealth.available === 0 ? 'bg-red-500 animate-pulse' :
-                    keyHealth.available < keyHealth.total ? 'bg-yellow-400' :
-                    'bg-emerald-500'
-                  }`} />
-                  {keyHealth.available === 0
-                    ? (refreshCountdown ? `${refreshCountdown}s` : 'Limited')
-                    : `${keyHealth.available}/${keyHealth.total}`}
-                </div>
-              )}
             </div>
 
             {/* Mobile Menu Toggle */}

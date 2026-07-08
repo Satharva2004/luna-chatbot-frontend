@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { GalleryVerticalEnd } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -204,14 +203,14 @@ export function SignupForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <div className={cn("flex flex-col gap-5", className)} {...props}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <FieldGroup>
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="bg-primary text-primary-foreground premium-glow flex size-11 items-center justify-center rounded-full shadow-sm">
-              <GalleryVerticalEnd className="size-5" />
+          <div className="flex flex-col items-center gap-2.5 text-center">
+            <div className="premium-glow flex size-10 items-center justify-center overflow-hidden rounded-full border border-border/60 shadow-sm">
+              <img src="/main logo.jfif" alt="Luna" className="h-full w-full object-cover" />
             </div>
-            <h1 className="text-2xl font-bold">Create an account</h1>
+            <h1 className="text-xl font-bold">Create an account</h1>
             <p className="text-muted-foreground text-sm text-balance">
               Enter your details to get started with Luna
             </p>
@@ -225,7 +224,7 @@ export function SignupForm({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="h-10 rounded-xl"
+              className="h-9 rounded-xl"
             />
           </Field>
           <Field>
@@ -237,7 +236,7 @@ export function SignupForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-10 rounded-xl"
+              className="h-9 rounded-xl"
             />
           </Field>
           <Field>
@@ -249,7 +248,7 @@ export function SignupForm({
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="h-10 rounded-xl"
+              className="h-9 rounded-xl"
             />
           </Field>
           <Field>
@@ -261,7 +260,7 @@ export function SignupForm({
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={6}
-              className="h-10 rounded-xl"
+              className="h-9 rounded-xl"
             />
           </Field>
           <Field>

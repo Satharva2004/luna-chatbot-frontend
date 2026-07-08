@@ -44,14 +44,6 @@ export default function LoginPage() {
             className="animate-kenburns dark:brightness-[0.75]"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-black/10" />
-          <div className="absolute inset-x-6 bottom-6">
-            <div className="glass-morphism rounded-3xl p-5 text-white">
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/70">Welcome back</p>
-              <p className="mt-1 text-lg font-semibold leading-snug">
-                Pick up right where your last conversation left off.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

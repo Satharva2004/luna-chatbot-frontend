@@ -271,7 +271,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "z-10 w-full grow resize-none rounded-[20px] border border-border/60 bg-card/75 backdrop-blur-xl p-3 pr-24 text-sm text-foreground transition-all duration-150 placeholder:text-muted-foreground focus-visible:border-border/90 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-border/60 dark:bg-[#1c1c1e]/75 dark:text-[#f5f5f7] dark:placeholder:text-[#86868b] dark:focus-visible:border-border/80 shadow-none",
+              "z-10 w-full grow resize-none rounded-[20px] border border-border/60 bg-card/75 backdrop-blur-xl p-3 pr-24 text-sm text-foreground transition-all duration-150 placeholder:text-muted-foreground focus-visible:border-border/90 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-border/60 dark:bg-[#232226]/75 dark:text-[#f2f0ec] dark:placeholder:text-[#9a948b] dark:focus-visible:border-border/80 shadow-none",
               showFileList && "pb-16",
               className
             )}
@@ -340,7 +340,7 @@ export function MessageInput({
               <div
                 role="menu"
                 aria-label="Tools"
-                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-xl border border-border/80 bg-background p-2 text-popover-foreground shadow-[0_12px_32px_rgba(0,0,0,0.1)] dark:border-[#404244] dark:bg-[#202122] dark:shadow-[0_16px_32px_rgba(0,0,0,0.3)]"
+                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-xl border border-border/80 bg-background p-2 text-popover-foreground shadow-[0_12px_32px_rgba(0,0,0,0.1)] dark:border-[#3a3935] dark:bg-[#201f23] dark:shadow-[0_16px_32px_rgba(0,0,0,0.3)]"
               >
                 {onToggleYouTube && (
                   <div
