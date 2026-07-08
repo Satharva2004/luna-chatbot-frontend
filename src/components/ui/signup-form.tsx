@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { GalleryVerticalEnd } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -206,11 +207,14 @@ export function SignupForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <FieldGroup>
-          <div className="flex flex-col items-center gap-1 text-center">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="bg-primary text-primary-foreground premium-glow flex size-11 items-center justify-center rounded-full shadow-sm">
+              <GalleryVerticalEnd className="size-5" />
+            </div>
             <h1 className="text-2xl font-bold">Create an account</h1>
-            {/* <p className="text-muted-foreground text-sm text-balance">
-              Enter your details to create a new account
-            </p> */}
+            <p className="text-muted-foreground text-sm text-balance">
+              Enter your details to get started with Luna
+            </p>
           </div>
           <Field>
             <FieldLabel htmlFor="username">Username</FieldLabel>
@@ -221,6 +225,7 @@ export function SignupForm({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              className="h-10 rounded-xl"
             />
           </Field>
           <Field>
@@ -232,6 +237,7 @@ export function SignupForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="h-10 rounded-xl"
             />
           </Field>
           <Field>
@@ -243,6 +249,7 @@ export function SignupForm({
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              className="h-10 rounded-xl"
             />
           </Field>
           <Field>
@@ -254,10 +261,11 @@ export function SignupForm({
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={6}
+              className="h-10 rounded-xl"
             />
           </Field>
           <Field>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full rounded-xl" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Sign up"}
             </Button>
           </Field>
@@ -268,7 +276,7 @@ export function SignupForm({
               variant="outline"
               onClick={handleGoogleSignup}
               disabled={isGoogleLoading}
-              className="w-full gap-2"
+              className="w-full gap-2 rounded-xl"
             >
               <GoogleLogo />
               <span>{isGoogleLoading ? "Connecting..." : "Sign up with Google"}</span>
