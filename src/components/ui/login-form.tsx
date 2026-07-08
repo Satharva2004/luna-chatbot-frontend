@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { GalleryVerticalEnd } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,11 +29,6 @@ const GoogleLogo = () => (
     <path fill="#EA4335" d="M12 4.75c1.76 0 3.35.6 4.6 1.78l3.43-3.43C17.94 1.14 15.22 0 12 0 7.31 0 3.26 2.7 1.29 6.79l4.08 2.47C6.3 6.83 8.92 4.75 12 4.75z" />
   </svg>
 )
-
-// Demo credentials
-const DEMO_CREDENTIALS = {
-        //nun
-} as const
 
 export function LoginForm({
   className,
@@ -138,8 +134,6 @@ export function LoginForm({
     }
   }
 
-  // Pre-fill form with demo credentials for testing
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -147,12 +141,10 @@ export function LoginForm({
       {...props}
     >
       <FieldGroup>
-        {/* <div className="flex justify-center h-10">
-        <div className="flex items-center w-40">
-          <img src="logo 4.png" className="w-50" alt="nc" />
-        </div>
-      </div> */}
-        <div className="flex flex-col items-center gap-1 text-center">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="bg-primary text-primary-foreground premium-glow flex size-11 items-center justify-center rounded-full shadow-sm">
+            <GalleryVerticalEnd className="size-5" />
+          </div>
           <h1 className="text-2xl font-bold">Login to your account</h1>
           <p className="text-muted-foreground text-sm text-balance">
             Enter your email below to login to your account
@@ -167,30 +159,35 @@ export function LoginForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="h-10 rounded-xl"
           />
         </Field>
         <Field>
           <div className="flex items-center">
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <a
-              href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
+            <button
+              type="button"
+              className="ml-auto text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              onClick={() => toast.info("Password reset isn't available yet", {
+                description: "Please contact support to reset your password.",
+              })}
             >
               Forgot your password?
-            </a>
+            </button>
           </div>
           <Input
             id="password"
             type="password"
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="h-10 rounded-xl"
           />
         </Field>
         <Field>
           <Button
             disabled={isLoading}
             type="submit"
-            className="w-full"
+            className="w-full rounded-xl"
           >
             {isLoading ? "Signing in..." : "Login"}
           </Button>
@@ -202,7 +199,7 @@ export function LoginForm({
             variant="outline"
             onClick={handleGoogleSignIn}
             disabled={isGoogleLoading}
-            className="w-full gap-2"
+            className="w-full gap-2 rounded-xl"
           >
             <GoogleLogo />
             <span>{isGoogleLoading ? "Connecting..." : "Sign in with Google"}</span>
