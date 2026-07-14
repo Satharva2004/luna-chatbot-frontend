@@ -1,19 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&display=swap');
-
 @import "tailwindcss";
 @import "tw-animate-css";
 
 :root {
   --transition-duration: 150ms;
   --transition-timing: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-*,
-*::before,
-*::after {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-timing-function: var(--transition-timing);
-  transition-duration: var(--transition-duration);
 }
 
 @keyframes blink {
@@ -226,14 +216,20 @@
 
   body {
     @apply bg-background text-foreground;
+    position: relative;
   }
 
-  .dark body {
+  .dark body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -10;
     background-image:
       radial-gradient(circle at top, rgba(154, 148, 139, 0.12), transparent 34%),
       radial-gradient(circle at 82% 8%, rgba(120, 110, 96, 0.14), transparent 22%),
       linear-gradient(180deg, rgba(19, 19, 22, 1) 0%, rgba(32, 31, 35, 1) 48%, rgba(19, 19, 22, 1) 100%);
-    background-attachment: fixed;
+    pointer-events: none;
+    transform: translateZ(0);
   }
 }
 

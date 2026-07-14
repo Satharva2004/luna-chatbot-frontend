@@ -55,16 +55,20 @@ export function RotatingBackground({
     return null
   }
 
-  const currentImage = images[index] ?? images[0]
-
   return (
-    <img
-      src={currentImage}
-      alt={alt}
-      className={cn(
-        "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
-        className
-      )}
-    />
+    <div className="absolute inset-0 h-full w-full bg-black overflow-hidden">
+      {images.map((img, idx) => (
+        <img
+          key={img}
+          src={img}
+          alt={alt}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out",
+            idx === index ? "opacity-100 z-10" : "opacity-0 z-0",
+            className
+          )}
+        />
+      ))}
+    </div>
   )
 }
