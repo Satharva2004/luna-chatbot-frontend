@@ -86,13 +86,27 @@ const StreamingParagraph = React.memo(({ text }: { text: string }) => {
   const [words, setWords] = React.useState<Array<{ id: number; t: string; isNew: boolean }>>([])
 
   useEffect(() => {
+    if (!text) {
+      setWords([])
+      prevRef.current = ''
+      return
+    }
+
+    if (text.length < prevRef.current.length || !text.startsWith(prevRef.current)) {
+      // Text was cleared or changed completely, reset word list
+      const tokens = text.split(/(\s+)/).filter(Boolean)
+      setWords(tokens.map(t => ({ id: counterRef.current++, t, isNew: true })))
+      prevRef.current = text
+      return
+    }
+
     if (text === prevRef.current) return
     const delta = text.slice(prevRef.current.length)
     prevRef.current = text
     if (!delta) return
     const tokens = delta.split(/(\s+)/).filter(Boolean)
     setWords(prev => [
-      ...prev.map(w => ({ ...w, isNew: false })),
+      ...prev,
       ...tokens.map(t => ({ id: counterRef.current++, t, isNew: true }))
     ])
   }, [text])
