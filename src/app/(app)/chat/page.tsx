@@ -755,6 +755,9 @@ export default function ChatPage() {
       console.log('Starting streaming request with prompt:', userContent)
 
       const conversationId = currentConversationId
+      // Only the opening answer names the thread. Re-titling on every reply
+      // made the sidebar entry change under the user mid-conversation.
+      const isFirstAnswerInThread = !conversationId
       abortControllerRef.current = new AbortController()
 
       let response: Response
@@ -1082,7 +1085,7 @@ export default function ChatPage() {
       )
 
       const titledConversationId = resolvedConversationId ?? currentConversationId
-      if (titledConversationId && finalContent.trim()) {
+      if (isFirstAnswerInThread && titledConversationId && finalContent.trim()) {
         void commitConversationTitle(
           String(titledConversationId),
           deriveConversationTitle(finalContent, userContent)
