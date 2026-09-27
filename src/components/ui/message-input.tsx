@@ -66,7 +66,7 @@ export function MessageInput({
   onToggleYouTube,
   includeImageSearch = true,
   onToggleImageSearch,
-  selectedModel = 'gemini-2.5-flash-lite',
+  selectedModel = 'gemini-2.5-flash',
   onModelChange,
   inputRef,
   ...props
@@ -271,7 +271,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "z-10 w-full grow resize-none rounded-[20px] border border-border/60 bg-card/75 backdrop-blur-xl p-3 pr-24 text-sm text-foreground transition-all duration-150 placeholder:text-muted-foreground focus-visible:border-border/90 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-border/60 dark:bg-[#2f2f2f]/75 dark:text-[#e6e6e6] dark:placeholder:text-[#9b9b9b] dark:focus-visible:border-border/80 shadow-none",
+              "z-10 w-full grow resize-none rounded-xl bg-card p-3 pr-24 text-sm text-foreground shadow-none ring-1 ring-foreground/10 transition-[box-shadow] duration-150 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
               showFileList && "pb-16",
               className
             )}
@@ -323,7 +323,7 @@ export function MessageInput({
               size="sm"
               variant={includeYouTube ? "default" : "outline"}
               className={cn(
-                "h-8 gap-1 rounded-lg border border-border/60 bg-secondary/80 px-2.5 text-muted-foreground shadow-none hover:bg-secondary hover:text-foreground dark:border-border/60 dark:bg-secondary/80 dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground",
+                "h-8 gap-1 rounded-md border bg-background px-2.5 text-muted-foreground shadow-none hover:bg-muted hover:text-foreground",
                 includeYouTube && "bg-secondary text-foreground dark:bg-secondary dark:text-foreground",
                 !includeYouTube && "opacity-90"
               )}
@@ -340,7 +340,7 @@ export function MessageInput({
               <div
                 role="menu"
                 aria-label="Tools"
-                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-xl border border-border/80 bg-background p-2 text-popover-foreground shadow-[0_12px_32px_rgba(0,0,0,0.1)] dark:border-[#2f2f2f] dark:bg-[#202020] dark:shadow-[0_16px_32px_rgba(0,0,0,0.3)]"
+                className="absolute bottom-full left-1/2 z-30 mb-2 w-48 -translate-x-1/2 rounded-lg border bg-popover p-2 text-popover-foreground shadow-md"
               >
                 {onToggleYouTube && (
                   <div
@@ -449,7 +449,7 @@ export function MessageInput({
             type="button"
             variant="outline"
             className={cn(
-              "h-8 w-8 rounded-lg border border-border/60 bg-secondary/80 text-muted-foreground shadow-none hover:bg-secondary hover:text-foreground dark:border-border/60 dark:bg-secondary/80 dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground",
+              "h-8 w-8 rounded-md border bg-background text-muted-foreground shadow-none hover:bg-muted hover:text-foreground",
               isListening && "text-foreground dark:text-foreground"
             )}
             aria-label="Voice input"
@@ -463,7 +463,7 @@ export function MessageInput({
           <Button
             type="button"
             size="icon"
-            className="h-8 w-8 rounded-lg border border-border/60 bg-secondary/80 text-muted-foreground shadow-none hover:bg-secondary hover:text-foreground dark:border-border/60 dark:bg-secondary/80 dark:text-foreground dark:hover:bg-secondary"
+            className="h-8 w-8 rounded-md border bg-background text-muted-foreground shadow-none hover:bg-muted hover:text-foreground"
             aria-label="Stop generating"
             onClick={stop}
           >

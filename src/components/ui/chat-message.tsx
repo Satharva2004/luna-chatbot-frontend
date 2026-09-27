@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { AlertTriangle, Ban, BarChart3, Check, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Pencil, RefreshCw, Sparkles, Terminal, X as XIcon, Youtube } from "lucide-react"
+import { MoonStar, AlertTriangle, Ban, BarChart3, Check, CheckCircle2, ChevronRight, Code2, Download, ExternalLink, FileText, Globe, Image as ImageIcon, Loader2, Pencil, RefreshCw, Sparkles, Terminal, X as XIcon, Youtube } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -163,31 +163,15 @@ const StreamingContent = ({
 
 const MinimalAssistantLoader = () => (
   <motion.div
-    initial={{ opacity: 0, y: 4 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-background/90 px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="flex items-center gap-2 py-0.5"
   >
-    <span className="flex items-end gap-1">
-      {[0, 1, 2].map((index) => (
-        <motion.span
-          key={index}
-          className="w-1.5 rounded-full bg-primary/70"
-          animate={{ height: [6, 14, 6], opacity: [0.45, 1, 0.45] }}
-          transition={{
-            duration: 0.9,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: index * 0.12,
-          }}
-        />
-      ))}
+    <span className="relative flex size-3.5 items-center justify-center">
+      <span className="absolute inline-flex size-3.5 animate-ping rounded-full bg-foreground/15" />
+      <span className="relative inline-flex size-1.5 rounded-full bg-foreground/60" />
     </span>
-    <motion.span
-      animate={{ opacity: [0.55, 1, 0.55] }}
-      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-    >
-      Generating...
-    </motion.span>
+    <span className="luna-shimmer text-sm font-medium">Thinking</span>
   </motion.div>
 )
 
@@ -217,26 +201,48 @@ const agentStepIcon = (step: AgentActivityStep) => {
 const AgentActivity = ({ steps, isComplete, hasContent }: { steps?: AgentActivityStep[]; isComplete?: boolean; hasContent?: boolean }) => {
   if (isComplete || hasContent) return null
 
-  const visibleSteps = Array.isArray(steps)
-    ? steps
-      .filter((step) => step?.id && step?.label)
-      .filter((step) => step.state === "running" || step.state === "queued")
-      .slice(-1)
+  const allSteps = Array.isArray(steps)
+    ? steps.filter((step) => step?.id && step?.label)
     : []
 
-  if (visibleSteps.length === 0) return null
+  if (allSteps.length === 0) return null
 
-  const activeStep = visibleSteps[0]
+  // Show what finished plus what's in flight, so the run reads as real progress
+  // rather than a single label flickering between states.
+  const done = allSteps.filter((s) => s.state === "complete" || s.state === "error")
+  const live = allSteps.filter((s) => s.state === "running" || s.state === "queued").slice(0, 1)
+  const visible = [...done.slice(-3), ...live]
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="luna-process-panel"
+      className="mb-3 flex flex-col gap-1.5 border-l border-border pl-3"
     >
-      <span className="luna-process-icon">{agentStepIcon(activeStep)}</span>
-      <span className="min-w-0 truncate">{activeStep.label}</span>
-      {activeStep.detail ? <span className="hidden truncate text-muted-foreground sm:inline">{activeStep.detail}</span> : null}
+      {visible.map((step) => {
+        const isLive = step.state === "running" || step.state === "queued"
+        return (
+          <div
+            key={step.id}
+            className={cn(
+              "flex items-center gap-2 text-xs",
+              isLive ? "text-foreground/80" : "text-muted-foreground"
+            )}
+          >
+            <span className="flex size-3.5 shrink-0 items-center justify-center [&_svg]:size-3.5">
+              {agentStepIcon(step)}
+            </span>
+            <span className={cn("min-w-0 truncate", isLive && "luna-shimmer")}>
+              {step.label}
+            </span>
+            {step.detail ? (
+              <span className="hidden min-w-0 truncate text-muted-foreground/70 sm:inline">
+                {step.detail}
+              </span>
+            ) : null}
+          </div>
+        )
+      })}
     </motion.div>
   )
 }
@@ -250,16 +256,13 @@ const OutputSectionHeader = ({
   icon: React.ReactNode
   title: string
 }) => (
-  <div className="mb-4 flex items-center gap-2.5">
-    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/50 bg-background text-foreground shadow-sm">
-      {icon}
-    </div>
-    <h3 className="text-xs font-semibold tracking-tight text-foreground">{title}</h3>
+  <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+    <span className="[&_svg]:size-3.5">{icon}</span>
+    <h3 className="text-xs font-medium tracking-wide text-foreground/80">{title}</h3>
     {typeof count === "number" ? (
-      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-        {count}
-      </span>
+      <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
     ) : null}
+    <span aria-hidden="true" className="ml-1 h-px flex-1 bg-border" />
   </div>
 )
 
@@ -597,7 +600,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   })
 
   const messageShellClass = isUser
-    ? "overflow-hidden rounded-2xl bg-neutral-200/70 px-3.5 py-2 text-[15px] text-slate-900 border-0 shadow-none dark:bg-[#2f2f2f] dark:text-[#e6e6e6] backdrop-blur-md"
+    ? "overflow-hidden rounded-xl bg-muted px-3.5 py-2 text-sm text-foreground shadow-none ring-1 ring-foreground/10"
     : "overflow-visible border-0 bg-transparent px-0 py-0 text-foreground shadow-none"
 
   const shouldShowMinimalLoader =
@@ -756,7 +759,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 const isDownloading = downloadingChartUrl === url
                 const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
                 return (
-                  <div key={`${url}-${index}`} className="luna-chart-card">
+                  <div key={`${url}-${index}`} className="luna-chart-card group/chart">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-sm font-semibold text-foreground">{chartLabel}</span>
                       <Button
@@ -773,7 +776,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <button
                       type="button"
                       onClick={() => setExpandedChartUrl(url)}
-                      className="mt-3 block w-full rounded-lg border border-border/60 bg-background p-3"
+                      className="block w-full rounded-md bg-background p-2 transition-colors hover:bg-muted/40"
                       aria-label={`Expand ${chartLabel}`}
                     >
                       <img
@@ -1022,30 +1025,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 const chartLabel = resolvedChartUrls.length > 1 ? `Chart ${index + 1}` : "Generated chart"
                 return (
                   <div key={`${url}-${index}`} className="luna-chart-card">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-sm font-semibold text-foreground">{chartLabel}</span>
-                      <div className="flex gap-2">
+                    <div className="flex items-center justify-between gap-2 px-1 pb-1">
+                      <span className="text-xs font-medium text-muted-foreground">{chartLabel}</span>
+                      <div className="flex items-center gap-0.5 opacity-60 transition-opacity group-hover/chart:opacity-100">
                         {onRegenerateChart && (
                           <Button
                             type="button"
                             onClick={() => handleRegenerateChart(url)}
-                            variant="secondary"
-                            className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Regenerate chart"
+                            aria-label="Regenerate chart"
                             disabled={isRegenerating}
                           >
-                            {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                            {isRegenerating ? "Regenerating" : "Regenerate"}
+                            {isRegenerating ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
                           </Button>
                         )}
                         <Button
                           type="button"
                           onClick={() => handleDownloadChart(url)}
-                          variant="secondary"
-                          className="h-9 gap-2 rounded-lg border border-border/60 bg-background text-xs"
+                          variant="ghost"
+                          size="icon-sm"
+                          title="Download chart"
+                          aria-label="Download chart"
                           disabled={isDownloading}
                         >
-                          {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                          {isDownloading ? "Preparing" : "Download"}
+                          {isDownloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
                         </Button>
                       </div>
                     </div>
@@ -1297,18 +1302,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     <div className={cn("flex flex-col w-full relative", isUser ? "items-end" : "items-start")}>
       {!isUser ? (
         <div className="mb-2 flex w-full items-center gap-2">
-          <span className="relative flex h-6 w-6 items-center justify-center rounded-full border border-border overflow-hidden flex-shrink-0">
-            <img
-              src="/main logo.jfif"
-              alt="Luna"
-              className="h-full w-full object-cover"
-            />
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <MoonStar className="size-3" />
           </span>
-          <span className="text-xs font-semibold tracking-tight text-foreground/80">
-            Luna
-          </span>
+          <span className="text-xs font-medium text-foreground/80">Luna</span>
           {showTimeStamp && createdAt ? (
-            <span className="ml-auto text-[11px] text-muted-foreground">
+            <span className="ml-auto text-[11px] tabular-nums text-muted-foreground/70">
               {formattedTime}
             </span>
           ) : null}
@@ -1339,7 +1338,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
             className="mt-2"
           >
-            <div className="relative mb-6 overflow-hidden rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur dark:bg-white/5 dark:shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
+            <div className="group relative mb-6">
               <OutputSectionHeader
                 count={images.length}
                 icon={<ImageIcon className="h-4 w-4" />}
@@ -1356,7 +1355,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               {images.length > 1 && canScrollImagesLeft && (
                 <button
                   type="button"
-                  className="absolute left-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border border-border/40 bg-background/80 p-2 text-foreground shadow-lg backdrop-blur-md transition-all hover:bg-background hover:scale-110 active:scale-95"
+                  className="absolute left-1 top-1/2 z-20 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-background"
                   onClick={() => {
                     if (imageScrollRef.current) {
                       imageScrollRef.current.scrollBy({ left: -260, behavior: 'smooth' })
@@ -1370,7 +1369,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               {images.length > 1 && canScrollImagesRight && (
                 <button
                   type="button"
-                  className="absolute right-2 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full border border-border/40 bg-background/80 p-2 text-foreground shadow-lg backdrop-blur-md transition-all hover:bg-background hover:scale-110 active:scale-95"
+                  className="absolute right-1 top-1/2 z-20 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-background"
                   onClick={() => {
                     if (imageScrollRef.current) {
                       imageScrollRef.current.scrollBy({ left: 260, behavior: 'smooth' })

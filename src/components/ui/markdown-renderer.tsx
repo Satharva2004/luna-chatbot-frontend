@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm"
 import { AlertTriangle, CheckCircle2, Download, Lightbulb, ListChecks, Maximize2, Minus, RefreshCcw, TrendingDown, TrendingUp, ZoomIn, ZoomOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { buildRepairCandidates, normalize as normalizeMermaidCode } from "@/lib/mermaid-sanitizer"
 import { CopyButton } from "@/components/ui/copy-button"
 import type { PanZoom } from "panzoom"
 
@@ -609,11 +610,55 @@ async function validateMermaidCode(mermaidLib: MermaidModule, code: string) {
   }
 }
 
+/**
+ * Repaired diagrams are cached by source hash so a given block costs at most
+ * one model round-trip per session, no matter how often it re-renders.
+ */
+const mermaidRepairCache = new Map<string, string>()
+
+function hashMermaid(code: string) {
+  let h = 0
+  for (let i = 0; i < code.length; i++) {
+    h = (h << 5) - h + code.charCodeAt(i)
+    h |= 0
+  }
+  return String(h)
+}
+
+/** Asks the model to repair a diagram no deterministic tier could fix. */
+async function requestModelRepair(code: string, error: string): Promise<string | null> {
+  try {
+    const token =
+      typeof window !== "undefined" ? window.localStorage.getItem("token") : null
+
+    const resp = await fetch("/api/mermaid/repair", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ code, error }),
+    })
+
+    if (!resp.ok) return null
+    const data = await resp.json()
+    return typeof data?.code === "string" && data.code.trim() ? data.code : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Resolves renderable Mermaid using a layered strategy:
+ *   1. deterministic repair tiers, least invasive first (covers the common cases)
+ *   2. a single model repair pass, cached, for anything genuinely malformed
+ * The first candidate that the real parser accepts wins, so valid input is
+ * never rewritten.
+ */
 async function resolveMermaidCodeForRender(mermaidLib: MermaidModule, code: string) {
-  const attempts = buildMermaidRepairCandidates(code)
   let lastError: string | null = null
 
-  for (const candidate of attempts) {
+  for (const candidate of buildRepairCandidates(code)) {
     const validationError = await validateMermaidCode(mermaidLib, candidate)
     if (!validationError) {
       return candidate
@@ -621,119 +666,33 @@ async function resolveMermaidCodeForRender(mermaidLib: MermaidModule, code: stri
     lastError = validationError
   }
 
+  // Deterministic repair exhausted: fall back to the model, once per diagram.
+  const cacheKey = hashMermaid(code)
+  const cached = mermaidRepairCache.get(cacheKey)
+  if (cached) {
+    const cachedError = await validateMermaidCode(mermaidLib, cached)
+    if (!cachedError) return cached
+  } else {
+    const repaired = await requestModelRepair(code, lastError || "unknown parse error")
+    if (repaired) {
+      // The model's output still goes through the deterministic tiers.
+      for (const candidate of buildRepairCandidates(repaired)) {
+        const validationError = await validateMermaidCode(mermaidLib, candidate)
+        if (!validationError) {
+          mermaidRepairCache.set(cacheKey, candidate)
+          return candidate
+        }
+      }
+    }
+  }
+
   const finalError = new Error(lastError || "Unknown Mermaid syntax error") as MermaidSyntaxError
   finalError.details = lastError || undefined
   throw finalError
 }
 
-function normalizeMermaidCode(code: string) {
-  return code
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/\u00a0/g, " ")
-    .replace(/\u200b/g, "")
-    .replace(/\r\n?/g, "\n")
-    .trim()
-    .replace(/^graph\s+TD\b/i, 'flowchart TD')
-    .replace(/^graph\s+LR\b/i, 'flowchart LR')
-}
 
-function buildMermaidRepairCandidates(code: string) {
-  const candidates = new Set<string>()
-  const normalized = normalizeMermaidCode(code)
-  const variants = [
-    normalized,
-    stripMermaidFence(normalized),
-    sanitizeMermaidCode(normalized),
-    sanitizeMermaidCode(stripMermaidFence(normalized)),
-    repairMermaidStructure(sanitizeMermaidCode(stripMermaidFence(normalized))),
-  ]
 
-  for (const variant of variants) {
-    const cleaned = normalizeMermaidCode(variant)
-    if (cleaned) {
-      candidates.add(cleaned)
-    }
-  }
-
-  return [...candidates]
-}
-
-type NodeShapePattern = {
-  open: string
-  close: string
-  regex: RegExp
-}
-
-const NODE_SHAPE_PATTERNS: NodeShapePattern[] = [
-  { open: "[[", close: "]]", regex: /(\b[\w-]+)(\[\[[^\]]*\]\])/g },
-  { open: "[", close: "]", regex: /(\b[\w-]+)(\[(?!\[)[^\]]*\])/g },
-  { open: "{{", close: "}}", regex: /(\b[\w-]+)(\{\{[^}]*\}\})/g },
-  { open: "{", close: "}", regex: /(\b[\w-]+)(\{(?!\{)[^}]*\})/g },
-  { open: "((", close: "))", regex: /(\b[\w-]+)(\(\([^)]*\)\))/g },
-  { open: "(", close: ")", regex: /(\b[\w-]+)(\((?!\()[^)]*\))/g },
-  { open: ">", close: "]", regex: /(\b[\w-]+)(>[^\]]*\])/g },
-]
-
-const UNSAFE_LABEL_CHARS = /[()[\]{}<>#"'\\/|?:&]/
-
-function sanitizeMermaidCode(code: string) {
-  return code
-    .split("\n")
-    .map((line) => sanitizeMermaidLine(line))
-    .join("\n")
-}
-
-function sanitizeMermaidLine(line: string) {
-  let sanitized = line
-  for (const pattern of NODE_SHAPE_PATTERNS) {
-    sanitized = sanitized.replace(pattern.regex, (_, id: string, wrapper: string) => {
-      const label = wrapper.slice(pattern.open.length, wrapper.length - pattern.close.length)
-      const safeLabel = ensureQuotedLabel(label)
-      return `${id}${pattern.open}${safeLabel}${pattern.close}`
-    })
-  }
-  return sanitized
-}
-
-function repairMermaidStructure(code: string) {
-  return code
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .filter((line, index, lines) => !(index > 0 && line.length === 0 && lines[index - 1].length === 0))
-    .map((line) => line.replace(/\s+(-->|---|\.-\.->|==>|-.->|~~~>)\s+/g, " $1 "))
-    .join("\n")
-    .trim()
-}
-
-function stripMermaidFence(code: string) {
-  return code
-    .replace(/^```(?:mermaid)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .replace(/^mermaid\s*\n/i, "")
-    .trim()
-}
-
-function ensureQuotedLabel(label: string) {
-  const trimmed = label.trim()
-  if (!trimmed) return trimmed
-  const alreadyQuoted = trimmed.startsWith('"') && trimmed.endsWith('"')
-  if (alreadyQuoted) {
-    return trimmed
-  }
-  if (needsQuoting(trimmed)) {
-    return `"${escapeDoubleQuotes(trimmed)}"`
-  }
-  return trimmed
-}
-
-function needsQuoting(label: string) {
-  return UNSAFE_LABEL_CHARS.test(label) || label.includes("-->") || label.includes("<--")
-}
-
-function escapeDoubleQuotes(text: string) {
-  return text.replace(/"/g, '\\"')
-}
 
 function childrenTakeAllStringContents(element: unknown): string {
   if (typeof element === 'string') return element
