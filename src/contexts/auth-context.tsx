@@ -20,6 +20,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  handleUnauthorized: () => void;
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
 };
@@ -124,6 +125,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   }, [router]);
 
+  const handleUnauthorized = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setUser(null);
+    setToken(null);
+    router.replace('/login?reason=session-expired');
+  }, [router]);
+
   const updateUser = useCallback((updates: Partial<User>) => {
     setUser(prev => {
       if (!prev) return prev;
@@ -142,8 +152,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (userData) {
           setUser(JSON.parse(userData));
         }
-        if (storedToken) {
+        if (storedToken && !isJwtExpired(storedToken)) {
           setToken(storedToken);
+        } else if (storedToken) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
         }
       } catch (error) {
         console.error('Failed to parse user data from localStorage', error);
@@ -161,15 +175,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     loginWithGoogle,
     logout,
+    handleUnauthorized,
     updateUser,
     isLoading
-  }), [user, token, isLoading, login, loginWithGoogle, logout, updateUser]);
+  }), [user, token, isLoading, login, loginWithGoogle, logout, handleUnauthorized, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+function isJwtExpired(token: string): boolean {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return true;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = JSON.parse(atob(normalized));
+    return typeof decoded.exp !== 'number' || decoded.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
 }
 
 export function useAuth() {
