@@ -81,43 +81,9 @@ const BlinkingCursor = () => (
 
 // Renders only the "active" (last) paragraph with word-by-word fade-in animation
 const StreamingParagraph = React.memo(({ text }: { text: string }) => {
-  const prevRef = React.useRef('')
-  const counterRef = React.useRef(0)
-  const [words, setWords] = React.useState<Array<{ id: number; t: string; isNew: boolean }>>([])
-
-  useEffect(() => {
-    if (!text) {
-      setWords([])
-      prevRef.current = ''
-      return
-    }
-
-    if (text.length < prevRef.current.length || !text.startsWith(prevRef.current)) {
-      // Text was cleared or changed completely, reset word list
-      const tokens = text.split(/(\s+)/).filter(Boolean)
-      setWords(tokens.map(t => ({ id: counterRef.current++, t, isNew: true })))
-      prevRef.current = text
-      return
-    }
-
-    if (text === prevRef.current) return
-    const delta = text.slice(prevRef.current.length)
-    prevRef.current = text
-    if (!delta) return
-    const tokens = delta.split(/(\s+)/).filter(Boolean)
-    setWords(prev => [
-      ...prev,
-      ...tokens.map(t => ({ id: counterRef.current++, t, isNew: true }))
-    ])
-  }, [text])
-
   return (
     <p className="mb-3 text-[15px] sm:text-base leading-relaxed text-foreground/90">
-      {words.map(w => (
-        <span key={w.id} className={w.isNew ? 'luna-word-new' : undefined}>
-          {w.t}
-        </span>
-      ))}
+      {text}
       <BlinkingCursor />
     </p>
   )
@@ -140,7 +106,12 @@ function splitAtLastParagraph(content: string): { stable: string; active: string
 }
 
 // Gemini-style streaming renderer: stable paragraphs as markdown + last paragraph animated word-by-word
-const StreamingContent = ({
+const StableMarkdown = React.memo(({ content, onLinkClick }: { content: string; onLinkClick?: (url: string) => void }) => (
+  <MarkdownRenderer onLinkClick={onLinkClick}>{content}</MarkdownRenderer>
+))
+StableMarkdown.displayName = 'StableMarkdown'
+
+const StreamingContent = React.memo(({
   content,
   isComplete,
   onLinkClick,
@@ -150,16 +121,17 @@ const StreamingContent = ({
   onLinkClick?: (url: string) => void
 }) => {
   if (isComplete || !content) {
-    return <MarkdownRenderer onLinkClick={onLinkClick}>{content}</MarkdownRenderer>
+    return <StableMarkdown content={content} onLinkClick={onLinkClick} />
   }
   const { stable, active } = splitAtLastParagraph(content)
   return (
     <div>
-      {stable && <MarkdownRenderer onLinkClick={onLinkClick}>{stable}</MarkdownRenderer>}
+      {stable && <StableMarkdown content={stable} onLinkClick={onLinkClick} />}
       <StreamingParagraph text={active} />
     </div>
   )
-}
+})
+StreamingContent.displayName = 'StreamingContent'
 
 const MinimalAssistantLoader = () => (
   <motion.div
@@ -406,6 +378,8 @@ export interface Message {
 
 export interface ImageResult {
   title: string | null
+  description?: string | null
+  source?: string | null
   imageUrl: string | null
   pageUrl: string | null
   thumbnailUrl?: string | null
@@ -472,6 +446,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
     window.open(url, "_blank", "noopener,noreferrer")
   }, [onOpenExternalPreview])
+  const handleMarkdownLinkClick = useCallback((url: string) => {
+    openExternalPreview(url)
+  }, [openExternalPreview])
 
   const isUser = role === "user"
   const [downloadingChartUrl, setDownloadingChartUrl] = useState<string | null>(null)
@@ -1224,7 +1201,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             {shouldShowMinimalLoader ? (
               <MinimalAssistantLoader />
             ) : text?.trim() ? (
-              <StreamingContent content={text} isComplete={isComplete} onLinkClick={(url) => openExternalPreview(url)} />
+              <StreamingContent content={text} isComplete={isComplete} onLinkClick={handleMarkdownLinkClick} />
             ) : !isComplete ? null : (
               <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-4 w-4" />
@@ -1452,6 +1429,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground/90 group-hover:text-primary transition-colors">
                             {caption}
                           </p>
+                          {img.description && (
+                            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                              {img.description}
+                            </p>
+                          )}
+                          {img.source && (
+                            <p className="mt-1 truncate text-[10px] text-muted-foreground/80">
+                              Source: {img.source}
+                            </p>
+                          )}
                         </div>
                       </motion.a>
                     );
