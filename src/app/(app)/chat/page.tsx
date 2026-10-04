@@ -174,11 +174,13 @@ function normalizeImageResults(raw: unknown): ImageResult[] | undefined {
       const imageUrl = typeof data.imageUrl === 'string' ? data.imageUrl : null
       const pageUrl = typeof data.pageUrl === 'string' ? data.pageUrl : null
       const title = typeof data.title === 'string' ? data.title : null
+      const description = typeof data.description === 'string' ? data.description : null
+      const source = typeof data.source === 'string' ? data.source : null
       const thumbnailUrl = typeof data.thumbnailUrl === 'string' ? data.thumbnailUrl : null
 
       if (!imageUrl) return null
 
-      return { title, imageUrl, pageUrl, thumbnailUrl }
+      return { title, description, source, imageUrl, pageUrl, thumbnailUrl }
     })
     .filter((entry): entry is ImageResult => entry !== null)
 
@@ -348,7 +350,15 @@ export default function ChatPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [settingsUsername, setSettingsUsername] = useState('')
   const [isSavingSettings, setIsSavingSettings] = useState(false)
-  const [keyHealth, setKeyHealth] = useState<{ total: number; available: number; nextRefreshMs?: number | null; totalRequests?: number } | null>(null)
+  const [keyHealth, setKeyHealth] = useState<{
+    total: number
+    available: number
+    nextRefreshMs?: number | null
+    totalRequests?: number
+    requestsRemainingEstimate?: number
+    dailyLimitPerKey?: number | null
+    usagePersistent?: boolean
+  } | null>(null)
   const [refreshCountdown, setRefreshCountdown] = useState<number | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTitle, setPreviewTitle] = useState<string | null>(null)
@@ -435,7 +445,15 @@ export default function ChatPage() {
         .then(r => r.json())
         .then(data => {
           if (typeof data.total === 'number') {
-            setKeyHealth({ total: data.total, available: data.available, nextRefreshMs: data.nextRefreshMs ?? null, totalRequests: data.totalRequests ?? 0 })
+            setKeyHealth({
+              total: data.total,
+              available: data.available,
+              nextRefreshMs: data.nextRefreshMs ?? null,
+              totalRequests: data.requestsToday ?? data.totalRequests ?? 0,
+              requestsRemainingEstimate: typeof data.requestsRemainingEstimate === 'number' ? data.requestsRemainingEstimate : undefined,
+              dailyLimitPerKey: data.dailyLimitPerKey ?? null,
+              usagePersistent: data.usagePersistent === true,
+            })
             setRefreshCountdown(data.nextRefreshMs ? Math.ceil(data.nextRefreshMs / 1000) : null)
           }
         })
@@ -1602,9 +1620,11 @@ export default function ChatPage() {
         {keyHealth && keyHealth.total > 0 && (
           <span
             title={
-              keyHealth.available === 0
-                ? 'All models cooling down'
-                : `${keyHealth.available} of ${keyHealth.total} models available`
+              keyHealth.usagePersistent === false
+                ? 'Usage persistence is not connected. Apply the Supabase service usage migration to preserve counts across restarts.'
+                : keyHealth.requestsRemainingEstimate !== undefined
+                ? `About ${keyHealth.requestsRemainingEstimate.toLocaleString()} provider requests estimated today; ${keyHealth.totalRequests?.toLocaleString() ?? 0} used.`
+                : `${keyHealth.totalRequests?.toLocaleString() ?? 0} requests used today. Configure GEMINI_DAILY_REQUEST_LIMIT to show an estimated remaining count.`
             }
             className="hidden items-center gap-1.5 text-[11px] text-muted-foreground sm:flex"
           >
@@ -1622,7 +1642,9 @@ export default function ChatPage() {
               ? refreshCountdown
                 ? `Cooling down ${refreshCountdown}s`
                 : 'Cooling down'
-              : `${keyHealth.available}/${keyHealth.total} models`}
+              : keyHealth.requestsRemainingEstimate !== undefined
+                ? `${keyHealth.requestsRemainingEstimate.toLocaleString()} left today`
+                : `${keyHealth.totalRequests?.toLocaleString() ?? 0} used today`}
           </span>
         )}
 
