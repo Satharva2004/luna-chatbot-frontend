@@ -304,7 +304,7 @@ function normalizeExcalidraw(value: unknown): Message["excalidrawData"] | undefi
 }
 
 export default function ChatPage() {
-  const { logout, token, user, updateUser } = useAuth()
+  const { logout, token, user, updateUser, handleUnauthorized } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -800,8 +800,17 @@ export default function ChatPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('API Error:', errorText)
-        throw new Error(errorText || 'Failed to get response from the API')
+        if (response.status === 401) {
+          handleUnauthorized()
+          throw new Error('Your session expired. Please sign in again.')
+        }
+        let message = errorText || 'Failed to get response from the API'
+        try {
+          const payload = JSON.parse(errorText)
+          message = payload.error || payload.message || message
+        } catch { /* preserve plain-text backend errors */ }
+        console.error('API Error:', message)
+        throw new Error(message)
       }
 
       let resolvedConversationId: string | null = conversationId || null
@@ -1061,7 +1070,10 @@ export default function ChatPage() {
         }
       }
 
-      const finalContent = (streamedContent || "I couldn't fetch the details. Please try again later.")
+      const finalContent = streamedContent || "I couldn't fetch the details. Please try again later."
+      if (!streamedContent.trim()) {
+        throw new Error(finalContent)
+      }
 
       setMessages((prev) =>
         prev.map((msg) =>
@@ -1169,6 +1181,12 @@ export default function ChatPage() {
 
       console.error('Error in streaming:', error)
       const errMsg = error instanceof Error ? error.message : String(error)
+      if (errMsg.toLowerCase().includes('session expired') || errMsg.includes('TOKEN_EXPIRED')) {
+        handleUnauthorized()
+        toast.error('Session expired', { description: 'Please sign in again to continue.' })
+      } else {
+        toast.error('Could not complete your request', { description: describeStreamError(errMsg) })
+      }
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
